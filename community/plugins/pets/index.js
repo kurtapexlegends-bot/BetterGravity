@@ -895,12 +895,71 @@ function petSurface(host, data) {
   chatSend.dataset.petHit = "control";
   chatSend.innerHTML = ICON_REPLY;
 
-  // Codex's context menu contains a single plain Close pet action.
+  const speechBubble = make("div", "bettergravity-pet-bubble");
+  speechBubble.dataset.petHit = "bubble";
+  speechBubble.hidden = true;
+  let bubbleTimer = null;
+
+  const PET_QUOTES = [
+    "Hey Kurt! Ready to build something awesome today? 🚀",
+    "Tip: Click 'Browser' in the sidebar or press Ctrl+Shift+B for the in-built browser! 🌐",
+    "Did you know? You can drag me anywhere around your screen! 🐾",
+    "Tip: Right-click me to see tricks and quick actions! ✨",
+    "I'm keeping watch over your code. Looking great so far! 👀",
+    "Need ideas? Check out the Skills library in the sidebar! 💡",
+    "Fork Chat is ready whenever you want to test a new branch! 🌿"
+  ];
+
+  function showBubble(text, duration = 4500) {
+    if (bubbleTimer) {
+      clearTimeout(bubbleTimer);
+      bubbleTimer = null;
+    }
+    speechBubble.textContent = text;
+    speechBubble.hidden = false;
+    layoutBubble();
+    bubbleTimer = setTimeout(() => {
+      speechBubble.hidden = true;
+      bubbleTimer = null;
+    }, duration);
+  }
+
+  function layoutBubble() {
+    if (speechBubble.hidden) return;
+    const bubbleWidth = 240;
+    const bubbleX = Math.max(12, Math.min(window.innerWidth - bubbleWidth - 12, x + (width - bubbleWidth) / 2));
+    const bubbleY = Math.max(12, y - 56);
+    speechBubble.style.left = `${bubbleX}px`;
+    speechBubble.style.top = `${bubbleY}px`;
+  }
+
+  // Pet right-click context menu
   const petMenu = make("div", "bettergravity-pet-menu");
   petMenu.setAttribute("role", "menu");
   petMenu.setAttribute("aria-label", "Pet");
   petMenu.dataset.petHit = "menu";
   petMenu.hidden = true;
+
+  const trickPetItem = make("button", "bettergravity-pet-menu__item", petMenu);
+  trickPetItem.type = "button";
+  trickPetItem.setAttribute("role", "menuitem");
+  trickPetItem.textContent = "Do a trick ✨";
+
+  const talkPetItem = make("button", "bettergravity-pet-menu__item", petMenu);
+  talkPetItem.type = "button";
+  talkPetItem.setAttribute("role", "menuitem");
+  talkPetItem.textContent = "Say something 💬";
+
+  const browserPetItem = make("button", "bettergravity-pet-menu__item", petMenu);
+  browserPetItem.type = "button";
+  browserPetItem.setAttribute("role", "menuitem");
+  browserPetItem.textContent = "Open browser 🌐";
+
+  const libraryPetItem = make("button", "bettergravity-pet-menu__item", petMenu);
+  libraryPetItem.type = "button";
+  libraryPetItem.setAttribute("role", "menuitem");
+  libraryPetItem.textContent = "Pet library 🐾";
+
   const closePetItem = make("button", "bettergravity-pet-menu__item", petMenu);
   closePetItem.type = "button";
   closePetItem.setAttribute("role", "menuitem");
@@ -1149,6 +1208,8 @@ function petSurface(host, data) {
       right: chatCentreX + chatWidth / 2,
       bottom: chatTop + CHAT_HEIGHT
     };
+
+    layoutBubble();
   }
 
   function place(nextX, nextY) {
@@ -2006,6 +2067,47 @@ function petSurface(host, data) {
         items: [{ id: "close-pet", label: "Close pet" }] });
     } else showPetMenu(point);
   });
+  on(trickPetItem, "click", event => {
+    event.preventDefault();
+    event.stopPropagation();
+    closePetMenu();
+    const TRICK_ANIMS = ["jumping", "waving", "review"];
+    const chosenAnim = TRICK_ANIMS[Math.floor(Math.random() * TRICK_ANIMS.length)];
+    transient = chosenAnim;
+    paint();
+    refresh();
+    setTimeout(() => {
+      if (transient === chosenAnim) {
+        transient = null;
+        paint();
+        refresh();
+      }
+    }, 1500);
+  });
+  on(talkPetItem, "click", event => {
+    event.preventDefault();
+    event.stopPropagation();
+    closePetMenu();
+    const quote = PET_QUOTES[Math.floor(Math.random() * PET_QUOTES.length)];
+    showBubble(quote, 5000);
+  });
+  on(browserPetItem, "click", event => {
+    event.preventDefault();
+    event.stopPropagation();
+    closePetMenu();
+    host.send({ t: "open-browser" });
+  });
+  on(libraryPetItem, "click", event => {
+    event.preventDefault();
+    event.stopPropagation();
+    closePetMenu();
+    host.send({ t: "open-library" });
+  });
+  on(speechBubble, "click", event => {
+    event.stopPropagation();
+    speechBubble.hidden = true;
+    if (bubbleTimer) clearTimeout(bubbleTimer);
+  });
   on(closePetItem, "click", event => {
     event.preventDefault();
     event.stopPropagation();
@@ -2376,9 +2478,26 @@ function petSurface(host, data) {
           Math.abs(last.y - first.y) >= DRAG_THRESHOLD_PX));
 
     if (released && !moved) {
-      // Codex's mascot brings the app forward when it is clicked rather than
-      // dragged. Native focus also restores a minimized owner on the desktop.
       if (desktop) host.focusOwner?.();
+
+      // Playful reaction animation on click
+      const TRICK_ANIMS = ["jumping", "waving", "review"];
+      const chosenAnim = TRICK_ANIMS[Math.floor(Math.random() * TRICK_ANIMS.length)];
+      transient = chosenAnim;
+      paint();
+      refresh();
+      setTimeout(() => {
+        if (transient === chosenAnim) {
+          transient = null;
+          paint();
+          refresh();
+        }
+      }, 1500);
+
+      // Show friendly companion quote / tip
+      const quote = PET_QUOTES[Math.floor(Math.random() * PET_QUOTES.length)];
+      showBubble(quote, 4500);
+
       host.send({ t: "poke" });
       if (pointerAt !== null) updatePointer(pointerAt.x, pointerAt.y);
       return;
@@ -5657,6 +5776,19 @@ function fromSurface(message) {
     }
     case "poke": {
       focusComposer();
+      break;
+    }
+    case "open-browser": {
+      if (typeof window !== "undefined" && window.BetterGravityBrowser?.open) {
+        window.BetterGravityBrowser.open();
+      } else {
+        const toggle = document.querySelector('[data-testid="toggle-aux-sidebar"]');
+        if (toggle) toggle.click();
+      }
+      break;
+    }
+    case "open-library": {
+      openPetLibrary();
       break;
     }
     case "open": {

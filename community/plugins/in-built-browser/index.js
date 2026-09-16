@@ -533,9 +533,10 @@ function activeConversationContext() {
   const id = location.pathname.match(/\/c\/([^/]+)/)?.[1];
   const conversation = document.querySelector('[data-testid="conversation-view"]');
   // These full-page views retain /c/:id while covering the conversation.
-  if (!id || !conversation || document.body.matches(".bettergravity-pets-open, .gemini-skills-open") || conversation.closest("[data-pet-page-hidden], [data-gemini-skills-hidden]")) return null;
-  if (conversation.checkVisibility && !conversation.checkVisibility({ checkVisibilityCSS: true })) return null;
-  return id;
+  if (document.body.matches(".bettergravity-pets-open, .gemini-skills-open") || conversation?.closest("[data-pet-page-hidden], [data-gemini-skills-hidden]")) return null;
+  if (id) return id;
+  if (document.querySelector('[data-testid="agent-input-box"], [data-testid="composer-input"]')) return "home";
+  return null;
 }
 function nativePaneOpen() {
   const wrapper = document.querySelector("[data-aux-pane-open]");
@@ -780,12 +781,26 @@ function agentEffect(node, duration, onHidden) {
   };
 }
 
-function mount(terminal) {
-  if (!terminal) return;
-  const header = terminal.closest("[data-active-tab-id]");
-  const paneBody = header?.nextElementSibling;
+function findAuxAnchor() {
+  const terminal = document.querySelector('button[data-tab-id="terminal"]');
+  if (terminal) return terminal;
+  const anyTab = document.querySelector('[data-active-tab-id] button[data-tab-id]');
+  if (anyTab) return anyTab;
+  const anyHeader = document.querySelector('[data-active-tab-id]');
+  if (anyHeader) return anyHeader.firstElementChild || anyHeader;
+  const auxSidebar = document.querySelector('[data-testid="aux-sidebar"], [data-aux-pane-open]');
+  if (auxSidebar) return auxSidebar.querySelector('button') || auxSidebar.firstElementChild;
+  return null;
+}
+
+function mount(target) {
+  const anchor = target instanceof Element ? target : findAuxAnchor();
+  if (!anchor) return;
+  const header = anchor.closest("[data-active-tab-id]") || anchor;
+  const paneBody = header?.nextElementSibling || header.parentElement;
   if (!header || !paneBody || root?.isConnected && toolbar === header && body === paneBody) return;
-  if (activeConversationContext() !== context) return;
+  const actContext = activeConversationContext();
+  if (actContext && actContext !== context) context = actContext;
   const previousSession = agentSession, previousTaskContext = taskContext, previousTabs = [...agentTabs], previousPoints = [...agentPoints];
   if (root) unmount();
   toolbar = header; body = paneBody;
@@ -827,8 +842,6 @@ function mount(terminal) {
   cursorLayer = element("div", "bg-browser-cursor-layer"); cursorLayer.hidden = true;
   cursorLayer.dataset.testid = "browser-agent-cursor-overlay"; cursorLayer.setAttribute("aria-hidden", "true");
   cursorEffect = agentEffect(cursorLayer, 300, () => {
-    // Let the imported cursor finish behind the layer's fade, then stop its
-    // renderer. Clearing its point at the response boundary would make it jump.
     if (lastCursorState) agentCursor?.setState({ ...lastCursorState, isVisible: false });
     cursorSignature = "";
   });
@@ -853,7 +866,6 @@ function mount(terminal) {
   agentControlLabel = element("span"); agentControlLabel.hidden = true;
   agentControl.append(agentControlIcon, agentControlLabel);
   agentControl.addEventListener("click", event => { event.stopPropagation(); act(state?.paused ? "resume" : "pause"); });
-  // The floating handoff belongs to the host, not the page underneath it.
   for (const type of ["pointerdown", "pointerup", "pointermove", "pointercancel", "pointerleave", "wheel", "keydown", "keyup", "compositionend"]) agentPanel.addEventListener(type, event => event.stopPropagation());
   agentPanel.append(agentMark, statusText, controlDivider, agentControl); agentDock.append(agentPanel); viewport.append(agentDock);
   commentsControl = button("View page comments", "comment", showComments); commentsControl.hidden = true;
@@ -887,13 +899,27 @@ function mount(terminal) {
 }
 
 function showNativePane() {
-  if (activeConversationContext() !== context) return;
-  requestedPaneOpen = true; rememberPaneVisibility(context, true); applyPaneVisibility();
+  const actContext = activeConversationContext();
+  if (actContext && actContext !== context) context = actContext;
+  requestedPaneOpen = true;
+  rememberPaneVisibility(context, true);
+  applyPaneVisibility();
+  if (!nativePaneOpen()) {
+    const toggle = document.querySelector('[data-testid="toggle-aux-sidebar"]');
+    if (toggle) toggle.click();
+  }
 }
+
 async function show() {
-  if (activeConversationContext() !== context) { plugin.ui.toast?.("Open a conversation to use the browser."); return; }
+  const actContext = activeConversationContext();
+  if (!actContext && !context) {
+    context = currentContext() || "home";
+  } else if (actContext) {
+    context = actContext;
+  }
   showNativePane();
-  if (!root) mount(document.querySelector('button[data-tab-id="terminal"]'));
+  await new Promise(r => setTimeout(r, 80));
+  if (!root) mount(findAuxAnchor());
   if (root) { open = true; root.hidden = false; watchLayout(); maskNative(); updateSelection(); scheduleBounds(); }
   try { await request("open"); focusAddress(); } catch (error) { showError(error); }
 }
@@ -1602,6 +1628,27 @@ if (document.body) {
 }
 syncContext();
 plugin.dom.observe('button[data-tab-id="terminal"]', mount);
+plugin.dom.observe('[data-active-tab-id]', mount);
+plugin.dom.observe('[data-testid="aux-sidebar"]', mount);
+
+if (typeof window !== "undefined") {
+  window.BetterGravityBrowser = {
+    open: async (url) => {
+      await show();
+      if (url && typeof url === "string") {
+        try { act("navigate", { url }); } catch (_) {}
+      }
+    },
+    navigate: (url) => {
+      if (url && typeof url === "string") {
+        try { act("navigate", { url }); } catch (_) {}
+      }
+    },
+    hide,
+    toggle: () => (open ? hide() : void show()),
+    isOpen: () => open
+  };
+}
 if (plugin.browser?.available) plugin.browser.onStateChanged(next => {
   if (next.context !== context) return;
   if (activeConversationContext() !== context) { render(next); return; }

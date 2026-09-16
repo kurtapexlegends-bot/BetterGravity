@@ -1170,3 +1170,46 @@
     -webkit-text-fill-color: currentColor;
   }
 }
+
+.bettergravity-pet-bubble {
+  position: fixed;
+  z-index: 2147483646;
+  max-width: 260px;
+  min-width: 140px;
+  padding: 8px 14px;
+  border-radius: 14px;
+  background: rgba(30, 31, 32, 0.94);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.45);
+  color: #f1f3f4;
+  font: 13px/1.4 ui-sans-serif, system-ui, -apple-system, sans-serif;
+  font-weight: 500;
+  pointer-events: auto;
+  cursor: pointer;
+  transform-origin: bottom center;
+  transition: opacity 200ms ease, transform 200ms ease;
+  user-select: none;
+  -webkit-app-region: no-drag;
+}
+.bettergravity-pet-bubble[hidden] {
+  display: none !important;
+}
+.bettergravity-pet-bubble::after {
+  content: "";
+  position: absolute;
+  bottom: -6px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 0;
+  height: 0;
+  border-left: 6px solid transparent;
+  border-right: 6px solid transparent;
+  border-top: 6px solid rgba(30, 31, 32, 0.94);
+}
+.bettergravity-pet-bubble:hover {
+  background: rgba(40, 42, 44, 0.98);
+  border-color: rgba(255, 255, 255, 0.22);
+}
+

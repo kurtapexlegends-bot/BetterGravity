@@ -959,15 +959,34 @@ function handleBridgeEvent(event) {
 
 // 1. Server-Sent Events stream connection
 let eventSource = null;
+let sseReconnectTimer = null;
 
 function connectEventSource() {
+  if (sseReconnectTimer) {
+    clearTimeout(sseReconnectTimer);
+    sseReconnectTimer = null;
+  }
   try {
+    if (eventSource) {
+      eventSource.close();
+      eventSource = null;
+    }
     eventSource = new EventSource(`http://127.0.0.1:${BRIDGE_PORT}/events`);
     eventSource.onopen = () => {
       isConnected = true;
+      pollBackoffMs = 2000;
     };
     eventSource.onerror = () => {
       isConnected = false;
+      try { eventSource?.close(); } catch {}
+      eventSource = null;
+      // Retry SSE after 8s
+      if (!sseReconnectTimer) {
+        sseReconnectTimer = setTimeout(() => {
+          sseReconnectTimer = null;
+          connectEventSource();
+        }, 8000);
+      }
     };
     eventSource.onmessage = (e) => {
       try {
@@ -980,21 +999,51 @@ function connectEventSource() {
 
 connectEventSource();
 
-// 2. Periodic poll fallback when SSE is not active
-const pollInterval = setInterval(() => {
-  if (isConnected && eventSource && eventSource.readyState === 1) return;
+// 2. Adaptive poll fallback when SSE is not active
+let pollTimer = null;
+let pollBackoffMs = 1500;
+let isPolling = false;
+
+function scheduleNextPoll(delayMs) {
+  if (pollTimer) clearTimeout(pollTimer);
+  pollTimer = setTimeout(runPoll, delayMs);
+}
+
+function runPoll() {
+  if (isConnected && eventSource && eventSource.readyState === 1) {
+    scheduleNextPoll(5000);
+    return;
+  }
+  if (isPolling) return;
+  isPolling = true;
+
   fetch(`http://127.0.0.1:${BRIDGE_PORT}/poll`)
-    .then((r) => r.json())
+    .then((r) => {
+      if (!r.ok) throw new Error();
+      return r.json();
+    })
     .then((events) => {
+      pollBackoffMs = 1500;
+      isConnected = true;
       if (Array.isArray(events)) {
-        if (events.length > 0) isConnected = true;
         for (const ev of events) {
           handleBridgeEvent(ev);
         }
       }
+      scheduleNextPoll(1000);
     })
-    .catch(() => {});
-}, 600);
+    .catch(() => {
+      isConnected = false;
+      // Exponential backoff up to 10s
+      pollBackoffMs = Math.min(10000, Math.round(pollBackoffMs * 1.5));
+      scheduleNextPoll(pollBackoffMs);
+    })
+    .finally(() => {
+      isPolling = false;
+    });
+}
+
+scheduleNextPoll(1000);
 
 /* ── Cleanup on Plugin Dispose ───────────────────────────────────────────── */
 
@@ -1013,7 +1062,14 @@ plugin.onDispose(() => {
     eventSource.close();
     eventSource = null;
   }
-  clearInterval(pollInterval);
+  if (sseReconnectTimer) {
+    clearTimeout(sseReconnectTimer);
+    sseReconnectTimer = null;
+  }
+  if (pollTimer) {
+    clearTimeout(pollTimer);
+    pollTimer = null;
+  }
   if (audioContext) {
     try { audioContext.close(); } catch {}
     audioContext = null;

@@ -1202,6 +1202,7 @@ html[data-sidebar-collapsed="true"] [role="navigation"][aria-label="Sidebar"] .g
 [role="navigation"][aria-label="Sidebar"] [data-testid="automations-button"]:active,
 [role="navigation"][aria-label="Sidebar"] #gemini-skills-button:active,
 [role="navigation"][aria-label="Sidebar"] #gemini-scheduled-tasks-button:active,
+[role="navigation"][aria-label="Sidebar"] #gemini-browser-button:active,
 [role="navigation"][aria-label="Sidebar"] #gemini-new-project-button:active,
 [role="navigation"][aria-label="Sidebar"] #gemini-display-options-button:active,
 [role="navigation"][aria-label="Sidebar"] [data-bettergravity-button]:active,
@@ -1251,6 +1252,7 @@ html[data-sidebar-collapsed="true"] [role="navigation"][aria-label="Sidebar"] .g
 [role="navigation"][aria-label="Sidebar"] [data-testid="history-button"] > span:first-child::before,
 [role="navigation"][aria-label="Sidebar"] #gemini-skills-button > span:first-child::before,
 [role="navigation"][aria-label="Sidebar"] #gemini-scheduled-tasks-button > span:first-child::before,
+[role="navigation"][aria-label="Sidebar"] #gemini-browser-button > span:first-child::before,
 [role="navigation"][aria-label="Sidebar"] [data-testid="automations-button"] > span:first-child::before {
   font-family: var(--gemini-icon-font, "Luminous Symbols");
   font-variation-settings: var(--gemini-icon-axes-menu, "FILL" 0, "GRAD" 0, "ROND" 100, "opsz" 20, "wght" 320);
@@ -1284,6 +1286,10 @@ html[data-sidebar-collapsed="true"] [role="navigation"][aria-label="Sidebar"] .g
   content: "contract";
 }
 
+[role="navigation"][aria-label="Sidebar"] #gemini-browser-button > span:first-child::before {
+  content: "language";
+}
+
 [role="navigation"][aria-label="Sidebar"] #gemini-scheduled-tasks-button > span:first-child::before,
 [role="navigation"][aria-label="Sidebar"] [data-testid="automations-button"] > span:first-child::before {
   content: "schedule";
@@ -1294,6 +1300,7 @@ html[data-sidebar-collapsed="true"] [role="navigation"][aria-label="Sidebar"] .g
 [role="navigation"][aria-label="Sidebar"] [data-testid="history-button"]:active > span:first-child::before,
 [role="navigation"][aria-label="Sidebar"] #gemini-skills-button:active > span:first-child::before,
 [role="navigation"][aria-label="Sidebar"] #gemini-scheduled-tasks-button:active > span:first-child::before,
+[role="navigation"][aria-label="Sidebar"] #gemini-browser-button:active > span:first-child::before,
 [role="navigation"][aria-label="Sidebar"] [data-testid="automations-button"]:active > span:first-child::before {
   transform: scale(0.9);
 }
@@ -1328,6 +1335,7 @@ html[data-sidebar-collapsed="true"] [role="navigation"][aria-label="Sidebar"] .g
 [role="navigation"][aria-label="Sidebar"] [data-testid="automations-button"].bg-sidebar-secondary > span:last-child,
 [role="navigation"][aria-label="Sidebar"] #gemini-skills-button.bg-sidebar-secondary > span:last-child,
 [role="navigation"][aria-label="Sidebar"] #gemini-scheduled-tasks-button.bg-sidebar-secondary > span:last-child,
+[role="navigation"][aria-label="Sidebar"] #gemini-browser-button.bg-sidebar-secondary > span:last-child,
 [role="navigation"][aria-label="Sidebar"] div.flex-col > a.bg-sidebar-secondary > span:last-child,
 [role="navigation"][aria-label="Sidebar"] [data-bettergravity-button][aria-pressed="true"] > span:last-child,
 [role="navigation"][aria-label="Sidebar"] [data-bettergravity-button][aria-selected="true"] > span:last-child,
@@ -1350,6 +1358,7 @@ html[data-sidebar-collapsed="true"] [role="navigation"][aria-label="Sidebar"] .g
 [role="navigation"][aria-label="Sidebar"] [data-testid="history-button"].bg-sidebar-secondary > span:first-child::before,
 [role="navigation"][aria-label="Sidebar"] #gemini-skills-button.bg-sidebar-secondary > span:first-child::before,
 [role="navigation"][aria-label="Sidebar"] #gemini-scheduled-tasks-button.bg-sidebar-secondary > span:first-child::before,
+[role="navigation"][aria-label="Sidebar"] #gemini-browser-button.bg-sidebar-secondary > span:first-child::before,
 [role="navigation"][aria-label="Sidebar"] [data-testid="automations-button"].bg-sidebar-secondary > span:first-child::before {
   font-variation-settings: var(--gemini-icon-axes-menu-fill, "FILL" 1, "GRAD" 0, "ROND" 100, "opsz" 20, "wght" 320);
 }
@@ -3055,5 +3064,49 @@ div:has(> [role="menu"][data-gemini-conversation-menu]) {
 [data-testid="settings-button"]:active > span:first-child::before {
   transform: scale(0.9) !important;
 }
+
+/* ---------------------------------------------------------------------------
+ * Titlebar Gemini on Web Quick-Access Button
+ * ------------------------------------------------------------------------- */
+.gemini-titlebar-btn {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  height: 28px !important;
+  padding: 0 10px !important;
+  border-radius: 9999px !important;
+  background: rgba(255, 255, 255, 0.08) !important;
+  color: #e3e3e3 !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  font-family: var(--gemini-font, "Google Sans Flex", sans-serif) !important;
+  font-size: 12px !important;
+  font-weight: 500 !important;
+  cursor: pointer !important;
+  margin-right: 6px !important;
+  transition: background 150ms ease, border-color 150ms ease, color 150ms ease !important;
+  user-select: none !important;
+}
+
+.gemini-titlebar-btn:hover {
+  background: rgba(255, 255, 255, 0.15) !important;
+  color: #ffffff !important;
+  border-color: rgba(255, 255, 255, 0.2) !important;
+}
+
+.gemini-titlebar-btn:active {
+  background: rgba(255, 255, 255, 0.2) !important;
+  transform: scale(0.97) !important;
+}
+
+.gemini-titlebar-sparkle {
+  display: inline-block !important;
+  width: 14px !important;
+  height: 14px !important;
+  background-image: var(--gemini-antigravity-mark) !important;
+  background-repeat: no-repeat !important;
+  background-position: center !important;
+  background-size: contain !important;
+}
+
 
 

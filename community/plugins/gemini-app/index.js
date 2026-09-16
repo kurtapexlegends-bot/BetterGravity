@@ -2839,6 +2839,45 @@ function ensureScheduledTasksRow(block) {
   if (row.parentElement !== block) block.appendChild(row);
 }
 
+function openGeminiWeb() {
+  const url = "https://gemini.google.com";
+  if (window.BetterGravityBrowser && typeof window.BetterGravityBrowser.open === "function") {
+    window.BetterGravityBrowser.open(url);
+  } else {
+    window.open(url, "_blank");
+  }
+}
+
+function ensureBrowserRow(block) {
+  let row = document.getElementById('gemini-browser-button');
+  if (!row) {
+    row = navRow('gemini-browser-button');
+    row.innerHTML = '<span class="icon-box"></span><span class="truncate">Browser</span>';
+    row.title = "Open In-Built Browser";
+    row.addEventListener('click', (e) => {
+      e.preventDefault();
+      closeOpenCustomViews();
+      if (window.BetterGravityBrowser && typeof window.BetterGravityBrowser.toggle === 'function') {
+        window.BetterGravityBrowser.toggle();
+      } else {
+        const toggle = document.querySelector('[data-testid="toggle-aux-sidebar"]') ||
+                       document.querySelector('[data-bettergravity-button*="browser"]') ||
+                       document.querySelector('button[data-tab-id="browser"]');
+        if (toggle) toggle.click();
+      }
+      setTimeout(() => {
+        const isOpen = !!(window.BetterGravityBrowser?.isOpen?.() || document.querySelector('.bettergravity-browser:not([hidden])'));
+        row.classList.toggle('bg-sidebar-secondary', isOpen);
+      }, 100);
+    });
+  }
+  const slot = row.querySelector('span:last-child');
+  if (slot && slot.textContent !== 'Browser') slot.textContent = 'Browser';
+  const isOpen = !!(window.BetterGravityBrowser?.isOpen?.() || document.querySelector('.bettergravity-browser:not([hidden])'));
+  row.classList.toggle('bg-sidebar-secondary', isOpen);
+  if (row.parentElement !== block) block.appendChild(row);
+}
+
 function isPinnedTopNavItem(node) {
   if (!node || node.nodeType !== 1) return true;
   if (node.id === 'gemini-scroll-nav') return true;
@@ -2871,6 +2910,7 @@ function ensureScrollNav() {
   }
   ensureSkillsRow(block);
   ensureScheduledTasksRow(block);
+  ensureBrowserRow(block);
 
   const isWork = getStoredExperience() === 'work';
   if (isWork) {
@@ -2881,8 +2921,8 @@ function ensureScrollNav() {
   ensureDisplayOptionsRow(block);
 
   const topRowIds = isWork
-    ? ['gemini-skills-button', 'gemini-scheduled-tasks-button', 'gemini-new-project-button']
-    : ['gemini-skills-button', 'gemini-scheduled-tasks-button'];
+    ? ['gemini-skills-button', 'gemini-scheduled-tasks-button', 'gemini-browser-button', 'gemini-new-project-button']
+    : ['gemini-skills-button', 'gemini-scheduled-tasks-button', 'gemini-browser-button'];
 
   const topRows = topRowIds
     .map((id) => document.getElementById(id))
@@ -2901,6 +2941,7 @@ function ensureScrollNav() {
   const existingAdoptedInBlock = Array.from(block.children).filter((child) => {
     return child.id !== 'gemini-skills-button' &&
            child.id !== 'gemini-scheduled-tasks-button' &&
+           child.id !== 'gemini-browser-button' &&
            child.id !== 'gemini-new-project-button' &&
            child.id !== 'gemini-display-options-button';
   });
@@ -4403,6 +4444,8 @@ plugin.onDispose(() => {
   document.getElementById("gemini-skills-button")?.remove();
   closeSkillsView();
   document.getElementById("gemini-scheduled-tasks-button")?.remove();
+  document.getElementById("gemini-browser-button")?.remove();
+  document.getElementById("gemini-web-header-btn")?.remove();
   const scrollNav = document.getElementById("gemini-scroll-nav");
   if (scrollNav) {
     const topNav = document.querySelector('[role="navigation"][aria-label="Sidebar"] > .px-2 > div.flex-col') ||
@@ -4411,6 +4454,7 @@ plugin.onDispose(() => {
       const adopted = Array.from(scrollNav.children).filter((c) => {
         return c.id !== 'gemini-skills-button' &&
                c.id !== 'gemini-scheduled-tasks-button' &&
+               c.id !== 'gemini-browser-button' &&
                c.id !== 'gemini-new-project-button' &&
                c.id !== 'gemini-display-options-button';
       });
@@ -5436,6 +5480,20 @@ function addTools(popup) {
   const rest = offer.filter((tool) => !featured.includes(tool));
 
   wrapper.append(plugin.ui.element("div", { role: "separator", "aria-orientation": "horizontal" }));
+  const webRow = row("context", "gemini", "Gemini on Web", {
+    title: "Open Google Gemini in web (gemini.google.com)"
+  });
+  webRow.id = "gemini-web-menu-item";
+  const onWebSelect = (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    openGeminiWeb();
+    closeMenu(popup);
+  };
+  webRow.addEventListener("pointerdown", onWebSelect, { capture: true });
+  webRow.addEventListener("click", onWebSelect, { capture: true });
+  wrapper.append(webRow);
+
   for (const tool of featured) wrapper.append(toolRow(popup, tool));
   if (rest.length > 0) wrapper.append(moreRow(popup, rest));
 }
@@ -5502,6 +5560,26 @@ const stopMenus = plugin.dom.observe('[role="menu"]', (popup) => {
  * ------------------------------------------------------------------------- */
 const DISCLAIMER_TEXT = "Antigravity is AI and can make mistakes.";
 
+function renderDisclaimerContent(disclaimer) {
+  disclaimer.innerHTML = '';
+  const text = document.createElement("span");
+  text.textContent = DISCLAIMER_TEXT;
+  const sep = document.createElement("span");
+  sep.textContent = " · ";
+  sep.style.opacity = "0.6";
+  const link = document.createElement("button");
+  link.type = "button";
+  link.className = "gemini-web-access-link";
+  link.textContent = "Gemini on Web ↗";
+  link.title = "Open Google Gemini in web (gemini.google.com)";
+  link.addEventListener("click", (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    openGeminiWeb();
+  });
+  disclaimer.append(text, sep, link);
+}
+
 function ensureAiDisclaimer(box) {
   if (!box || !box.isConnected) return;
 
@@ -5527,11 +5605,11 @@ function ensureAiDisclaimer(box) {
   if (!disclaimer) {
     disclaimer = document.createElement("p");
     disclaimer.className = "gemini-ai-disclaimer";
-    disclaimer.textContent = DISCLAIMER_TEXT;
+    renderDisclaimerContent(disclaimer);
     box.appendChild(disclaimer);
   } else {
-    if (disclaimer.textContent !== DISCLAIMER_TEXT) {
-      disclaimer.textContent = DISCLAIMER_TEXT;
+    if (!disclaimer.querySelector('.gemini-web-access-link')) {
+      renderDisclaimerContent(disclaimer);
     }
     if (box.lastElementChild !== disclaimer) {
       box.appendChild(disclaimer);
@@ -8459,8 +8537,35 @@ function openChipMenu(spec, chip) {
   trigger.click();
 }
 
+function ensureGeminiWebHeaderButton() {
+  const more = document.querySelector(TOP_BAR_MORE);
+  if (!more) return;
+  const bar = more.closest("div.justify-between") || more.parentElement;
+  if (!bar) return;
+  let btn = document.getElementById("gemini-web-header-btn");
+  if (!btn) {
+    btn = document.createElement("button");
+    btn.id = "gemini-web-header-btn";
+    btn.type = "button";
+    btn.className = "gemini-titlebar-btn";
+    btn.setAttribute("data-no-drag", "");
+    btn.setAttribute("aria-label", "Open Gemini on Web");
+    btn.title = "Open Google Gemini in web (gemini.google.com)";
+    btn.innerHTML = '<span class="gemini-titlebar-sparkle"></span><span class="gemini-titlebar-label">Gemini Web</span>';
+    btn.addEventListener("click", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      openGeminiWeb();
+    });
+  }
+  if (more.parentElement && btn.parentElement !== more.parentElement) {
+    more.parentElement.insertBefore(btn, more);
+  }
+}
+
 /** Both chips against whatever is on screen now. Hidden when inside a session. */
 function reconcileTopChips() {
+  ensureGeminiWebHeaderButton();
   // React can rebuild a trigger while its menu is open, which closes the menu
   // without ever writing `aria-expanded` on the node that was parked.
   if (parkedTrigger && !parkedTrigger.trigger.isConnected) releaseParkedTrigger();
@@ -8507,14 +8612,19 @@ function reconcileTopChips() {
  * back to a page it no longer agrees with.
  */
 topChipsReady = true;
-plugin.dom.observe(TOP_BAR_MORE, () => reconcileTopChips());
+plugin.dom.observe(TOP_BAR_MORE, () => {
+  ensureGeminiWebHeaderButton();
+  reconcileTopChips();
+});
 for (const spec of TOP_CHIPS) plugin.dom.observe(spec.trigger, () => reconcileTopChips());
 
 const topChipsTicker = window.setInterval(() => {
+  ensureGeminiWebHeaderButton();
   if (!document.querySelector(HOME_SCROLLER) && !topChipHostEl) return;
   reconcileTopChips();
 }, 1000);
 reconcileTopChips();
+ensureGeminiWebHeaderButton();
 
 /* ---------------------------------------------------------------------------
  * Willow Rename Dialog ("Rename this chat")

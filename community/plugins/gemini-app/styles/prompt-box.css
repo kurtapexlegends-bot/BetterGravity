@@ -703,6 +703,24 @@
   pointer-events: none !important;
 }
 
+.gemini-ai-disclaimer .gemini-web-access-link {
+  pointer-events: auto !important;
+  cursor: pointer !important;
+  background: transparent !important;
+  border: none !important;
+  color: #a8c7fa !important;
+  font-family: inherit !important;
+  font-size: inherit !important;
+  padding: 0 2px !important;
+  text-decoration: underline !important;
+  text-underline-offset: 2px !important;
+  transition: color 150ms ease !important;
+}
+
+.gemini-ai-disclaimer .gemini-web-access-link:hover {
+  color: #d3e3fd !important;
+}
+
 /* --- 2g. Willow ToolChip (when a tool is selected) ---------------------------
  * Willow (features/chat/src/composer/Composer.tsx:512-557 &
  * apps/studio/test/gemini-tool-chip.test.mjs):

@@ -167,7 +167,7 @@ function currentConversationId() {
   const view = document.querySelector('[data-testid="conversation-view"]');
   const id = view?.getAttribute("data-cascade-id") ?? "";
   if (id && id !== "conversation") return id;
-  const match = typeof window !== "undefined" && window.location?.pathname ? window.location.pathname.match(/\/c\/([a-f0-9-]+)/i) : null;
+  const match = typeof window !== "undefined" && window.location?.pathname ? window.location.pathname.match(/\/c\/([a-zA-Z0-9_-]+)/i) : null;
   return match ? match[1] : "";
 }
 
@@ -199,6 +199,14 @@ async function navigateToConversation(cascadeId, projectId) {
     rowLink.click();
     return true;
   }
+
+  // SPA History Fallback
+  try {
+    const url = `/c/${encodeURIComponent(cascadeId)}${projectId ? `?section=${encodeURIComponent(projectId)}` : ""}`;
+    window.history.pushState(null, "", url);
+    window.dispatchEvent(new PopStateEvent("popstate"));
+    return true;
+  } catch {}
 
   return false;
 }
@@ -548,7 +556,8 @@ function openTurnForkPopover(button, cascadeId, stepIndex) {
 function forkPointFromBar(bar) {
   const view = bar.closest('[data-testid="conversation-view"]');
   const viewId = view?.getAttribute("data-cascade-id");
-  const sourceCascadeId = viewId && viewId !== "conversation" ? viewId : undefined;
+  const fallbackId = currentConversationId();
+  const sourceCascadeId = (viewId && viewId !== "conversation") ? viewId : fallbackId;
   let fiber = getFiber(bar);
   let responseSteps = null;
   let fullTrajectory = null;
@@ -564,14 +573,19 @@ function forkPointFromBar(bar) {
     const slice = props.trajectorySlice;
     if (slice && Array.isArray(slice.stepsInSlice)) {
       const id = slice.conversationId || props.cascadeId || contextId;
-      if (!id || (sourceCascadeId && id !== sourceCascadeId)) return undefined;
+      if (!id || (sourceCascadeId && id !== sourceCascadeId)) {
+        if (sourceCascadeId) return { sourceCascadeId, forkAtStepIndex: -1 };
+        return undefined;
+      }
       const position = slice.stepsInSlice.indexOf(lastStep);
       const start = slice.stepsSlice?.startIndex;
-      if (position < 0 || !Number.isSafeInteger(start) || start < 0) return undefined;
+      if (position < 0 || !Number.isSafeInteger(start) || start < 0) {
+        return { sourceCascadeId: id, forkAtStepIndex: -1 };
+      }
       const index = start + position;
-      if (!Number.isSafeInteger(index) || (Number.isSafeInteger(slice.totalStepsLength) && index >= slice.totalStepsLength)) return undefined;
-      // The API includes this step. Slice offsets remain correct on paged
-      // history and on branches whose steps retain another trajectory's metadata.
+      if (!Number.isSafeInteger(index) || (Number.isSafeInteger(slice.totalStepsLength) && index >= slice.totalStepsLength)) {
+        return { sourceCascadeId: id, forkAtStepIndex: -1 };
+      }
       return { sourceCascadeId: id, forkAtStepIndex: index };
     }
 
@@ -582,22 +596,25 @@ function forkPointFromBar(bar) {
     if (fiber.stateNode === view) break;
   }
 
-  if (!responseSteps?.length || !contextId || (sourceCascadeId && contextId !== sourceCascadeId)) return undefined;
+  if (!responseSteps?.length || !contextId || (sourceCascadeId && contextId !== sourceCascadeId)) {
+    if (sourceCascadeId) return { sourceCascadeId, forkAtStepIndex: -1 };
+    return undefined;
+  }
   const lastStep = responseSteps[responseSteps.length - 1];
   if (fullTrajectory) {
     const index = fullTrajectory.indexOf(lastStep);
     if (index >= 0) return { sourceCascadeId: contextId, forkAtStepIndex: index };
-    return undefined;
+    return { sourceCascadeId: contextId, forkAtStepIndex: -1 };
   }
 
-  // Older host versions expose only a response's step metadata. Use the final
-  // step, never an earlier step or the -1 sentinel for copying the entire chat.
+  // Older host versions expose only a response's step metadata.
   const source = lastStep.metadata?.sourceTrajectoryStepInfo;
   if (source && (!source.cascadeId || source.cascadeId === contextId)) {
     if (Number.isSafeInteger(source.stepIndex) && source.stepIndex >= 0) {
       return { sourceCascadeId: contextId, forkAtStepIndex: source.stepIndex };
     }
   }
+  if (sourceCascadeId) return { sourceCascadeId, forkAtStepIndex: -1 };
   return undefined;
 }
 
@@ -720,12 +737,17 @@ function decorateTurnBar(bar) {
   button.addEventListener("click", (event) => {
     event.stopPropagation();
     const point = forkPointFromBar(bar);
-    if (!point) {
-      const cascadeId = bar.closest('[data-testid="conversation-view"]')?.getAttribute("data-cascade-id");
-      void runFork(cascadeId, undefined, settings.defaultTarget);
+    const cascadeId = point?.sourceCascadeId || currentConversationId();
+    const stepIndex = (point && Number.isSafeInteger(point.forkAtStepIndex)) ? point.forkAtStepIndex : -1;
+    if (!cascadeId) {
+      plugin.ui.toast({
+        title: "No conversation selected",
+        body: "Could not identify a conversation to fork.",
+        kind: "warning"
+      });
       return;
     }
-    openTurnForkPopover(button, point.sourceCascadeId, point.forkAtStepIndex);
+    openTurnForkPopover(button, cascadeId, stepIndex);
   });
 
   // Always append at the end so it renders after Copy and Like/Dislike
