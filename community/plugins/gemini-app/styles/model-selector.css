@@ -393,6 +393,7 @@
   text-transform: uppercase !important;
   margin-left: 6px !important;
   flex-shrink: 0 !important;
+  pointer-events: none !important;
 }
 
 /* Context Window Popover / Tooltip */

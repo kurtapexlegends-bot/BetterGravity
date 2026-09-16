@@ -486,10 +486,12 @@ const PILL_SELECTOR = '[data-testid="agent-input-box"] [data-testid="model-selec
  * frozen on whatever it said when the plugin started.
  */
 function nameNode(pill) {
-  const label = pill.querySelector("span");
-  if (!label) return null;
-  for (const node of label.childNodes) {
-    if (node.nodeType === Node.TEXT_NODE && node.data.trim()) return node;
+  const spans = pill.querySelectorAll("span");
+  for (const span of spans) {
+    if (span.classList?.contains("gemini-context-ring-wrap") || span.closest?.(".gemini-context-ring-wrap")) continue;
+    for (const node of span.childNodes) {
+      if (node.nodeType === Node.TEXT_NODE && node.data.trim()) return node;
+    }
   }
   return null;
 }
@@ -689,7 +691,15 @@ function getActiveConversationId() {
   return match ? match[1] : "";
 }
 
-function getConversationContextMetrics() {
+let cachedContextMetrics = null;
+let lastContextMetricsTime = 0;
+
+function getConversationContextMetrics(forceRefresh = false) {
+  const now = Date.now();
+  if (!forceRefresh && cachedContextMetrics && (now - lastContextMetricsTime < 2500)) {
+    return cachedContextMetrics;
+  }
+
   const modelPill = document.querySelector(PILL_SELECTOR);
   const rawModelName = modelPill?.dataset?.fullModelName || modelPill?.textContent || "Gemini 3.8 Flash";
   const limit = getModelContextLimit(rawModelName);
@@ -738,7 +748,7 @@ function getConversationContextMetrics() {
   const percentage = (ratio * 100).toFixed(1);
   const remaining = Math.max(0, limit - used);
 
-  return {
+  const result = {
     used,
     limit,
     ratio,
@@ -746,6 +756,9 @@ function getConversationContextMetrics() {
     remaining,
     modelName: rawModelName
   };
+  cachedContextMetrics = result;
+  lastContextMetricsTime = now;
+  return result;
 }
 
 const CONTEXT_RING_CIRCUMFERENCE = 43.982; // 2 * Math.PI * 7
@@ -810,20 +823,35 @@ function updateContextRing(ringWrap) {
 
   const displayRatio = Math.max(metrics.ratio, 0.02);
   const offset = CONTEXT_RING_CIRCUMFERENCE * (1 - Math.min(displayRatio, 1));
-  fill.style.strokeDashoffset = `${offset}`;
+  const newOffsetStr = `${offset}`;
+  if (fill.style.strokeDashoffset !== newOffsetStr) {
+    fill.style.strokeDashoffset = newOffsetStr;
+  }
 
-  if (metrics.ratio >= 0.90) {
-    fill.setAttribute('data-level', 'alert');
-  } else if (metrics.ratio >= 0.75) {
-    fill.setAttribute('data-level', 'warn');
-  } else {
+  const expectedLevel = metrics.ratio >= 0.90 ? 'alert' : (metrics.ratio >= 0.75 ? 'warn' : null);
+  if (expectedLevel) {
+    if (fill.getAttribute('data-level') !== expectedLevel) {
+      fill.setAttribute('data-level', expectedLevel);
+    }
+  } else if (fill.hasAttribute('data-level')) {
     fill.removeAttribute('data-level');
   }
 
-  ringWrap.title = `Context: ${formatTokenCount(metrics.used)} / ${formatTokenLimit(metrics.limit)} (${metrics.percentage}%) • Click for details`;
-  ringWrap.dataset.usedTokens = String(metrics.used);
-  ringWrap.dataset.limitTokens = String(metrics.limit);
-  ringWrap.dataset.pct = metrics.percentage;
+  const newTitle = `Context: ${formatTokenCount(metrics.used)} / ${formatTokenLimit(metrics.limit)} (${metrics.percentage}%) • Click for details`;
+  if (ringWrap.title !== newTitle) {
+    ringWrap.title = newTitle;
+  }
+  const usedStr = String(metrics.used);
+  if (ringWrap.dataset.usedTokens !== usedStr) {
+    ringWrap.dataset.usedTokens = usedStr;
+  }
+  const limitStr = String(metrics.limit);
+  if (ringWrap.dataset.limitTokens !== limitStr) {
+    ringWrap.dataset.limitTokens = limitStr;
+  }
+  if (ringWrap.dataset.pct !== metrics.percentage) {
+    ringWrap.dataset.pct = metrics.percentage;
+  }
 }
 
 function ensureContextRing(pill) {
@@ -871,34 +899,49 @@ function ensureContextRing(pill) {
   updateContextRing(ringWrap);
 }
 
+let isEnhancingModelPanel = false;
+
 function enhanceModelSelectorPanel(panel) {
-  if (!panel || !panel.isConnected) return;
+  if (!panel || !panel.isConnected || isEnhancingModelPanel) return;
+  isEnhancingModelPanel = true;
 
-  const rows = panel.querySelectorAll('[role="menuitem"]');
-  for (const row of rows) {
-    const text = (row.textContent || "").trim();
-    if (text.includes("View Usage")) {
-      let stats = row.querySelector('.gemini-usage-stats');
-      if (!stats) {
-        stats = document.createElement('span');
-        stats.className = 'gemini-usage-stats';
-        stats.style.cssText = 'margin-left: auto; font-size: 11px; color: var(--gemini-text-dim, rgba(255,255,255,0.5)); padding-right: 8px; font-variant-numeric: tabular-nums;';
-        row.appendChild(stats);
+  try {
+    const rows = panel.querySelectorAll('[role="menuitem"], [role="menuitemradio"]');
+    for (const row of rows) {
+      if (row.querySelector('.gemini-model-limit-tag') || row.querySelector('.gemini-usage-stats')) continue;
+
+      const text = (row.textContent || "").trim();
+      if (text.toLowerCase().includes("view usage") || text.toLowerCase().includes("manage models")) {
+        let stats = row.querySelector('.gemini-usage-stats');
+        if (!stats) {
+          stats = document.createElement('span');
+          stats.className = 'gemini-usage-stats';
+          stats.style.cssText = 'margin-left: auto; font-size: 11px; color: var(--gemini-text-dim, rgba(255,255,255,0.5)); padding-right: 8px; font-variant-numeric: tabular-nums; pointer-events: none;';
+          row.appendChild(stats);
+        }
+        const metrics = getConversationContextMetrics();
+        const statsStr = `${formatTokenCount(metrics.used)} / ${formatTokenLimit(metrics.limit)}`;
+        if (stats.textContent !== statsStr) {
+          stats.textContent = statsStr;
+        }
+        continue;
       }
-      const metrics = getConversationContextMetrics();
-      stats.textContent = `${formatTokenCount(metrics.used)} / ${formatTokenLimit(metrics.limit)}`;
-      continue;
-    }
 
-    const firstSpan = row.querySelector('span:first-child');
-    if (firstSpan && !row.querySelector('.gemini-model-limit-tag')) {
       const limit = getModelContextLimit(text);
-      const tag = document.createElement('span');
-      tag.className = 'gemini-model-limit-tag';
-      tag.textContent = formatTokenLimit(limit);
-      tag.title = `Context Window Limit: ${limit.toLocaleString()} tokens`;
-      firstSpan.appendChild(tag);
+      if (limit) {
+        const tag = document.createElement('span');
+        tag.className = 'gemini-model-limit-tag';
+        tag.textContent = formatTokenLimit(limit);
+        tag.title = `Context Window Limit: ${limit.toLocaleString()} tokens`;
+        tag.style.pointerEvents = 'none';
+        tag.style.marginLeft = 'auto';
+        row.appendChild(tag);
+      }
     }
+  } catch (err) {
+    console.debug("[BetterGravity] Error enhancing model panel:", err);
+  } finally {
+    isEnhancingModelPanel = false;
   }
 }
 
@@ -908,132 +951,139 @@ const EFFORT_DESCRIPTIONS = {
   high: "Deeper multi-step reasoning and thorough verification for complex problems."
 };
 
+let isEnhancingEffort = false;
+
 function enhanceEffortSubmenu(submenu) {
-  if (!submenu || !submenu.isConnected) return;
+  if (!submenu || !submenu.isConnected || isEnhancingEffort) return;
+  if (submenu.querySelector('.gemini-effort-slider-card')) return;
+  isEnhancingEffort = true;
 
-  const radioItems = Array.from(submenu.querySelectorAll('[role="menuitemradio"], [data-testid="model-selector-effort-option"]'));
-  if (radioItems.length === 0) return;
+  try {
+    const radioItems = Array.from(submenu.querySelectorAll('[role="menuitemradio"], [data-testid="model-selector-effort-option"]'));
+    if (radioItems.length === 0) return;
 
-  submenu.classList.add('gemini-effort-submenu-host');
+    submenu.classList.add('gemini-effort-submenu-host');
 
-  let card = submenu.querySelector('.gemini-effort-slider-card');
-  if (!card) {
-    card = document.createElement('div');
-    card.className = 'gemini-effort-slider-card';
+    let card = submenu.querySelector('.gemini-effort-slider-card');
+    if (!card) {
+      card = document.createElement('div');
+      card.className = 'gemini-effort-slider-card';
 
-    const stepItems = [];
-    radioItems.forEach((item) => {
-      const label = item.textContent?.trim() || "";
-      const match = label.match(/\b(Low|Medium|High|Off)\b/i);
-      const name = match ? match[1] : label;
-      const isChecked = item.getAttribute('aria-checked') === 'true' || 
-                        item.getAttribute('data-state') === 'checked' || 
-                        !!item.querySelector('[data-checked]');
-      stepItems.push({ name, element: item, isChecked });
-    });
-
-    if (stepItems.length < 2) return;
-
-    let activeIdx = stepItems.findIndex(s => s.isChecked);
-    if (activeIdx === -1) {
-      const pill = document.querySelector(PILL_SELECTOR);
-      const pillEffort = pill?.querySelector('span > span')?.textContent?.trim().toLowerCase();
-      if (pillEffort) {
-        activeIdx = stepItems.findIndex(s => s.name.toLowerCase() === pillEffort);
-      }
-      if (activeIdx === -1) activeIdx = Math.max(0, stepItems.length - 1);
-    }
-
-    const currentName = stepItems[activeIdx]?.name || "High";
-    const currentDesc = EFFORT_DESCRIPTIONS[currentName.toLowerCase()] || `Reasoning effort set to ${currentName}.`;
-
-    card.innerHTML = `
-      <div class="gemini-effort-slider-header">
-        <span class="gemini-effort-slider-title">Thinking Effort</span>
-        <span class="gemini-effort-current-badge">${currentName}</span>
-      </div>
-      <div class="gemini-effort-track" data-active-index="${activeIdx}">
-        <div class="gemini-effort-glider"></div>
-      </div>
-      <div class="gemini-effort-desc">${currentDesc}</div>
-    `;
-
-    const track = card.querySelector('.gemini-effort-track');
-    const badge = card.querySelector('.gemini-effort-current-badge');
-    const desc = card.querySelector('.gemini-effort-desc');
-
-    const stepButtons = [];
-    stepItems.forEach((s, idx) => {
-      const btn = document.createElement('button');
-      btn.type = 'button';
-      btn.className = 'gemini-effort-step' + (idx === activeIdx ? ' is-active' : '');
-      btn.setAttribute('data-index', String(idx));
-      btn.textContent = s.name;
-
-      btn.addEventListener('click', (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        selectIndex(idx);
+      const stepItems = [];
+      radioItems.forEach((item) => {
+        const label = item.textContent?.trim() || "";
+        const match = label.match(/\b(Low|Medium|High|Off)\b/i);
+        const name = match ? match[1] : label;
+        const isChecked = item.getAttribute('aria-checked') === 'true' || 
+                          item.getAttribute('data-state') === 'checked' || 
+                          !!item.querySelector('[data-checked]');
+        stepItems.push({ name, element: item, isChecked });
       });
 
-      track.appendChild(btn);
-      stepButtons.push(btn);
-    });
+      if (stepItems.length < 2) return;
 
-    function selectIndex(newIdx) {
-      if (newIdx < 0 || newIdx >= stepItems.length) return;
-      activeIdx = newIdx;
-      track.setAttribute('data-active-index', String(newIdx));
-      stepButtons.forEach((b, i) => b.classList.toggle('is-active', i === newIdx));
-      const chosenName = stepItems[newIdx].name;
-      badge.textContent = chosenName;
-      desc.textContent = EFFORT_DESCRIPTIONS[chosenName.toLowerCase()] || `Reasoning effort set to ${chosenName}.`;
-
-      const radio = stepItems[newIdx].element;
-      if (radio && typeof radio.click === 'function') {
-        radio.click();
+      let activeIdx = stepItems.findIndex(s => s.isChecked);
+      if (activeIdx === -1) {
+        const pill = document.querySelector(PILL_SELECTOR);
+        const pillEffort = pill?.querySelector('span > span')?.textContent?.trim().toLowerCase();
+        if (pillEffort) {
+          activeIdx = stepItems.findIndex(s => s.name.toLowerCase() === pillEffort);
+        }
+        if (activeIdx === -1) activeIdx = Math.max(0, stepItems.length - 1);
       }
-    }
 
-    let dragging = false;
-    const computeIndexFromEvent = (e) => {
-      const rect = track.getBoundingClientRect();
-      const x = Math.max(0, Math.min(e.clientX - rect.left, rect.width));
-      return Math.min(Math.floor((x / rect.width) * stepItems.length), stepItems.length - 1);
-    };
+      const currentName = stepItems[activeIdx]?.name || "High";
+      const currentDesc = EFFORT_DESCRIPTIONS[currentName.toLowerCase()] || `Reasoning effort set to ${currentName}.`;
 
-    track.addEventListener('pointerdown', (e) => {
-      dragging = true;
-      track.setPointerCapture?.(e.pointerId);
-      selectIndex(computeIndexFromEvent(e));
-    });
+      card.innerHTML = `
+        <div class="gemini-effort-slider-header">
+          <span class="gemini-effort-slider-title">Thinking Effort</span>
+          <span class="gemini-effort-current-badge">${currentName}</span>
+        </div>
+        <div class="gemini-effort-track" data-active-index="${activeIdx}">
+          <div class="gemini-effort-glider"></div>
+        </div>
+        <div class="gemini-effort-desc">${currentDesc}</div>
+      `;
 
-    track.addEventListener('pointermove', (e) => {
-      if (dragging) selectIndex(computeIndexFromEvent(e));
-    });
+      const track = card.querySelector('.gemini-effort-track');
+      const badge = card.querySelector('.gemini-effort-current-badge');
+      const desc = card.querySelector('.gemini-effort-desc');
 
-    track.addEventListener('pointerup', (e) => {
-      if (dragging) {
-        dragging = false;
-        track.releasePointerCapture?.(e.pointerId);
+      const stepButtons = [];
+      stepItems.forEach((s, idx) => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'gemini-effort-step' + (idx === activeIdx ? ' is-active' : '');
+        btn.setAttribute('data-index', String(idx));
+        btn.textContent = s.name;
+
+        btn.addEventListener('click', (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          selectIndex(idx);
+        });
+
+        track.appendChild(btn);
+        stepButtons.push(btn);
+      });
+
+      function selectIndex(newIdx) {
+        if (newIdx < 0 || newIdx >= stepItems.length) return;
+        activeIdx = newIdx;
+        track.setAttribute('data-active-index', String(newIdx));
+        stepButtons.forEach((b, i) => b.classList.toggle('is-active', i === newIdx));
+        const chosenName = stepItems[newIdx].name;
+        badge.textContent = chosenName;
+        desc.textContent = EFFORT_DESCRIPTIONS[chosenName.toLowerCase()] || `Reasoning effort set to ${chosenName}.`;
+
+        const radio = stepItems[newIdx].element;
+        if (radio && typeof radio.click === 'function') {
+          radio.click();
+        }
+      }
+
+      let dragging = false;
+      const computeIndexFromEvent = (e) => {
+        const rect = track.getBoundingClientRect();
+        const x = Math.max(0, Math.min(e.clientX - rect.left, rect.width));
+        return Math.min(Math.floor((x / rect.width) * stepItems.length), stepItems.length - 1);
+      };
+
+      track.addEventListener('pointerdown', (e) => {
+        dragging = true;
+        track.setPointerCapture?.(e.pointerId);
         selectIndex(computeIndexFromEvent(e));
-      }
-    });
+      });
 
-    submenu.prepend(card);
+      track.addEventListener('pointermove', (e) => {
+        if (dragging) selectIndex(computeIndexFromEvent(e));
+      });
+
+      track.addEventListener('pointerup', (e) => {
+        if (dragging) {
+          dragging = false;
+          track.releasePointerCapture?.(e.pointerId);
+          selectIndex(computeIndexFromEvent(e));
+        }
+      });
+
+      submenu.prepend(card);
+    }
+  } catch (err) {
+    console.debug("[BetterGravity] Error enhancing effort submenu:", err);
+  } finally {
+    isEnhancingEffort = false;
   }
 }
 
 plugin.dom.observe(PILL_SELECTOR, (pill) => {
   apply(pill);
   ensureContextRing(pill);
-  // React writes the new name into the existing text node when the model
-  // changes, and rebuilds the span outright in some updates. Both are caught
-  // here. Writing the short name triggers the observer once more, but a short
-  // name shortens to itself, so that pass does nothing and the loop ends.
   const observer = new MutationObserver(() => {
     apply(pill);
     ensureContextRing(pill);
+    observer.takeRecords();
   });
   observer.observe(pill, { subtree: true, childList: true, characterData: true });
   remember(pill, observer);
@@ -1041,15 +1091,28 @@ plugin.dom.observe(PILL_SELECTOR, (pill) => {
 
 plugin.dom.observe('[data-testid="model-selector-panel"]', (panel) => {
   enhanceModelSelectorPanel(panel);
-  const observer = new MutationObserver(() => enhanceModelSelectorPanel(panel));
-  observer.observe(panel, { subtree: true, childList: true });
+  const observer = new MutationObserver((mutations) => {
+    if (isEnhancingModelPanel) return;
+    const hasExternalChanges = mutations.some(m =>
+      Array.from(m.addedNodes).some(n => n instanceof Element && !n.classList?.contains('gemini-model-limit-tag') && !n.classList?.contains('gemini-usage-stats'))
+    );
+    if (!hasExternalChanges) return;
+    enhanceModelSelectorPanel(panel);
+    observer.takeRecords();
+  });
+  observer.observe(panel, { childList: true });
   remember(panel, observer);
 });
 
 plugin.dom.observe('[role="menu"][data-nested]', (submenu) => {
   enhanceEffortSubmenu(submenu);
-  const observer = new MutationObserver(() => enhanceEffortSubmenu(submenu));
-  observer.observe(submenu, { subtree: true, childList: true });
+  const observer = new MutationObserver((mutations) => {
+    if (isEnhancingEffort) return;
+    if (submenu.querySelector('.gemini-effort-slider-card')) return;
+    enhanceEffortSubmenu(submenu);
+    observer.takeRecords();
+  });
+  observer.observe(submenu, { childList: true });
   remember(submenu, observer);
 });
 
@@ -4752,11 +4815,15 @@ function syncConvMenuItem(menu, id, label, iconSvg, action, anchor) {
 function enhanceConversationMenu(menu) {
   // Ignore model selector, plus menu, or nested submenus that are not conversation actions
   if (menu.hasAttribute('data-gemini-plus-menu') || 
+      menu.matches('[data-testid="model-selector-panel"]') ||
+      menu.closest('[data-testid="model-selector-panel"]') ||
+      menu.querySelector('[data-testid="model-selector-panel"]') ||
+      menu.querySelector('[data-testid="model-selector-effort-option"]') ||
+      menu.querySelector('[role="menuitemradio"]') ||
       menu.querySelector('[data-gemini-tools]') ||
       menu.querySelector('[data-gemini-row]') ||
       menu.querySelector('[data-gemini-label]') ||
       isPlusMenu(menu) ||
-      menu.querySelector('[data-testid="model-selector-panel"]') || 
       menu.hasAttribute('data-nested')) {
     return;
   }
@@ -4874,6 +4941,17 @@ function enhanceConversationMenu(menu) {
 }
 
 plugin.dom.observe('[role="menu"]', (menu) => {
+  if (
+    menu.matches('[data-testid="model-selector-panel"]') ||
+    menu.closest('[data-testid="model-selector-panel"]') ||
+    menu.querySelector('[data-testid="model-selector-panel"]') ||
+    menu.querySelector('[data-testid="model-selector-effort-option"]') ||
+    menu.querySelector('[role="menuitemradio"]') ||
+    menu.hasAttribute('data-nested') ||
+    menu.hasAttribute('data-gemini-plus-menu')
+  ) {
+    return;
+  }
   /*
    * The pass reads the whole menu as it stands, so the changes it just made
    * need no second look - and dropping them is what stops a change from asking
@@ -6015,24 +6093,35 @@ function decorate(popup) {
 /* Watched separately from the model pill and the sidebar above: those restore a
  * label on dispose, and a menu popup is a different thing to put back. */
 const stopMenus = plugin.dom.observe('[role="menu"]', (popup) => {
-  // Every menu in the app arrives here. One whose trigger is known and is not
-  // the plus button is dropped at once; one whose trigger is not linked yet is
-  // kept, since `decorate` asks again on each pass.
+  if (
+    popup.matches('[data-testid="model-selector-panel"]') ||
+    popup.closest('[data-testid="model-selector-panel"]') ||
+    popup.querySelector('[data-testid="model-selector-panel"]') ||
+    popup.querySelector('[data-testid="model-selector-effort-option"]') ||
+    popup.querySelector('[role="menuitemradio"]') ||
+    popup.hasAttribute('data-nested') ||
+    popup.hasAttribute('data-gemini-conversation-menu')
+  ) {
+    return;
+  }
+
   const trigger = triggerFor(popup);
   if (trigger && !trigger.matches(PLUS_TRIGGER)) return;
+  if (!trigger && !isPlusMenu(popup)) {
+    const inPromptBox = popup.closest(INPUT_BOX) || document.querySelector(`${INPUT_BOX} ${PLUS_TRIGGER}[data-state="open"], ${INPUT_BOX} ${PLUS_TRIGGER}[aria-expanded="true"]`);
+    if (!inPromptBox) return;
+  }
+
   decorate(popup);
-  // Antigravity fills the card after mounting it, and refills it as the
-  // conversation changes which context is on offer, so the popup is watched for
-  // as long as it lives. Every pass finds its own work already done, which is
-  // what stops the writes above from feeding back into this.
   const watcher = new MutationObserver(() => {
     if (!popup.isConnected) {
       watcher.disconnect();
       return;
     }
     decorate(popup);
+    watcher.takeRecords();
   });
-  watcher.observe(popup, { childList: true, subtree: true });
+  watcher.observe(popup, { childList: true });
   remember(popup, watcher);
 });
 
@@ -11159,11 +11248,11 @@ function startAutoHealing() {
       const target = record.target;
       if (!(target instanceof Element)) continue;
 
-      // Ignore mutations originating entirely within BetterGravity's own dynamic components
+      // Ignore mutations originating entirely within BetterGravity's own dynamic components or open menus
       if (
         target.id === "gemini-theme-dynamic-styles" ||
         target.closest?.(
-          "#gemini-experience-switch, #gemini-scroll-nav, #gemini-sidebar-user-pill, #gemini-web-header-btn, #gemini-account-popover, .gemini-context-ring-wrap, .gemini-effort-slider-card, .gemini-usage-stats, .spark-schedule-editor, .gemini-sidebar-top-fade"
+          "#gemini-experience-switch, #gemini-scroll-nav, #gemini-sidebar-user-pill, #gemini-web-header-btn, #gemini-account-popover, .gemini-context-ring-wrap, .gemini-effort-slider-card, .gemini-usage-stats, .spark-schedule-editor, .gemini-sidebar-top-fade, [data-testid=\"model-selector-panel\"], [role=\"menu\"], [role=\"menuitem\"], [role=\"menuitemradio\"], .gemini-model-limit-tag"
         )
       ) {
         continue;
