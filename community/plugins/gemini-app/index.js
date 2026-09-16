@@ -257,36 +257,47 @@ function applyWorkspaceTheme(colorId) {
   const theme = getWorkspaceTheme(colorId);
   const root = document.documentElement;
 
-  root.style.setProperty("--gemini-home-glow-accent", theme.glowAccent);
-  root.style.setProperty("--gemini-send-bg", theme.sendButton.bg);
-  root.style.setProperty("--gemini-send-bg-hover", theme.sendButton.hover);
-  root.style.setProperty("--gemini-chip-bg", theme.chipBg);
-  root.style.setProperty("--gemini-selection-bg", theme.creamyRgba);
-  root.style.setProperty("--gemini-logo-filter", theme.logoFilter);
-  root.style.setProperty("--gemini-theme-accent", theme.swatchHex);
-  root.style.setProperty("--gemini-unread-dot-color", theme.swatchHex);
+  if (root) {
+    root.style.setProperty("--gemini-home-glow-accent", theme.glowAccent);
+    root.style.setProperty("--gemini-send-bg", theme.sendButton.bg);
+    root.style.setProperty("--gemini-send-bg-hover", theme.sendButton.hover);
+    root.style.setProperty("--gemini-chip-bg", theme.chipBg);
+    root.style.setProperty("--gemini-selection-bg", theme.creamyRgba);
+    root.style.setProperty("--gemini-logo-filter", theme.logoFilter);
+    root.style.setProperty("--gemini-theme-accent", theme.swatchHex);
+    root.style.setProperty("--gemini-unread-dot-color", theme.swatchHex);
+    if (!root.hasAttribute("data-bettergravity")) {
+      root.setAttribute("data-bettergravity", "active");
+    }
+  }
 
   let themeStyle = document.getElementById("gemini-theme-dynamic-styles");
+  const host = document.head || document.documentElement;
   if (!themeStyle) {
     themeStyle = document.createElement("style");
     themeStyle.id = "gemini-theme-dynamic-styles";
-    document.head.appendChild(themeStyle);
+    if (host) host.appendChild(themeStyle);
+  } else if (host && !themeStyle.isConnected) {
+    host.appendChild(themeStyle);
   }
-  themeStyle.textContent = `
-    :root {
-      --gemini-home-glow-accent: ${theme.glowAccent} !important;
-      --gemini-send-bg: ${theme.sendButton.bg} !important;
-      --gemini-send-bg-hover: ${theme.sendButton.hover} !important;
-      --gemini-chip-bg: ${theme.chipBg} !important;
-      --gemini-selection-bg: ${theme.creamyRgba} !important;
-      --gemini-logo-filter: ${theme.logoFilter} !important;
-      --gemini-theme-accent: ${theme.swatchHex} !important;
-      --gemini-unread-dot-color: ${theme.swatchHex} !important;
-    }
-    ::selection {
-      background: ${theme.creamyRgba} !important;
-    }
-  `;
+
+  if (themeStyle) {
+    themeStyle.textContent = `
+      :root {
+        --gemini-home-glow-accent: ${theme.glowAccent} !important;
+        --gemini-send-bg: ${theme.sendButton.bg} !important;
+        --gemini-send-bg-hover: ${theme.sendButton.hover} !important;
+        --gemini-chip-bg: ${theme.chipBg} !important;
+        --gemini-selection-bg: ${theme.creamyRgba} !important;
+        --gemini-logo-filter: ${theme.logoFilter} !important;
+        --gemini-theme-accent: ${theme.swatchHex} !important;
+        --gemini-unread-dot-color: ${theme.swatchHex} !important;
+      }
+      ::selection {
+        background: ${theme.creamyRgba} !important;
+      }
+    `;
+  }
 }
 
 // Initialise theme and listen for settings changes
@@ -11000,7 +11011,245 @@ plugin.dom.observe('[data-testid="sidecar-detail"]', (view) => {
   setupScheduleDetailView(view);
 });
 
+/* ---------------------------------------------------------------------------
+ * Startup Hydration Race Condition & Persistent Auto-Healing System
+ *
+ * Antigravity boots by mounting a preliminary DOM before its React tree hydrates
+ * and loads workspace/account stores. During that initial window, one-shot
+ * decorators match initial nodes that React subsequently detaches and re-creates,
+ * causing BetterGravity's injected UI/UX (user card, scroll nav, experience switch,
+ * theme styles, top buttons) to unmount.
+ *
+ * This system provides:
+ *  1. An idempotent reconciler restoring all BetterGravity components to the live DOM.
+ *  2. A debounced document-level MutationObserver reacting to React mount passes.
+ *  3. A multi-wave staggered startup trigger covering the full 0-5000ms hydration lifecycle.
+ *  4. A lightweight 1.5s background heartbeat ensuring complete state integrity.
+ * ------------------------------------------------------------------------- */
+function reconcileBetterGravityUI() {
+  // 1. Dynamic styles & CSS tokens on :root
+  try {
+    const root = document.documentElement;
+    if (root) {
+      if (!root.hasAttribute("data-bettergravity")) {
+        root.setAttribute("data-bettergravity", "active");
+      }
+      const exp = getStoredExperience();
+      if (root.getAttribute("data-gemini-experience") !== exp) {
+        root.setAttribute("data-gemini-experience", exp);
+      }
+      const collapsed = isSidebarCollapsed();
+      const collapsedStr = String(collapsed);
+      if (root.getAttribute("data-sidebar-collapsed") !== collapsedStr) {
+        root.setAttribute("data-sidebar-collapsed", collapsedStr);
+      }
+    }
+
+    let themeStyle = document.getElementById("gemini-theme-dynamic-styles");
+    const host = document.head || document.documentElement;
+    if (!themeStyle || !themeStyle.isConnected) {
+      applyWorkspaceTheme(pluginSettings.workspaceColor);
+    }
+  } catch (err) {
+    console.debug("[BetterGravity] Theme reconcile error:", err);
+  }
+
+  // 2. Sidebar Header & Experience Switch
+  try {
+    const sidebar = document.querySelector(SIDEBAR_SELECTOR);
+    if (sidebar && sidebar.isConnected) {
+      syncSidebarState(sidebar);
+      ensureSidebarHeader(sidebar, isSidebarCollapsed());
+      ensureExperienceSwitch(sidebar);
+      sidebar.querySelector(".gemini-sidebar-expand-rail")?.remove();
+    }
+  } catch (err) {
+    console.debug("[BetterGravity] Sidebar header reconcile error:", err);
+  }
+
+  // 3. Sidebar Scroll Nav & Top Fade
+  try {
+    const scroller = document.querySelector(LIST_SELECTOR);
+    const topNav = document.querySelector('[role="navigation"][aria-label="Sidebar"] > .px-2 > div.flex-col') ||
+                   document.querySelector('[role="navigation"][aria-label="Sidebar"] > div.px-2 > div.flex-col');
+    if (scroller || topNav) {
+      ensureScrollNav();
+      if (scroller && scroller.isConnected) {
+        ensureTopFade(scroller, false);
+      }
+    }
+  } catch (err) {
+    console.debug("[BetterGravity] Scroll nav reconcile error:", err);
+  }
+
+  // 4. Sidebar User Profile Card
+  try {
+    const settingsBtn = document.querySelector(SETTINGS_BTN_SELECTOR);
+    if (settingsBtn && settingsBtn.parentElement && settingsBtn.parentElement.isConnected) {
+      const footer = settingsBtn.parentElement;
+      const pill = footer.querySelector("#gemini-sidebar-user-pill");
+      if (!pill || pill.nextElementSibling !== settingsBtn) {
+        ensureSidebarUserCard(footer);
+      }
+    }
+  } catch (err) {
+    console.debug("[BetterGravity] User card reconcile error:", err);
+  }
+
+  // 5. Title Bar Gemini Web Header Button, Top Chips & History Arrows
+  try {
+    ensureGeminiWebHeaderButton();
+    reconcileTopChips();
+    updateHistoryArrowsPosition();
+  } catch (err) {
+    console.debug("[BetterGravity] Title bar reconcile error:", err);
+  }
+
+  // 6. Prompt Box Model Pill, Context Ring & Disclaimer
+  try {
+    const pill = document.querySelector(PILL_SELECTOR);
+    if (pill && pill.isConnected) {
+      apply(pill);
+      ensureContextRing(pill);
+    }
+    const inputBox = document.querySelector(INPUT_BOX);
+    if (inputBox && inputBox.isConnected) {
+      ensureAiDisclaimer(inputBox);
+    }
+    const newConvBtn = document.querySelector(NEW_CONV_SELECTOR);
+    if (newConvBtn && newConvBtn.isConnected) {
+      applyNewConv(newConvBtn);
+    }
+    const projectToggle = document.querySelector(PROJECT_CONV_TOGGLE_SELECTOR);
+    if (projectToggle && projectToggle.isConnected) {
+      syncProjectConvToggle(projectToggle);
+    }
+  } catch (err) {
+    console.debug("[BetterGravity] Prompt box reconcile error:", err);
+  }
+}
+
+let autoHealRaf = 0;
+let autoHealTimeout = 0;
+let globalAutoHealObserver = null;
+let autoHealHeartbeat = 0;
+const startupTimers = [];
+
+function scheduleAutoHeal() {
+  if (autoHealRaf || autoHealTimeout) return;
+  if (typeof document !== 'undefined' && document.hidden) {
+    autoHealTimeout = window.setTimeout(() => {
+      autoHealTimeout = 0;
+      reconcileBetterGravityUI();
+    }, 100);
+  } else {
+    autoHealRaf = requestAnimationFrame(() => {
+      autoHealRaf = 0;
+      reconcileBetterGravityUI();
+    });
+  }
+}
+
+function startAutoHealing() {
+  if (globalAutoHealObserver) return;
+
+  globalAutoHealObserver = new MutationObserver((records) => {
+    let relevant = false;
+    for (const record of records) {
+      const target = record.target;
+      if (!(target instanceof Element)) continue;
+
+      // Ignore mutations originating entirely within BetterGravity's own dynamic components
+      if (
+        target.id === "gemini-theme-dynamic-styles" ||
+        target.closest?.(
+          "#gemini-experience-switch, #gemini-scroll-nav, #gemini-sidebar-user-pill, #gemini-web-header-btn, #gemini-account-popover, .gemini-context-ring-wrap, .gemini-effort-slider-card, .gemini-usage-stats, .spark-schedule-editor, .gemini-sidebar-top-fade"
+        )
+      ) {
+        continue;
+      }
+
+      // Ignore streaming text changes in conversation messages
+      if (target.closest?.('.user-input-step, [data-testid="chat-step"], .markdown, .prose')) {
+        continue;
+      }
+
+      if (record.type === "childList" && (record.addedNodes.length > 0 || record.removedNodes.length > 0)) {
+        relevant = true;
+        break;
+      }
+    }
+
+    if (relevant) {
+      scheduleAutoHeal();
+    }
+  });
+
+  const root = document.documentElement || document.body;
+  if (root) {
+    globalAutoHealObserver.observe(root, { childList: true, subtree: true });
+  }
+
+  // Periodic heartbeat ensuring complete state integrity
+  autoHealHeartbeat = window.setInterval(() => {
+    const needsHeal =
+      !document.getElementById("gemini-theme-dynamic-styles")?.isConnected ||
+      (document.querySelector(SIDEBAR_SELECTOR) && !document.getElementById("gemini-experience-switch")?.isConnected) ||
+      ((document.querySelector(LIST_SELECTOR) || document.querySelector('[role="navigation"][aria-label="Sidebar"]')) && !document.getElementById("gemini-scroll-nav")?.isConnected) ||
+      (document.querySelector(SETTINGS_BTN_SELECTOR) && !document.getElementById("gemini-sidebar-user-pill")?.isConnected) ||
+      (document.querySelector(TOP_BAR_MORE) && !document.getElementById("gemini-web-header-btn")?.isConnected);
+
+    if (needsHeal) {
+      reconcileBetterGravityUI();
+    }
+  }, 1500);
+}
+
+// Multi-stage startup reconciliation schedule
+reconcileBetterGravityUI();
+queueMicrotask(() => reconcileBetterGravityUI());
+requestAnimationFrame(() => reconcileBetterGravityUI());
+
+const STARTUP_DELAYS = [30, 80, 150, 300, 600, 1200, 2500, 5000];
+for (const delay of STARTUP_DELAYS) {
+  const t = window.setTimeout(() => reconcileBetterGravityUI(), delay);
+  startupTimers.push(t);
+}
+
+const onLifeCycleEvent = () => scheduleAutoHeal();
+document.addEventListener("DOMContentLoaded", onLifeCycleEvent);
+window.addEventListener("load", onLifeCycleEvent);
+window.addEventListener("popstate", onLifeCycleEvent);
+window.addEventListener("hashchange", onLifeCycleEvent);
+window.addEventListener("focus", onLifeCycleEvent);
+
+startAutoHealing();
+
 plugin.onDispose(() => {
+  if (globalAutoHealObserver) {
+    globalAutoHealObserver.disconnect();
+    globalAutoHealObserver = null;
+  }
+  if (autoHealRaf) {
+    cancelAnimationFrame(autoHealRaf);
+    autoHealRaf = 0;
+  }
+  if (autoHealTimeout) {
+    clearTimeout(autoHealTimeout);
+    autoHealTimeout = 0;
+  }
+  for (const t of startupTimers) clearTimeout(t);
+  startupTimers.length = 0;
+  if (autoHealHeartbeat) {
+    window.clearInterval(autoHealHeartbeat);
+    autoHealHeartbeat = 0;
+  }
+  document.removeEventListener("DOMContentLoaded", onLifeCycleEvent);
+  window.removeEventListener("load", onLifeCycleEvent);
+  window.removeEventListener("popstate", onLifeCycleEvent);
+  window.removeEventListener("hashchange", onLifeCycleEvent);
+  window.removeEventListener("focus", onLifeCycleEvent);
+
   for (const btn of document.querySelectorAll('.willow-search-clear-btn')) btn.remove();
   for (const el of document.querySelectorAll('.spark-customise-header, .spark-page-actions, .spark-schedules-heading, .spark-customise-loading-section, .spark-schedule-editor, .spark-schedule-editor__dialog-backdrop')) el.remove();
   for (const el of document.querySelectorAll('.spark-sidecar-detail-raw-hidden')) el.classList.remove('spark-sidecar-detail-raw-hidden');
