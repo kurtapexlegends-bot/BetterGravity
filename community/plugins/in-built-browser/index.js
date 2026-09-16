@@ -1593,7 +1593,13 @@ function unmount() {
 
 const conversationObserver = new MutationObserver(syncContext);
 const viewObserver = new MutationObserver(syncContext);
-viewObserver.observe(document.body, { attributes: true, attributeFilter: ["class"] });
+if (document.body) {
+  viewObserver.observe(document.body, { attributes: true, attributeFilter: ["class"] });
+} else {
+  document.addEventListener("DOMContentLoaded", () => {
+    if (document.body) viewObserver.observe(document.body, { attributes: true, attributeFilter: ["class"] });
+  }, { once: true });
+}
 syncContext();
 plugin.dom.observe('button[data-tab-id="terminal"]', mount);
 if (plugin.browser?.available) plugin.browser.onStateChanged(next => {
@@ -1644,7 +1650,13 @@ const occlusion = new MutationObserver(records => {
   }
   if (root) { mountPageTabs(); mountPlusMenu(); watchLayout(); connectTaskState(); if (!taskStore) refreshTaskState(); if (open) watchOverlays(); scheduleBounds(); }
 });
-occlusion.observe(document.documentElement, { childList: true, subtree: true, attributes: true, attributeFilter: ["data-aux-pane-open", "data-state", "hidden", "aria-hidden", "role", "data-tooltip-id"] });
+if (document.documentElement) {
+  occlusion.observe(document.documentElement, { childList: true, subtree: true, attributes: true, attributeFilter: ["data-aux-pane-open", "data-state", "hidden", "aria-hidden", "role", "data-tooltip-id"] });
+} else {
+  document.addEventListener("DOMContentLoaded", () => {
+    if (document.documentElement) occlusion.observe(document.documentElement, { childList: true, subtree: true, attributes: true, attributeFilter: ["data-aux-pane-open", "data-state", "hidden", "aria-hidden", "role", "data-tooltip-id"] });
+  }, { once: true });
+}
 plugin.onDispose(() => {
   rememberCurrentPane();
   disposed = true; clearTimeout(previewTimer); if (frame) cancelAnimationFrame(frame);

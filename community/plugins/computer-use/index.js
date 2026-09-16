@@ -820,7 +820,14 @@ function cleanupStuckDomCursors() {
 function setupAgentCursor() {
   cleanupStuckDomCursors();
   if (cursorInstance) return;
-  cursorInstance = new AgentCursor(document.body, {
+  const container = document.body || document.documentElement;
+  if (!container) {
+    if (typeof document !== "undefined" && document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", () => setupAgentCursor(), { once: true });
+    }
+    return;
+  }
+  cursorInstance = new AgentCursor(container, {
     glowColor: "var(--color-accent-blue, #007aff)"
   });
 }

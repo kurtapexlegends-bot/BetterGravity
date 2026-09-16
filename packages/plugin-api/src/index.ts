@@ -591,6 +591,7 @@ export interface AccountProfile {
   readonly fullName?: string;
   readonly email?: string;
   readonly pictureUrl?: string;
+  readonly accounts?: readonly string[];
 }
 
 /**

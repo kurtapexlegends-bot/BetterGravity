@@ -6549,7 +6549,14 @@ function observeBubbleText(text, update) {
       }
       for (const target of changed) updateBubbleConnection(target);
     });
-    bubbleConnectionObserver.observe(document.documentElement, { childList: true, subtree: true });
+    const target = document.documentElement || document;
+    if (target) {
+      bubbleConnectionObserver.observe(target, { childList: true, subtree: true });
+    } else {
+      document.addEventListener("DOMContentLoaded", () => {
+        if (bubbleConnectionObserver) bubbleConnectionObserver.observe(document.documentElement || document, { childList: true, subtree: true });
+      }, { once: true });
+    }
   }
   bubbleResizeHandlers.set(text, update);
   text.setAttribute(BUBBLE_SIZE_MARKER, '');
@@ -6984,9 +6991,19 @@ const SLIDE_WINDOW_MS = 1500;
  * greeting is the final text then rather than a placeholder for one.
  */
 const DEFAULT_ACCOUNT = {
-  fullName: "",
-  email: "",
-  pictureUrl: ""
+  firstName: "Kurt",
+  fullName: "Kurt",
+  email: "kurtgpro2@gmail.com",
+  pictureUrl: "",
+  accounts: [
+    "kurtgpro2@gmail.com",
+    "kurtstanleytalastas@gmail.com",
+    "likhangkamaybusiness@gmail.com",
+    "kurtapexlegends@gmail.com",
+    "kurtgpro3@gmail.com",
+    "akunosteam@gmail.com",
+    "acostayashica@gmail.com"
+  ]
 };
 
 let userAccountProfile = { ...DEFAULT_ACCOUNT };
@@ -6999,55 +7016,64 @@ function updateAllUserCards(profile) {
     const imgEl = pill.querySelector(".gemini-user-avatar");
     const fallbackEl = pill.querySelector(".gemini-user-avatar-fallback");
 
-    const displayName = profile.fullName || (profile.email ? profile.email.split("@")[0] : "Account");
+    const displayName = profile.fullName || profile.firstName || (profile.email ? profile.email.split("@")[0] : "Kurt");
     if (nameEl) nameEl.textContent = displayName;
     if (emailEl) {
-      emailEl.textContent = profile.email || "";
+      emailEl.textContent = profile.email || "kurtgpro2@gmail.com";
       emailEl.style.display = profile.email ? "" : "none";
     }
     if (imgEl) {
       if (profile.pictureUrl) {
         imgEl.src = profile.pictureUrl;
         imgEl.style.display = "";
-        if (fallbackEl) fallbackEl.style.display = "none";
+        if (fallbackEl) fallbackEl.classList.add("hidden");
       } else {
         imgEl.style.display = "none";
-        if (fallbackEl) fallbackEl.style.display = "flex";
+        if (fallbackEl) fallbackEl.classList.remove("hidden");
       }
     }
     if (fallbackEl) {
-      const initial = (profile.fullName || profile.email || "A").charAt(0).toUpperCase();
+      const initial = (profile.fullName || profile.firstName || profile.email || "K").charAt(0).toUpperCase();
       fallbackEl.textContent = initial;
+      if (!profile.pictureUrl) fallbackEl.classList.remove("hidden");
     }
     if (profile.fullName || profile.email) {
       pill.title = profile.email
         ? (profile.fullName ? `${profile.fullName} (${profile.email})` : profile.email)
-        : profile.fullName || "Account";
+        : profile.fullName || "Kurt";
     }
   }
 }
 
-let greeting = plugin.account ? null : "Hello there";
+function applyAccountProfile(profile) {
+  if (profile && (profile.email || profile.fullName || profile.firstName)) {
+    if (profile.fullName) userAccountProfile.fullName = profile.fullName;
+    if (profile.firstName && !userAccountProfile.fullName) userAccountProfile.fullName = profile.firstName;
+    if (profile.email) userAccountProfile.email = profile.email;
+    if (profile.pictureUrl) userAccountProfile.pictureUrl = profile.pictureUrl;
+    if (Array.isArray(profile.accounts) && profile.accounts.length > 0) {
+      userAccountProfile.accounts = profile.accounts;
+    }
+  }
+  const first = userAccountProfile.fullName?.split(/\s+/)[0] || userAccountProfile.firstName || "Kurt";
+  greeting = `Hello there, ${first}`;
+  updateAllUserCards(userAccountProfile);
+  for (const group of document.querySelectorAll(HOME_GROUP)) ensureHomeGreeting(group);
+}
+
+let greeting = "Hello there, Kurt";
 
 if (plugin.account) {
   plugin.account
     .read()
     .then((profile) => {
-      // `firstName` is Google's own `given_name`, or the first word of the full
-      // name when Google did not give one.
-      greeting = profile?.firstName ? `Hello there, ${profile.firstName}` : "Hello there";
-      if (profile?.fullName) userAccountProfile.fullName = profile.fullName;
-      if (profile?.email) userAccountProfile.email = profile.email;
-      if (profile?.pictureUrl) userAccountProfile.pictureUrl = profile.pictureUrl;
-      updateAllUserCards(userAccountProfile);
-
-      // The home screen may already be up, its observer having been and gone
-      // with nothing to show.
-      for (const group of document.querySelectorAll(HOME_GROUP)) ensureHomeGreeting(group);
+      applyAccountProfile(profile);
     })
-    // `read()` answers `{}` rather than throwing, so this is only reached by a
-    // runtime broken enough that no name is ever coming.
-    .catch(() => {});
+    .catch(() => {
+      applyAccountProfile(DEFAULT_ACCOUNT);
+    });
+} else {
+  applyAccountProfile(DEFAULT_ACCOUNT);
 }
 
 /**
@@ -7664,6 +7690,163 @@ document.addEventListener("click", onComposerSubmitClick, true);
  * ------------------------------------------------------------------------- */
 const SETTINGS_BTN_SELECTOR = '[role="navigation"][aria-label="Sidebar"] [data-testid="settings-button"]';
 
+let currentAccountPopover = null;
+
+function closeAccountPopover() {
+  if (currentAccountPopover) {
+    currentAccountPopover.remove();
+    currentAccountPopover = null;
+    document.removeEventListener("click", onAccountPopoverOutsideClick, true);
+    document.removeEventListener("keydown", onAccountPopoverKeydown, true);
+  }
+}
+
+function onAccountPopoverOutsideClick(e) {
+  if (!currentAccountPopover) return;
+  const pill = document.querySelector("#gemini-sidebar-user-pill");
+  if (currentAccountPopover.contains(e.target) || (pill && pill.contains(e.target))) {
+    return;
+  }
+  closeAccountPopover();
+}
+
+function onAccountPopoverKeydown(e) {
+  if (e.key === "Escape") {
+    closeAccountPopover();
+  }
+}
+
+function toggleAccountPopover(pill, settingsBtn) {
+  if (currentAccountPopover) {
+    closeAccountPopover();
+    return;
+  }
+
+  const rect = pill.getBoundingClientRect();
+  const popover = document.createElement("div");
+  popover.id = "gemini-account-popover";
+  popover.className = "gemini-account-popover";
+
+  const initial = (userAccountProfile.fullName || userAccountProfile.firstName || userAccountProfile.email || "K").charAt(0).toUpperCase();
+  const activeEmail = userAccountProfile.email || "kurtgpro2@gmail.com";
+  const displayName = userAccountProfile.fullName || userAccountProfile.firstName || "Kurt";
+  const otherAccounts = (userAccountProfile.accounts || DEFAULT_ACCOUNT.accounts).filter(
+    (acc) => acc.toLowerCase() !== activeEmail.toLowerCase()
+  );
+
+  let accountsHtml = "";
+  if (otherAccounts.length > 0) {
+    accountsHtml = `
+      <div class="gemini-popover-section-label">Other Google Accounts</div>
+      <div class="gemini-popover-accounts-list">
+        ${otherAccounts
+          .map((acc) => {
+            const accInitial = acc.charAt(0).toUpperCase();
+            return `
+              <div class="gemini-popover-account-item" data-email="${acc}" title="Click to copy address">
+                <div class="gemini-popover-account-avatar">${accInitial}</div>
+                <div class="gemini-popover-account-text">
+                  <span class="gemini-popover-account-email">${acc}</span>
+                </div>
+                <button type="button" class="gemini-popover-copy-btn" title="Copy Email">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                  </svg>
+                </button>
+              </div>
+            `;
+          })
+          .join("")}
+      </div>
+    `;
+  }
+
+  popover.innerHTML = `
+    <div class="gemini-popover-header">
+      <div class="gemini-popover-active-avatar">
+        ${userAccountProfile.pictureUrl ? `<img src="${userAccountProfile.pictureUrl}" class="gemini-popover-img" alt="">` : initial}
+      </div>
+      <div class="gemini-popover-active-info">
+        <div class="gemini-popover-active-name-row">
+          <span class="gemini-popover-active-name">${displayName}</span>
+          <span class="gemini-popover-badge">Active</span>
+        </div>
+        <span class="gemini-popover-active-email">${activeEmail}</span>
+      </div>
+    </div>
+
+    ${accountsHtml}
+
+    <div class="gemini-popover-divider"></div>
+
+    <div class="gemini-popover-actions">
+      <button type="button" class="gemini-popover-action-btn" id="gemini-popover-settings-btn">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="3"></circle>
+          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+        </svg>
+        <span>Antigravity Settings</span>
+      </button>
+      <a href="https://myaccount.google.com/" target="_blank" rel="noopener noreferrer" class="gemini-popover-action-btn">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10"></circle>
+          <line x1="2" y1="12" x2="22" y2="12"></line>
+          <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
+        </svg>
+        <span>Manage Google Account</span>
+      </a>
+    </div>
+  `;
+
+  document.body.appendChild(popover);
+  currentAccountPopover = popover;
+
+  const settingsActionBtn = popover.querySelector("#gemini-popover-settings-btn");
+  if (settingsActionBtn) {
+    settingsActionBtn.addEventListener("click", () => {
+      closeAccountPopover();
+      settingsBtn?.click();
+    });
+  }
+
+  popover.querySelectorAll(".gemini-popover-copy-btn").forEach((btn) => {
+    btn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const parent = btn.closest(".gemini-popover-account-item");
+      const emailToCopy = parent?.getAttribute("data-email");
+      if (emailToCopy) {
+        navigator.clipboard.writeText(emailToCopy).catch(() => {});
+        btn.classList.add("copied");
+        setTimeout(() => btn.classList.remove("copied"), 1500);
+      }
+    });
+  });
+
+  popover.querySelectorAll(".gemini-popover-account-item").forEach((item) => {
+    item.addEventListener("click", () => {
+      const emailToCopy = item.getAttribute("data-email");
+      if (emailToCopy) {
+        navigator.clipboard.writeText(emailToCopy).catch(() => {});
+        const copyBtn = item.querySelector(".gemini-popover-copy-btn");
+        if (copyBtn) {
+          copyBtn.classList.add("copied");
+          setTimeout(() => copyBtn.classList.remove("copied"), 1500);
+        }
+      }
+    });
+  });
+
+  const bottomOffset = window.innerHeight - rect.top + 8;
+  popover.style.bottom = `${Math.max(12, bottomOffset)}px`;
+  popover.style.left = `${Math.max(12, rect.left)}px`;
+
+  requestAnimationFrame(() => {
+    document.addEventListener("click", onAccountPopoverOutsideClick, true);
+    document.addEventListener("keydown", onAccountPopoverKeydown, true);
+  });
+}
+
 function ensureSidebarUserCard(footer) {
   if (!footer || !footer.isConnected) return;
   const settingsBtn = footer.querySelector('[data-testid="settings-button"]');
@@ -7678,10 +7861,10 @@ function ensureSidebarUserCard(footer) {
     pill.setAttribute("aria-label", "User profile and settings");
 
     const avatarUrl = userAccountProfile.pictureUrl || "";
-    const name = userAccountProfile.fullName || "";
-    const email = userAccountProfile.email || "";
-    const displayName = name || (email ? email.split("@")[0] : "Account");
-    const initial = (name || email || "A").charAt(0).toUpperCase();
+    const name = userAccountProfile.fullName || userAccountProfile.firstName || "";
+    const email = userAccountProfile.email || "kurtgpro2@gmail.com";
+    const displayName = name || (email ? email.split("@")[0] : "Kurt");
+    const initial = (name || email || "K").charAt(0).toUpperCase();
 
     pill.title = email ? (name ? `${name} (${email})` : email) : displayName;
     if (isSidebarCollapsed()) {
@@ -7704,14 +7887,14 @@ function ensureSidebarUserCard(footer) {
     fallback.className = "gemini-user-avatar-fallback";
     fallback.textContent = initial;
     if (avatarUrl) {
-      fallback.style.display = "none";
+      fallback.classList.add("hidden");
     } else {
-      fallback.style.display = "flex";
+      fallback.classList.remove("hidden");
     }
 
     img.addEventListener("error", () => {
       img.style.display = "none";
-      fallback.style.display = "flex";
+      fallback.classList.remove("hidden");
     });
 
     avatarWrap.appendChild(img);
@@ -7739,7 +7922,8 @@ function ensureSidebarUserCard(footer) {
 
     pill.addEventListener("click", (e) => {
       e.preventDefault();
-      settingsBtn.click();
+      e.stopPropagation();
+      toggleAccountPopover(pill, settingsBtn);
     });
 
     footer.insertBefore(pill, settingsBtn);

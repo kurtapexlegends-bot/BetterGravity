@@ -2531,15 +2531,243 @@ div:has(> [role="menu"][data-gemini-conversation-menu]) {
   width: 100% !important;
   height: 100% !important;
   border-radius: 50% !important;
-  background: #1a73e8 !important;
+  background: linear-gradient(135deg, #1a73e8 0%, #0d47a1 100%) !important;
   color: #ffffff !important;
   font-family: var(--gemini-font, "Google Sans Flex", sans-serif) !important;
   font-size: 13px !important;
-  font-weight: 500 !important;
-  display: none;
+  font-weight: 600 !important;
+  display: flex !important;
   align-items: center !important;
   justify-content: center !important;
   text-transform: uppercase !important;
+}
+
+#gemini-sidebar-user-pill .gemini-user-avatar-fallback.hidden {
+  display: none !important;
+}
+
+/* Google Account Popover Dialog */
+.gemini-account-popover {
+  position: fixed !important;
+  z-index: 100000 !important;
+  width: 320px !important;
+  max-width: calc(100vw - 24px) !important;
+  background: #1e1f20 !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  border-radius: 16px !important;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.55), 0 2px 6px rgba(0, 0, 0, 0.3) !important;
+  padding: 16px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 12px !important;
+  font-family: var(--gemini-font, "Google Sans Flex", sans-serif) !important;
+  color: #e6e6e6 !important;
+  backdrop-filter: blur(12px) !important;
+  animation: geminiPopoverFadeIn 160ms cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
+@keyframes geminiPopoverFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.gemini-popover-header {
+  display: flex !important;
+  align-items: center !important;
+  gap: 12px !important;
+  padding-bottom: 4px !important;
+}
+
+.gemini-popover-active-avatar {
+  width: 44px !important;
+  height: 44px !important;
+  min-width: 44px !important;
+  border-radius: 50% !important;
+  background: linear-gradient(135deg, #1a73e8 0%, #0d47a1 100%) !important;
+  color: #ffffff !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  font-size: 18px !important;
+  font-weight: 600 !important;
+  overflow: hidden !important;
+  flex-shrink: 0 !important;
+  box-shadow: 0 2px 8px rgba(26, 115, 232, 0.35) !important;
+}
+
+.gemini-popover-img {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover !important;
+  border-radius: 50% !important;
+}
+
+.gemini-popover-active-info {
+  display: flex !important;
+  flex-direction: column !important;
+  min-width: 0 !important;
+  flex: 1 1 auto !important;
+  gap: 2px !important;
+}
+
+.gemini-popover-active-name-row {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+}
+
+.gemini-popover-active-name {
+  font-size: 15px !important;
+  font-weight: 600 !important;
+  color: #ffffff !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+}
+
+.gemini-popover-badge {
+  font-size: 10px !important;
+  font-weight: 600 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.5px !important;
+  padding: 1px 6px !important;
+  border-radius: 9999px !important;
+  background: rgba(52, 168, 83, 0.2) !important;
+  color: #34a853 !important;
+  border: 1px solid rgba(52, 168, 83, 0.4) !important;
+}
+
+.gemini-popover-active-email {
+  font-size: 12px !important;
+  color: rgba(255, 255, 255, 0.65) !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+}
+
+.gemini-popover-divider {
+  height: 1px !important;
+  background: rgba(255, 255, 255, 0.08) !important;
+  margin: 2px 0 !important;
+}
+
+.gemini-popover-section-label {
+  font-size: 11px !important;
+  font-weight: 600 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.6px !important;
+  color: rgba(255, 255, 255, 0.45) !important;
+  padding: 2px 4px 0 4px !important;
+}
+
+.gemini-popover-accounts-list {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 4px !important;
+  max-height: 180px !important;
+  overflow-y: auto !important;
+  padding-right: 2px !important;
+}
+
+.gemini-popover-account-item {
+  display: flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+  padding: 6px 8px !important;
+  border-radius: 8px !important;
+  cursor: pointer !important;
+  transition: background-color 120ms ease !important;
+  background: transparent !important;
+}
+
+.gemini-popover-account-item:hover {
+  background: rgba(255, 255, 255, 0.08) !important;
+}
+
+.gemini-popover-account-avatar {
+  width: 26px !important;
+  height: 26px !important;
+  min-width: 26px !important;
+  border-radius: 50% !important;
+  background: #333537 !important;
+  color: rgba(255, 255, 255, 0.8) !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  font-size: 12px !important;
+  font-weight: 500 !important;
+  flex-shrink: 0 !important;
+}
+
+.gemini-popover-account-text {
+  flex: 1 1 auto !important;
+  min-width: 0 !important;
+}
+
+.gemini-popover-account-email {
+  font-size: 12px !important;
+  color: rgba(255, 255, 255, 0.8) !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  display: block !important;
+}
+
+.gemini-popover-copy-btn {
+  background: transparent !important;
+  border: none !important;
+  color: rgba(255, 255, 255, 0.45) !important;
+  padding: 4px !important;
+  border-radius: 4px !important;
+  cursor: pointer !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  transition: color 120ms ease, background-color 120ms ease !important;
+}
+
+.gemini-popover-copy-btn:hover {
+  color: #ffffff !important;
+  background: rgba(255, 255, 255, 0.12) !important;
+}
+
+.gemini-popover-copy-btn.copied {
+  color: #34a853 !important;
+}
+
+.gemini-popover-actions {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 4px !important;
+}
+
+.gemini-popover-action-btn {
+  display: flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+  width: 100% !important;
+  padding: 8px 10px !important;
+  border-radius: 8px !important;
+  border: none !important;
+  background: transparent !important;
+  color: rgba(255, 255, 255, 0.85) !important;
+  font-size: 13px !important;
+  font-weight: 500 !important;
+  cursor: pointer !important;
+  text-decoration: none !important;
+  transition: background-color 120ms ease, color 120ms ease !important;
+  font-family: inherit !important;
+}
+
+.gemini-popover-action-btn:hover {
+  background: rgba(255, 255, 255, 0.08) !important;
+  color: #ffffff !important;
 }
 
 #gemini-sidebar-user-pill .gemini-user-text {

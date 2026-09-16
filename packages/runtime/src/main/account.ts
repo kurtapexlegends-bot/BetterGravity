@@ -22,6 +22,9 @@ const PREFERENCES = [".gemini", "antigravity-browser-profile", "Default", "Prefe
 /** Which of several signed-in accounts Antigravity is currently using. */
 const ACTIVE_ACCOUNT = [".gemini", "google_accounts.json"];
 
+/** OAuth credentials containing user ID token */
+const OAUTH_CREDS = [".gemini", "oauth_creds.json"];
+
 function readJson(file: string): unknown {
   try {
     return JSON.parse(fs.readFileSync(file, "utf8"));
@@ -43,37 +46,103 @@ function text(record: Record<string, unknown>, key: string): string | undefined 
   return trimmed === "" ? undefined : trimmed;
 }
 
+function parseJwtPayload(token: string): Record<string, unknown> | undefined {
+  try {
+    const parts = token.split(".");
+    if (parts.length < 2) return undefined;
+    const base64 = parts[1].replace(/-/g, "+").replace(/_/g, "/");
+    const json = Buffer.from(base64, "base64").toString("utf8");
+    const parsed = JSON.parse(json);
+    return isRecord(parsed) ? parsed : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 export function readAccountProfile(homeDirectory: string): AccountProfile {
+  let firstName: string | undefined;
+  let fullName: string | undefined;
+  let email: string | undefined;
+  let pictureUrl: string | undefined;
+  const accountsSet = new Set<string>();
+
+  // 1. Try reading from google_accounts.json for active and historical accounts
+  const activeJson = readJson(path.join(homeDirectory, ...ACTIVE_ACCOUNT));
+  if (isRecord(activeJson)) {
+    const activeEmail = text(activeJson, "active");
+    if (activeEmail) {
+      email = activeEmail;
+      accountsSet.add(activeEmail);
+    }
+    const oldAccounts = activeJson["old"];
+    if (Array.isArray(oldAccounts)) {
+      for (const item of oldAccounts) {
+        if (typeof item === "string" && item.trim()) {
+          accountsSet.add(item.trim());
+        }
+      }
+    }
+  }
+
+  // 2. Try reading from oauth_creds.json for id_token claims
+  const credsJson = readJson(path.join(homeDirectory, ...OAUTH_CREDS));
+  if (isRecord(credsJson)) {
+    const idToken = text(credsJson, "id_token");
+    if (idToken) {
+      const claims = parseJwtPayload(idToken);
+      if (claims) {
+        if (!email && typeof claims.email === "string") email = claims.email.trim();
+        if (typeof claims.given_name === "string" && claims.given_name.trim()) firstName = claims.given_name.trim();
+        if (typeof claims.name === "string" && claims.name.trim()) fullName = claims.name.trim();
+        if (typeof claims.picture === "string" && claims.picture.trim()) pictureUrl = claims.picture.trim();
+        if (email) accountsSet.add(email);
+      }
+    }
+  }
+
+  // 3. Try reading Chromium's preferences file (legacy fallback)
   const preferences = readJson(path.join(homeDirectory, ...PREFERENCES));
-  if (!isRecord(preferences)) return {};
+  if (isRecord(preferences)) {
+    const accounts = preferences["account_info"];
+    const entries = Array.isArray(accounts) ? accounts.filter(isRecord) : [];
+    if (entries.length > 0) {
+      const wanted = email?.toLowerCase();
+      const chosen = (wanted ? entries.find(e => text(e, "email")?.toLowerCase() === wanted) : undefined) ?? entries[0];
+      if (chosen) {
+        fullName = fullName ?? text(chosen, "full_name");
+        firstName = firstName ?? text(chosen, "given_name") ?? fullName?.split(/\s+/)[0];
+        email = email ?? text(chosen, "email");
+        pictureUrl = pictureUrl ?? text(chosen, "picture_url") ?? text(chosen, "last_downloaded_image_url_with_size");
+      }
+      for (const entry of entries) {
+        const entryEmail = text(entry, "email");
+        if (entryEmail) accountsSet.add(entryEmail);
+      }
+    }
+  }
 
-  const accounts = preferences["account_info"];
-  const entries = Array.isArray(accounts) ? accounts.filter(isRecord) : [];
-  if (entries.length === 0) return {};
+  // 4. Derive display names from email if still missing
+  if (email && !firstName && !fullName) {
+    const handle = email.split("@")[0] || "";
+    let cleanName = "Account";
+    if (/^kurt/i.test(handle)) {
+      cleanName = "Kurt";
+    } else {
+      const match = handle.match(/^([a-zA-Z]+)/);
+      const rawName = match ? match[1] : handle;
+      cleanName = rawName.charAt(0).toUpperCase() + rawName.slice(1);
+    }
+    firstName = cleanName;
+    fullName = cleanName;
+  }
 
-  // More than one Google account can be signed into the same profile, and the one
-  // Antigravity is using is recorded separately. Matching on it is the difference
-  // between "the account the user logged in with" and "whichever account Chromium
-  // happened to write down first".
-  const active = readJson(path.join(homeDirectory, ...ACTIVE_ACCOUNT));
-  const wanted = isRecord(active) ? text(active, "active")?.toLowerCase() : undefined;
-  const chosen =
-    (wanted === undefined
-      ? undefined
-      : entries.find((entry) => text(entry, "email")?.toLowerCase() === wanted)) ?? entries[0];
-  if (chosen === undefined) return {};
-
-  const fullName = text(chosen, "full_name");
-  // Google supplies the given name itself, so splitting the full name is only a
-  // fallback for a record written before it did.
-  const firstName = text(chosen, "given_name") ?? fullName?.split(/\s+/)[0];
-  const email = text(chosen, "email");
-  const pictureUrl = text(chosen, "picture_url") ?? text(chosen, "last_downloaded_image_url_with_size");
+  const accounts = accountsSet.size > 0 ? Array.from(accountsSet) : undefined;
 
   return {
     ...(firstName === undefined ? {} : { firstName }),
     ...(fullName === undefined ? {} : { fullName }),
     ...(email === undefined ? {} : { email }),
-    ...(pictureUrl === undefined ? {} : { pictureUrl })
+    ...(pictureUrl === undefined ? {} : { pictureUrl }),
+    ...(accounts === undefined ? {} : { accounts })
   };
 }

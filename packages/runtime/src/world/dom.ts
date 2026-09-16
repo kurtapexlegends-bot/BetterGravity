@@ -349,7 +349,14 @@ export function createDomUtilities(track: (dispose: () => void) => void): Plugin
           observer.disconnect();
         };
 
-        observer.observe(document.documentElement, { childList: true, subtree: true });
+        const target = document.documentElement || document;
+        if (target) {
+          observer.observe(target, { childList: true, subtree: true });
+        } else {
+          document.addEventListener("DOMContentLoaded", () => {
+            observer.observe(document.documentElement || document, { childList: true, subtree: true });
+          }, { once: true });
+        }
         track(stop);
       });
     },

@@ -181,6 +181,7 @@ export interface AccountProfile {
   readonly fullName?: string;
   readonly email?: string;
   readonly pictureUrl?: string;
+  readonly accounts?: readonly string[];
 }
 
 /** Persisted per-plugin key/value data, keyed by plugin id. */
