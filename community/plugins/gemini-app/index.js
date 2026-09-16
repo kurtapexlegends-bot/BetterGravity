@@ -952,27 +952,64 @@ function getGoToNewConversation() {
   return null;
 }
 
+function findHostRouter() {
+  for (const sel of ['[data-testid="conversation-view"]', '[data-testid="conversation-list-sidebar"]', '#root', 'body']) {
+    const el = document.querySelector(sel);
+    if (!el) continue;
+    let fiber = getElementFiber(el);
+    for (let depth = 0; fiber && depth < 40; depth += 1, fiber = fiber.return) {
+      if (typeof fiber.memoizedProps?.router?.navigate === 'function') {
+        return fiber.memoizedProps.router;
+      }
+      let dep = fiber.dependencies?.firstContext;
+      for (let i = 0; dep && i < 30; i += 1, dep = dep.next) {
+        if (typeof dep.memoizedValue?.navigate === 'function') {
+          return dep.memoizedValue;
+        }
+      }
+    }
+  }
+  return null;
+}
+
+function spaNavigate(sectionVal) {
+  const router = findHostRouter();
+  if (router && typeof router.navigate === 'function') {
+    try {
+      router.navigate({ to: '/', search: sectionVal ? { section: sectionVal } : undefined });
+      return true;
+    } catch {}
+  }
+  try {
+    const targetUrl = sectionVal ? `/?section=${encodeURIComponent(sectionVal)}` : '/';
+    window.history.pushState(null, '', targetUrl);
+    window.dispatchEvent(new PopStateEvent('popstate'));
+    return true;
+  } catch {}
+  return false;
+}
+
 function navigateToExperienceNewConversation(exp) {
   const fn = getGoToNewConversation();
   if (exp === 'chat') {
     if (typeof fn === 'function') {
-      fn('outside-of-project');
-    } else {
-      const secPlusBtn = document.querySelector('[data-testid="section-header"] button[aria-label="New Conversation"]');
-      if (secPlusBtn) {
-        const props = plugin.react.getProps(secPlusBtn);
-        if (typeof props?.onClick === 'function') {
-          props.onClick({ preventDefault: () => {}, stopPropagation: () => {} });
-        } else {
-          secPlusBtn.click();
-        }
+      try {
+        fn('outside-of-project');
+        return;
+      } catch {}
+    }
+    const secPlusBtn = document.querySelector('[data-testid="section-header"] button[aria-label="New Conversation"]');
+    if (secPlusBtn) {
+      const props = plugin.react.getProps(secPlusBtn);
+      if (typeof props?.onClick === 'function') {
+        props.onClick({ preventDefault: () => {}, stopPropagation: () => {} });
+        return;
       } else {
-        const url = new URL(window.location.href);
-        url.pathname = '/';
-        url.search = '?section=outside-of-project';
-        window.location.href = url.toString();
+        secPlusBtn.click();
+        return;
       }
     }
+    spaNavigate('outside-of-project');
     return;
   }
 
@@ -995,29 +1032,24 @@ function navigateToExperienceNewConversation(exp) {
     }
 
     if (typeof fn === 'function') {
-      if (targetProjId) {
-        fn(targetProjId);
+      try {
+        if (targetProjId) fn(targetProjId);
+        else fn();
+        return;
+      } catch {}
+    }
+    const projPlusBtn = document.querySelector('[data-testid="project-group"] button[aria-label="New Conversation"]');
+    if (projPlusBtn) {
+      const props = plugin.react.getProps(projPlusBtn);
+      if (typeof props?.onClick === 'function') {
+        props.onClick({ preventDefault: () => {}, stopPropagation: () => {} });
+        return;
       } else {
-        fn();
-      }
-    } else {
-      const projPlusBtn = document.querySelector('[data-testid="project-group"] button[aria-label="New Conversation"]');
-      if (projPlusBtn) {
-        const props = plugin.react.getProps(projPlusBtn);
-        if (typeof props?.onClick === 'function') {
-          props.onClick({ preventDefault: () => {}, stopPropagation: () => {} });
-        } else {
-          projPlusBtn.click();
-        }
-      } else {
-        const url = new URL(window.location.href);
-        url.pathname = '/';
-        if (targetProjId) {
-          url.search = `?section=${encodeURIComponent(targetProjId)}`;
-        }
-        window.location.href = url.toString();
+        projPlusBtn.click();
+        return;
       }
     }
+    spaNavigate(targetProjId || undefined);
   }
 }
 
@@ -1611,20 +1643,105 @@ function ensureDisplayOptionsRow(block) {
 
 const INPUT_BOX = '[data-testid="agent-input-box"]';
 
-function setComposerPromptText(text) {
-  const textarea = document.querySelector('textarea');
-  if (!textarea) return;
-  textarea.focus();
-  const prototype = Object.getPrototypeOf(textarea);
-  const descriptor = Object.getOwnPropertyDescriptor(prototype, 'value') || Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value');
-  if (descriptor && descriptor.set) {
-    descriptor.set.call(textarea, text);
-  } else {
-    textarea.value = text;
+async function setComposerPromptText(text, submit = false) {
+  if (!text) return false;
+
+  function findComposerTarget() {
+    const box = document.querySelector(INPUT_BOX) || document.querySelector('[data-testid="composer-input"]')?.closest('.group\\/pane') || document;
+    // 1. Look for Lexical contenteditable inside agent-input-box
+    for (const node of box.querySelectorAll('[contenteditable]')) {
+      if (node.isContentEditable && (node.__lexicalEditor || node.getAttribute('role') === 'textbox' || node.getAttribute('aria-label') === 'Message input' || node.getAttribute('data-lexical-editor') === 'true')) {
+        return node;
+      }
+    }
+    // 2. Fallback to any contenteditable inside box
+    const editable = box.querySelector('[contenteditable="true"]');
+    if (editable) return editable;
+    // 3. Fallback to textarea or input
+    const textarea = box.querySelector('textarea, input[type="text"]');
+    if (textarea) return textarea;
+    return null;
   }
-  textarea.dispatchEvent(new Event('input', { bubbles: true }));
-  textarea.dispatchEvent(new Event('change', { bubbles: true }));
-  textarea.selectionStart = textarea.selectionEnd = text.length;
+
+  // Poll for up to 3000ms in case a new conversation is mounting
+  const deadline = Date.now() + 3000;
+  let target = findComposerTarget();
+  while (!target && Date.now() < deadline) {
+    await new Promise(res => setTimeout(res, 50));
+    target = findComposerTarget();
+  }
+
+  if (!target) return false;
+
+  target.focus();
+
+  if (target instanceof HTMLTextAreaElement || target instanceof HTMLInputElement) {
+    const proto = Object.getPrototypeOf(target);
+    const desc = Object.getOwnPropertyDescriptor(proto, 'value') || Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value');
+    if (desc && desc.set) desc.set.call(target, text);
+    else target.value = text;
+    target.dispatchEvent(new Event('input', { bubbles: true }));
+    target.dispatchEvent(new Event('change', { bubbles: true }));
+    target.selectionStart = target.selectionEnd = text.length;
+  } else {
+    // Contenteditable (Lexical editor)
+    const selection = window.getSelection();
+    if (selection) {
+      selection.selectAllChildren(target);
+    }
+    let ok = false;
+    try {
+      ok = document.execCommand('insertText', false, text);
+    } catch {}
+
+    if (!ok || !target.textContent?.includes(text)) {
+      try {
+        const inputEvent = new InputEvent('beforeinput', {
+          bubbles: true,
+          cancelable: true,
+          inputType: 'insertText',
+          data: text
+        });
+        target.dispatchEvent(inputEvent);
+      } catch {}
+      if (!target.textContent?.includes(text)) {
+        target.textContent = text;
+      }
+      target.dispatchEvent(new Event('input', { bubbles: true }));
+      target.dispatchEvent(new Event('change', { bubbles: true }));
+    }
+
+    // Move caret to end
+    try {
+      const sel = window.getSelection();
+      if (sel) {
+        const range = document.createRange();
+        range.selectNodeContents(target);
+        range.collapse(false);
+        sel.removeAllRanges();
+        sel.addRange(range);
+      }
+    } catch {}
+  }
+
+  if (submit) {
+    setTimeout(() => {
+      const sendBtn = document.querySelector('[data-testid="send-button"]') ||
+                      document.querySelector('[data-testid="agent-input-box"] button[aria-label*="Send"]') ||
+                      document.querySelector('button[aria-label="Send message"]');
+      if (sendBtn && !sendBtn.disabled && sendBtn.getAttribute('aria-disabled') !== 'true') {
+        sendBtn.click();
+      } else {
+        target.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', code: 'Enter', keyCode: 13, which: 13, bubbles: true, cancelable: true }));
+      }
+    }, 120);
+  }
+
+  return true;
+}
+
+if (typeof window !== 'undefined') {
+  window.BetterGravityComposer = { setPrompt: setComposerPromptText };
 }
 
 const ANTIGRAVITY_BUILTIN_SKILLS = [
@@ -7028,8 +7145,23 @@ function updateAllUserCards(profile) {
         imgEl.style.display = "";
         if (fallbackEl) fallbackEl.classList.add("hidden");
       } else {
-        imgEl.style.display = "none";
+        imgEl.removeAttribute("src");
+        imgEl.remove();
         if (fallbackEl) fallbackEl.classList.remove("hidden");
+      }
+    } else if (profile.pictureUrl) {
+      const wrap = pill.querySelector(".gemini-user-avatar-wrap");
+      if (wrap) {
+        const newImg = document.createElement("img");
+        newImg.className = "gemini-user-avatar";
+        newImg.src = profile.pictureUrl;
+        newImg.alt = "";
+        if (fallbackEl) fallbackEl.classList.add("hidden");
+        newImg.addEventListener("error", () => {
+          newImg.remove();
+          if (fallbackEl) fallbackEl.classList.remove("hidden");
+        });
+        wrap.appendChild(newImg);
       }
     }
     if (fallbackEl) {
@@ -7716,6 +7848,48 @@ function onAccountPopoverKeydown(e) {
   }
 }
 
+function formatAccountName(email) {
+  const handle = (email || "").split("@")[0] || "";
+  if (/^kurt/i.test(handle)) {
+    const rest = handle.slice(4).replace(/[._-]+/g, " ").trim();
+    return "Kurt" + (rest ? " " + rest.split(/\s+/).map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(" ") : "");
+  }
+  const parts = handle.split(/[._-]+/).filter(Boolean);
+  return parts.map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(" ") || handle;
+}
+
+async function switchActiveAccount(targetEmail) {
+  if (!targetEmail || targetEmail.toLowerCase() === (userAccountProfile.email || "").toLowerCase()) {
+    return;
+  }
+
+  let switched = null;
+  if (typeof plugin?.account?.switchAccount === "function") {
+    try {
+      switched = await plugin.account.switchAccount(targetEmail);
+    } catch {}
+  }
+
+  if (!switched) {
+    const currentActive = userAccountProfile.email;
+    const oldAccounts = (userAccountProfile.accounts || []).filter(
+      (a) => a.toLowerCase() !== targetEmail.toLowerCase()
+    );
+    if (currentActive && !oldAccounts.some((a) => a.toLowerCase() === currentActive.toLowerCase())) {
+      oldAccounts.push(currentActive);
+    }
+    switched = {
+      fullName: formatAccountName(targetEmail),
+      firstName: formatAccountName(targetEmail).split(/\s+/)[0],
+      email: targetEmail,
+      accounts: [targetEmail, ...oldAccounts]
+    };
+  }
+
+  applyAccountProfile(switched);
+  closeAccountPopover();
+}
+
 function toggleAccountPopover(pill, settingsBtn) {
   if (currentAccountPopover) {
     closeAccountPopover();
@@ -7737,18 +7911,21 @@ function toggleAccountPopover(pill, settingsBtn) {
   let accountsHtml = "";
   if (otherAccounts.length > 0) {
     accountsHtml = `
-      <div class="gemini-popover-section-label">Other Google Accounts</div>
+      <div class="gemini-popover-section-label">Switch Google Account</div>
       <div class="gemini-popover-accounts-list">
         ${otherAccounts
           .map((acc) => {
             const accInitial = acc.charAt(0).toUpperCase();
+            const accName = formatAccountName(acc);
             return `
-              <div class="gemini-popover-account-item" data-email="${acc}" title="Click to copy address">
+              <div class="gemini-popover-account-item" data-email="${acc}" title="Switch to ${acc}">
                 <div class="gemini-popover-account-avatar">${accInitial}</div>
                 <div class="gemini-popover-account-text">
+                  <span class="gemini-popover-account-name">${accName}</span>
                   <span class="gemini-popover-account-email">${acc}</span>
                 </div>
-                <button type="button" class="gemini-popover-copy-btn" title="Copy Email">
+                <button type="button" class="gemini-popover-switch-btn" data-email="${acc}" title="Switch to this account">Switch</button>
+                <button type="button" class="gemini-popover-copy-btn" data-email="${acc}" title="Copy Email">
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
                     <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
@@ -7813,26 +7990,31 @@ function toggleAccountPopover(pill, settingsBtn) {
   popover.querySelectorAll(".gemini-popover-copy-btn").forEach((btn) => {
     btn.addEventListener("click", (e) => {
       e.stopPropagation();
-      const parent = btn.closest(".gemini-popover-account-item");
-      const emailToCopy = parent?.getAttribute("data-email");
-      if (emailToCopy) {
-        navigator.clipboard.writeText(emailToCopy).catch(() => {});
+      const targetEmail = btn.getAttribute("data-email");
+      if (targetEmail) {
+        navigator.clipboard.writeText(targetEmail).catch(() => {});
         btn.classList.add("copied");
         setTimeout(() => btn.classList.remove("copied"), 1500);
       }
     });
   });
 
+  popover.querySelectorAll(".gemini-popover-switch-btn").forEach((btn) => {
+    btn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const targetEmail = btn.getAttribute("data-email");
+      if (targetEmail) {
+        switchActiveAccount(targetEmail);
+      }
+    });
+  });
+
   popover.querySelectorAll(".gemini-popover-account-item").forEach((item) => {
-    item.addEventListener("click", () => {
-      const emailToCopy = item.getAttribute("data-email");
-      if (emailToCopy) {
-        navigator.clipboard.writeText(emailToCopy).catch(() => {});
-        const copyBtn = item.querySelector(".gemini-popover-copy-btn");
-        if (copyBtn) {
-          copyBtn.classList.add("copied");
-          setTimeout(() => copyBtn.classList.remove("copied"), 1500);
-        }
+    item.addEventListener("click", (e) => {
+      if (e.target.closest(".gemini-popover-copy-btn")) return;
+      const targetEmail = item.getAttribute("data-email");
+      if (targetEmail) {
+        switchActiveAccount(targetEmail);
       }
     });
   });
@@ -7874,31 +8056,23 @@ function ensureSidebarUserCard(footer) {
     const avatarWrap = document.createElement("div");
     avatarWrap.className = "gemini-user-avatar-wrap";
 
-    const img = document.createElement("img");
-    img.className = "gemini-user-avatar";
-    if (avatarUrl) {
-      img.src = avatarUrl;
-      img.alt = "";
-    } else {
-      img.style.display = "none";
-    }
-
     const fallback = document.createElement("div");
     fallback.className = "gemini-user-avatar-fallback";
     fallback.textContent = initial;
-    if (avatarUrl) {
-      fallback.classList.add("hidden");
-    } else {
-      fallback.classList.remove("hidden");
-    }
-
-    img.addEventListener("error", () => {
-      img.style.display = "none";
-      fallback.classList.remove("hidden");
-    });
-
-    avatarWrap.appendChild(img);
     avatarWrap.appendChild(fallback);
+
+    if (avatarUrl) {
+      const img = document.createElement("img");
+      img.className = "gemini-user-avatar";
+      img.src = avatarUrl;
+      img.alt = "";
+      fallback.classList.add("hidden");
+      img.addEventListener("error", () => {
+        img.remove();
+        fallback.classList.remove("hidden");
+      });
+      avatarWrap.appendChild(img);
+    }
 
     const textDiv = document.createElement("div");
     textDiv.className = "gemini-user-text";
@@ -9075,14 +9249,7 @@ function setupScheduledTasksView(view) {
         e.preventDefault();
         e.stopPropagation();
         navigateToExperienceNewConversation('chat');
-        setTimeout(() => {
-          const composer = document.querySelector('[data-testid="composer-input"]') || document.querySelector('textarea.antigravity-prompt-input');
-          if (composer) {
-            composer.value = '/schedule ';
-            composer.focus();
-            composer.dispatchEvent(new Event('input', { bubbles: true }));
-          }
-        }, 150);
+        setComposerPromptText('/schedule ');
       });
     }
 
@@ -9391,14 +9558,7 @@ function setupScheduledTasksView(view) {
       askGeminiBtn.addEventListener('click', (e) => {
         e.preventDefault();
         navigateToExperienceNewConversation('chat');
-        setTimeout(() => {
-          const composer = document.querySelector('[data-testid="composer-input"]') || document.querySelector('textarea.antigravity-prompt-input');
-          if (composer) {
-            composer.value = '/schedule ';
-            composer.focus();
-            composer.dispatchEvent(new Event('input', { bubbles: true }));
-          }
-        }, 150);
+        setComposerPromptText('/schedule ');
       });
     }
 
@@ -9856,14 +10016,7 @@ function setupScheduleDetailView(view) {
       askGeminiBtn.addEventListener('click', (e) => {
         e.preventDefault();
         navigateToExperienceNewConversation('chat');
-        setTimeout(() => {
-          const composer = document.querySelector('[data-testid="composer-input"]') || document.querySelector('textarea.antigravity-prompt-input');
-          if (composer) {
-            composer.value = '/schedule ';
-            composer.focus();
-            composer.dispatchEvent(new Event('input', { bubbles: true }));
-          }
-        }, 150);
+        setComposerPromptText('/schedule ');
       });
     }
 

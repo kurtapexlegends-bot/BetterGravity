@@ -604,6 +604,7 @@ export interface AccountProfile {
  */
 export interface PluginAccount {
   read(): Promise<AccountProfile>;
+  switchAccount(email: string): Promise<AccountProfile | null>;
 }
 
 // ---------------------------------------------------------------------------

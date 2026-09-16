@@ -18,7 +18,7 @@ import {
   type RuntimeState,
   type SettingsPatch
 } from "../protocol.js";
-import { readAccountProfile } from "./account.js";
+import { readAccountProfile, switchAccount } from "./account.js";
 import { readGeminiPlugins, readPluginPatches, readPlugins, readThemes } from "./catalog.js";
 import { importPlugin, importThemeFolder, importThemes, installThemeText, removeItem, revealItem } from "./content.js";
 import { GeminiTranslator } from "./gemini/index.js";
@@ -255,6 +255,7 @@ function registerChannels(
   // rewrites the profile while Antigravity is running, and the read is one small
   // file.
   ipcMain.handle(CHANNEL.readAccount, () => readAccountProfile(app.getPath("home")));
+  ipcMain.handle(CHANNEL.switchAccount, (_event, email: string) => switchAccount(app.getPath("home"), email));
 
   // Adding or deleting content changes what is on disk, so each one answers with
   // the rebuilt state; the watcher would otherwise race the reply.

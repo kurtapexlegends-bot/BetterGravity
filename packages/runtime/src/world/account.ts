@@ -34,6 +34,18 @@ export function createAccountTools(): PluginAccount {
         }
       );
       return pending;
+    },
+    switchAccount: async (email: string) => {
+      pending = undefined;
+      const bridge = resolveBridge();
+      if (!bridge?.switchAccount) return null;
+      try {
+        const profile = await bridge.switchAccount(email);
+        if (profile) pending = Promise.resolve(profile);
+        return profile;
+      } catch {
+        return null;
+      }
     }
   };
 }

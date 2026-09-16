@@ -2514,11 +2514,13 @@ div:has(> [role="menu"][data-gemini-conversation-menu]) {
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
-  background-color: #333537 !important;
+  background: linear-gradient(135deg, #1a73e8 0%, #0d47a1 100%) !important;
   aspect-ratio: 1 / 1 !important;
 }
 
 #gemini-sidebar-user-pill .gemini-user-avatar {
+  position: absolute !important;
+  inset: 0 !important;
   width: 100% !important;
   height: 100% !important;
   border-radius: 50% !important;
@@ -2527,7 +2529,15 @@ div:has(> [role="menu"][data-gemini-conversation-menu]) {
   display: block !important;
 }
 
+#gemini-sidebar-user-pill .gemini-user-avatar[style*="display: none"],
+#gemini-sidebar-user-pill .gemini-user-avatar:not([src]),
+#gemini-sidebar-user-pill .gemini-user-avatar[src=""] {
+  display: none !important;
+}
+
 #gemini-sidebar-user-pill .gemini-user-avatar-fallback {
+  position: absolute !important;
+  inset: 0 !important;
   width: 100% !important;
   height: 100% !important;
   border-radius: 50% !important;
@@ -2540,6 +2550,7 @@ div:has(> [role="menu"][data-gemini-conversation-menu]) {
   align-items: center !important;
   justify-content: center !important;
   text-transform: uppercase !important;
+  user-select: none !important;
 }
 
 #gemini-sidebar-user-pill .gemini-user-avatar-fallback.hidden {
@@ -2710,13 +2721,42 @@ div:has(> [role="menu"][data-gemini-conversation-menu]) {
   min-width: 0 !important;
 }
 
-.gemini-popover-account-email {
-  font-size: 12px !important;
-  color: rgba(255, 255, 255, 0.8) !important;
+.gemini-popover-account-name {
+  font-size: 13px !important;
+  font-weight: 500 !important;
+  color: #ffffff !important;
   white-space: nowrap !important;
   overflow: hidden !important;
   text-overflow: ellipsis !important;
   display: block !important;
+}
+
+.gemini-popover-account-email {
+  font-size: 11px !important;
+  color: rgba(255, 255, 255, 0.6) !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  display: block !important;
+}
+
+.gemini-popover-switch-btn {
+  background: rgba(26, 115, 232, 0.15) !important;
+  border: 1px solid rgba(26, 115, 232, 0.35) !important;
+  color: #8ab4f8 !important;
+  padding: 3px 8px !important;
+  border-radius: 6px !important;
+  font-size: 11px !important;
+  font-weight: 600 !important;
+  cursor: pointer !important;
+  transition: all 120ms ease !important;
+  white-space: nowrap !important;
+}
+
+.gemini-popover-account-item:hover .gemini-popover-switch-btn {
+  background: #1a73e8 !important;
+  color: #ffffff !important;
+  border-color: #1a73e8 !important;
 }
 
 .gemini-popover-copy-btn {

@@ -136,6 +136,27 @@ export function readAccountProfile(homeDirectory: string): AccountProfile {
     fullName = cleanName;
   }
 
+  // Check local avatar image override if pictureUrl is missing
+  if (!pictureUrl) {
+    const candidateFiles = [
+      path.join(homeDirectory, ".gemini", "avatar.png"),
+      path.join(homeDirectory, ".gemini", "avatar.jpg"),
+      path.join(homeDirectory, ".gemini", "profile.png"),
+      path.join(homeDirectory, ".gemini", "profile.jpg")
+    ];
+    for (const file of candidateFiles) {
+      if (fs.existsSync(file)) {
+        try {
+          const buf = fs.readFileSync(file);
+          const ext = path.extname(file).slice(1).toLowerCase();
+          const mime = ext === "jpg" || ext === "jpeg" ? "image/jpeg" : "image/png";
+          pictureUrl = `data:${mime};base64,${buf.toString("base64")}`;
+          break;
+        } catch {}
+      }
+    }
+  }
+
   const accounts = accountsSet.size > 0 ? Array.from(accountsSet) : undefined;
 
   return {
@@ -145,4 +166,37 @@ export function readAccountProfile(homeDirectory: string): AccountProfile {
     ...(pictureUrl === undefined ? {} : { pictureUrl }),
     ...(accounts === undefined ? {} : { accounts })
   };
+}
+
+export function switchAccount(homeDirectory: string, targetEmail: string): AccountProfile | null {
+  const filePath = path.join(homeDirectory, ...ACTIVE_ACCOUNT);
+  const data = readJson(filePath);
+  if (!isRecord(data)) return null;
+
+  const currentActive = text(data, "active");
+  const oldRaw = data["old"];
+  const oldList = Array.isArray(oldRaw) ? oldRaw.filter((x): x is string => typeof x === "string") : [];
+
+  const newOld = new Set<string>();
+  if (currentActive && currentActive.toLowerCase() !== targetEmail.toLowerCase()) {
+    newOld.add(currentActive);
+  }
+  for (const item of oldList) {
+    if (item.toLowerCase() !== targetEmail.toLowerCase()) {
+      newOld.add(item);
+    }
+  }
+
+  const updated = {
+    active: targetEmail,
+    old: Array.from(newOld)
+  };
+
+  try {
+    fs.writeFileSync(filePath, JSON.stringify(updated, null, 2), "utf8");
+  } catch {
+    return null;
+  }
+
+  return readAccountProfile(homeDirectory);
 }

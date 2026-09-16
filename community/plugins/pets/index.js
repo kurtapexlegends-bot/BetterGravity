@@ -5414,6 +5414,10 @@ async function selectThread(key) {
  * keypress does, so whatever is listening for `beforeinput` still hears it.
  */
 function typeInto(field, text) {
+  if (typeof window !== "undefined" && window.BetterGravityComposer && typeof window.BetterGravityComposer.setPrompt === "function") {
+    window.BetterGravityComposer.setPrompt(text);
+    return true;
+  }
   field.focus();
   if (field instanceof HTMLTextAreaElement || field instanceof HTMLInputElement) {
     const setter = Object.getOwnPropertyDescriptor(field.constructor.prototype, "value")?.set;
@@ -5423,7 +5427,21 @@ function typeInto(field, text) {
     return true;
   }
   window.getSelection()?.selectAllChildren(field);
-  return document.execCommand("insertText", false, text);
+  let res = false;
+  try {
+    res = document.execCommand("insertText", false, text);
+  } catch (err) {}
+  if (!res || !field.textContent?.includes(text)) {
+    try {
+      field.dispatchEvent(new InputEvent("beforeinput", {
+        bubbles: true,
+        cancelable: true,
+        inputType: "insertText",
+        data: text
+      }));
+    } catch (err) {}
+  }
+  return true;
 }
 
 /** Enter, as three events, because a composer may be watching any of them. */
@@ -5458,7 +5476,7 @@ const refusing = (element) =>
   element.hasAttribute("disabled") || element.getAttribute("aria-disabled") === "true";
 
 /** How long to give the workbench to swap a view in, or to enable a button. */
-const HOST_WAIT_MS = 1500;
+const HOST_WAIT_MS = 3000;
 
 const projectlessHome = () => {
   const section = new URLSearchParams(location.search).get("section");
