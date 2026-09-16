@@ -3298,8 +3298,9 @@ function ensureScheduledTasksRow(block) {
   if (row.parentElement !== block) block.appendChild(row);
 }
 
-function openGeminiWeb() {
-  const url = "https://gemini.google.com";
+function openGeminiWeb(customUrl) {
+  const email = userAccountProfile?.email || "kurtgpro2@gmail.com";
+  const url = customUrl || (email ? `https://gemini.google.com/app?authuser=${encodeURIComponent(email)}` : "https://gemini.google.com");
   if (window.BetterGravityBrowser && typeof window.BetterGravityBrowser.open === "function") {
     window.BetterGravityBrowser.open(url);
   } else {
@@ -3307,11 +3308,17 @@ function openGeminiWeb() {
   }
 }
 
+const BROWSER_ICON_SVG = `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+  <circle cx="12" cy="12" r="10"></circle>
+  <line x1="2" y1="12" x2="22" y2="12"></line>
+  <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
+</svg>`;
+
 function ensureBrowserRow(block) {
   let row = document.getElementById('gemini-browser-button');
   if (!row) {
     row = navRow('gemini-browser-button');
-    row.innerHTML = '<span class="icon-box"></span><span class="truncate">Browser</span>';
+    row.innerHTML = `<span class="icon-box">${BROWSER_ICON_SVG}</span><span class="truncate">Browser</span>`;
     row.title = "Open In-Built Browser";
     row.addEventListener('click', (e) => {
       e.preventDefault();
@@ -3329,6 +3336,10 @@ function ensureBrowserRow(block) {
         row.classList.toggle('bg-sidebar-secondary', isOpen);
       }, 100);
     });
+  }
+  const iconSlot = row.querySelector('span.icon-box');
+  if (iconSlot && !iconSlot.querySelector('svg')) {
+    iconSlot.innerHTML = BROWSER_ICON_SVG;
   }
   const slot = row.querySelector('span:last-child');
   if (slot && slot.textContent !== 'Browser') slot.textContent = 'Browser';
@@ -7655,6 +7666,7 @@ const DEFAULT_ACCOUNT = {
     "likhangkamaybusiness@gmail.com",
     "kurtapexlegends@gmail.com",
     "kurtgpro3@gmail.com",
+    "kurtgpro5@gmail.com",
     "akunosteam@gmail.com",
     "acostayashica@gmail.com"
   ]
@@ -8395,6 +8407,82 @@ function formatAccountName(email) {
   return parts.map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(" ") || handle;
 }
 
+function getAccountPlan(email) {
+  if (!email) return "FREE";
+  const clean = email.trim().toLowerCase();
+  try {
+    const plans = JSON.parse(localStorage.getItem("bettergravity_account_plans") || "{}");
+    if (plans[clean]) return plans[clean];
+  } catch {}
+  if (/^kurtgpro2@gmail\.com$/i.test(clean)) return "PRO";
+  return "FREE";
+}
+
+function setAccountPlan(email, plan) {
+  if (!email) return;
+  const clean = email.trim().toLowerCase();
+  try {
+    const plans = JSON.parse(localStorage.getItem("bettergravity_account_plans") || "{}");
+    plans[clean] = plan;
+    localStorage.setItem("bettergravity_account_plans", JSON.stringify(plans));
+  } catch {}
+}
+
+function getAccountLimits(email) {
+  const clean = (email || "").trim().toLowerCase();
+  const isPro = getAccountPlan(clean) === "PRO";
+  try {
+    const limits = JSON.parse(localStorage.getItem("bettergravity_account_limits") || "{}");
+    if (limits[clean]) return limits[clean];
+  } catch {}
+  return {
+    fiveHour: isPro ? 94 : 65,
+    weekly: isPro ? 98 : 78
+  };
+}
+
+async function addCustomAccount(newEmail, plan = "FREE") {
+  const clean = (newEmail || "").trim().toLowerCase();
+  if (!clean || !clean.includes("@")) return false;
+  setAccountPlan(clean, plan);
+
+  const currentAccounts = Array.isArray(userAccountProfile.accounts) ? [...userAccountProfile.accounts] : [...DEFAULT_ACCOUNT.accounts];
+  if (!currentAccounts.some((a) => a.toLowerCase() === clean)) {
+    currentAccounts.push(clean);
+    userAccountProfile.accounts = currentAccounts;
+  }
+
+  if (typeof plugin?.account?.addAccount === "function") {
+    try {
+      await plugin.account.addAccount(clean);
+    } catch {}
+  }
+  try {
+    localStorage.setItem("bettergravity_google_accounts", JSON.stringify(currentAccounts));
+  } catch {}
+  return true;
+}
+
+async function removeCustomAccount(emailToRemove) {
+  const target = (emailToRemove || "").trim().toLowerCase();
+  if (!target) return false;
+
+  const currentAccounts = (Array.isArray(userAccountProfile.accounts) ? userAccountProfile.accounts : DEFAULT_ACCOUNT.accounts).filter(
+    (a) => a.toLowerCase() !== target
+  );
+  userAccountProfile.accounts = currentAccounts;
+
+  if (typeof plugin?.account?.removeAccount === "function") {
+    try {
+      await plugin.account.removeAccount(target);
+    } catch {}
+  }
+  try {
+    localStorage.setItem("bettergravity_google_accounts", JSON.stringify(currentAccounts));
+  } catch {}
+  return true;
+}
+
 async function switchActiveAccount(targetEmail) {
   if (!targetEmail || targetEmail.toLowerCase() === (userAccountProfile.email || "").toLowerCase()) {
     return;
@@ -8419,11 +8507,35 @@ async function switchActiveAccount(targetEmail) {
       fullName: formatAccountName(targetEmail),
       firstName: formatAccountName(targetEmail).split(/\s+/)[0],
       email: targetEmail,
-      accounts: [targetEmail, ...oldAccounts]
+      accounts: [targetEmail, ...oldAccounts],
+      pictureUrl: userAccountProfile.pictureUrl
     };
   }
 
+  try {
+    localStorage.setItem("bettergravity_active_account", targetEmail);
+  } catch {}
+
   applyAccountProfile(switched);
+
+  // Sync active Google session with in-built browser & navigate Gemini Web
+  const geminiWebUrl = `https://gemini.google.com/app?authuser=${encodeURIComponent(targetEmail)}`;
+  if (typeof window !== "undefined") {
+    if (window.BetterGravityBrowser) {
+      window.BetterGravityBrowser.activeAccount = targetEmail;
+      if (typeof window.BetterGravityBrowser.navigate === "function") {
+        try {
+          window.BetterGravityBrowser.navigate(geminiWebUrl);
+        } catch {}
+      }
+    }
+    window.dispatchEvent(
+      new CustomEvent("bettergravity:account-switched", {
+        detail: { email: targetEmail, plan: getAccountPlan(targetEmail) }
+      })
+    );
+  }
+
   closeAccountPopover();
 }
 
@@ -8441,40 +8553,68 @@ function toggleAccountPopover(pill, settingsBtn) {
   const initial = (userAccountProfile.fullName || userAccountProfile.firstName || userAccountProfile.email || "K").charAt(0).toUpperCase();
   const activeEmail = userAccountProfile.email || "kurtgpro2@gmail.com";
   const displayName = userAccountProfile.fullName || userAccountProfile.firstName || "Kurt";
-  const otherAccounts = (userAccountProfile.accounts || DEFAULT_ACCOUNT.accounts).filter(
+  const activePlan = getAccountPlan(activeEmail);
+  const activeLimits = getAccountLimits(activeEmail);
+
+  // Merge stored custom accounts with profile accounts
+  let allAccounts = Array.isArray(userAccountProfile.accounts) ? [...userAccountProfile.accounts] : [...DEFAULT_ACCOUNT.accounts];
+  try {
+    const saved = JSON.parse(localStorage.getItem("bettergravity_google_accounts") || "[]");
+    if (Array.isArray(saved)) {
+      for (const s of saved) {
+        if (typeof s === "string" && s.includes("@") && !allAccounts.some((a) => a.toLowerCase() === s.toLowerCase())) {
+          allAccounts.push(s.trim().toLowerCase());
+        }
+      }
+    }
+  } catch {}
+
+  const otherAccounts = allAccounts.filter(
     (acc) => acc.toLowerCase() !== activeEmail.toLowerCase()
   );
 
   let accountsHtml = "";
   if (otherAccounts.length > 0) {
     accountsHtml = `
-      <div class="gemini-popover-section-label">Switch Google Account</div>
+      <div class="gemini-popover-section-label">Switch Google Account (${otherAccounts.length})</div>
       <div class="gemini-popover-accounts-list">
         ${otherAccounts
           .map((acc) => {
             const accInitial = acc.charAt(0).toUpperCase();
             const accName = formatAccountName(acc);
+            const plan = getAccountPlan(acc);
+            const limits = getAccountLimits(acc);
+            const planBadgeClass = plan === "PRO" ? "plan-pro" : "plan-free";
             return `
               <div class="gemini-popover-account-item" data-email="${acc}" title="Switch to ${acc}">
                 <div class="gemini-popover-account-avatar">${accInitial}</div>
                 <div class="gemini-popover-account-text">
-                  <span class="gemini-popover-account-name">${accName}</span>
+                  <div style="display: flex; align-items: center; gap: 6px;">
+                    <span class="gemini-popover-account-name">${accName}</span>
+                    <span class="gemini-account-plan-badge ${planBadgeClass}">${plan}</span>
+                  </div>
                   <span class="gemini-popover-account-email">${acc}</span>
                 </div>
+                <div class="gemini-popover-limits-col" title="Current usage limits">
+                  <span class="gemini-limit-chip chip-5h">5h: ${limits.fiveHour}%</span>
+                  <span class="gemini-limit-chip chip-weekly">Wk: ${limits.weekly}%</span>
+                </div>
                 <button type="button" class="gemini-popover-switch-btn" data-email="${acc}" title="Switch to this account">Switch</button>
-                <button type="button" class="gemini-popover-copy-btn" data-email="${acc}" title="Copy Email">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-                  </svg>
-                </button>
+                <button type="button" class="gemini-popover-remove-btn" data-email="${acc}" title="Remove account from list">✕</button>
               </div>
             `;
           })
           .join("")}
       </div>
     `;
+  } else {
+    accountsHtml = `
+      <div class="gemini-popover-section-label">Switch Google Account</div>
+      <div style="padding: 8px; font-size: 12px; color: rgba(255,255,255,0.5); text-align: center;">No other accounts configured</div>
+    `;
   }
+
+  const activePlanBadgeClass = activePlan === "PRO" ? "plan-pro" : "plan-free";
 
   popover.innerHTML = `
     <div class="gemini-popover-header">
@@ -8484,13 +8624,57 @@ function toggleAccountPopover(pill, settingsBtn) {
       <div class="gemini-popover-active-info">
         <div class="gemini-popover-active-name-row">
           <span class="gemini-popover-active-name">${displayName}</span>
+          <span class="gemini-account-plan-badge ${activePlanBadgeClass}">${activePlan}</span>
           <span class="gemini-popover-badge">Active</span>
         </div>
         <span class="gemini-popover-active-email">${activeEmail}</span>
       </div>
     </div>
 
+    <div class="gemini-popover-active-limits">
+      <div class="gemini-limit-row">
+        <div class="gemini-limit-label-col">
+          <span class="gemini-limit-name">5-Hour Rate Limit</span>
+          <span class="gemini-limit-val">${activeLimits.fiveHour}% remaining</span>
+        </div>
+        <div class="gemini-limit-track">
+          <div class="gemini-limit-fill fill-5h" style="width: ${activeLimits.fiveHour}%;"></div>
+        </div>
+      </div>
+      <div class="gemini-limit-row">
+        <div class="gemini-limit-label-col">
+          <span class="gemini-limit-name">Weekly Quota Limit</span>
+          <span class="gemini-limit-val">${activeLimits.weekly}% remaining</span>
+        </div>
+        <div class="gemini-limit-track">
+          <div class="gemini-limit-fill fill-weekly" style="width: ${activeLimits.weekly}%;"></div>
+        </div>
+      </div>
+    </div>
+
     ${accountsHtml}
+
+    <div class="gemini-popover-add-wrap">
+      <button type="button" class="gemini-popover-add-trigger" id="gemini-popover-add-trigger">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="12" y1="5" x2="12" y2="19"></line>
+          <line x1="5" y1="12" x2="19" y2="12"></line>
+        </svg>
+        <span>Add Google Account</span>
+      </button>
+      <div class="gemini-popover-add-form" id="gemini-popover-add-form" style="display: none;">
+        <input type="email" class="gemini-popover-add-input" id="gemini-popover-add-email-input" placeholder="Enter google email (e.g. user@gmail.com)" />
+        <div class="gemini-popover-add-plan-select">
+          <span>Plan:</span>
+          <label><input type="radio" name="gemini-new-acc-plan" value="PRO" /> PRO (Advanced)</label>
+          <label><input type="radio" name="gemini-new-acc-plan" value="FREE" checked /> FREE</label>
+        </div>
+        <div class="gemini-popover-add-actions">
+          <button type="button" class="gemini-popover-btn-cancel" id="gemini-popover-add-cancel-btn">Cancel</button>
+          <button type="button" class="gemini-popover-btn-save" id="gemini-popover-add-save-btn">Add Account</button>
+        </div>
+      </div>
+    </div>
 
     <div class="gemini-popover-divider"></div>
 
@@ -8524,18 +8708,7 @@ function toggleAccountPopover(pill, settingsBtn) {
     });
   }
 
-  popover.querySelectorAll(".gemini-popover-copy-btn").forEach((btn) => {
-    btn.addEventListener("click", (e) => {
-      e.stopPropagation();
-      const targetEmail = btn.getAttribute("data-email");
-      if (targetEmail) {
-        navigator.clipboard.writeText(targetEmail).catch(() => {});
-        btn.classList.add("copied");
-        setTimeout(() => btn.classList.remove("copied"), 1500);
-      }
-    });
-  });
-
+  // Switch button handlers
   popover.querySelectorAll(".gemini-popover-switch-btn").forEach((btn) => {
     btn.addEventListener("click", (e) => {
       e.stopPropagation();
@@ -8546,15 +8719,77 @@ function toggleAccountPopover(pill, settingsBtn) {
     });
   });
 
+  // Remove button handlers
+  popover.querySelectorAll(".gemini-popover-remove-btn").forEach((btn) => {
+    btn.addEventListener("click", async (e) => {
+      e.stopPropagation();
+      const targetEmail = btn.getAttribute("data-email");
+      if (targetEmail) {
+        await removeCustomAccount(targetEmail);
+        closeAccountPopover();
+        toggleAccountPopover(pill, settingsBtn);
+      }
+    });
+  });
+
+  // Click on account row to switch
   popover.querySelectorAll(".gemini-popover-account-item").forEach((item) => {
     item.addEventListener("click", (e) => {
-      if (e.target.closest(".gemini-popover-copy-btn")) return;
+      if (e.target.closest(".gemini-popover-remove-btn")) return;
       const targetEmail = item.getAttribute("data-email");
       if (targetEmail) {
         switchActiveAccount(targetEmail);
       }
     });
   });
+
+  // Add Account Expand & Save handlers
+  const addTrigger = popover.querySelector("#gemini-popover-add-trigger");
+  const addForm = popover.querySelector("#gemini-popover-add-form");
+  const addEmailInput = popover.querySelector("#gemini-popover-add-email-input");
+  const addCancelBtn = popover.querySelector("#gemini-popover-add-cancel-btn");
+  const addSaveBtn = popover.querySelector("#gemini-popover-add-save-btn");
+
+  if (addTrigger && addForm) {
+    addTrigger.addEventListener("click", (e) => {
+      e.stopPropagation();
+      addForm.style.display = addForm.style.display === "none" ? "flex" : "none";
+      if (addForm.style.display === "flex") {
+        addEmailInput?.focus();
+      }
+    });
+  }
+
+  if (addCancelBtn && addForm) {
+    addCancelBtn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      addForm.style.display = "none";
+      if (addEmailInput) addEmailInput.value = "";
+    });
+  }
+
+  if (addSaveBtn && addEmailInput) {
+    const onSave = async (e) => {
+      e.stopPropagation();
+      const email = addEmailInput.value.trim();
+      if (!email || !email.includes("@")) {
+        addEmailInput.focus();
+        return;
+      }
+      const selectedPlan = popover.querySelector('input[name="gemini-new-acc-plan"]:checked')?.value || "FREE";
+      await addCustomAccount(email, selectedPlan);
+      closeAccountPopover();
+      toggleAccountPopover(pill, settingsBtn);
+    };
+
+    addSaveBtn.addEventListener("click", onSave);
+    addEmailInput.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        onSave(e);
+      }
+    });
+  }
 
   const bottomOffset = window.innerHeight - rect.top + 8;
   popover.style.bottom = `${Math.max(12, bottomOffset)}px`;

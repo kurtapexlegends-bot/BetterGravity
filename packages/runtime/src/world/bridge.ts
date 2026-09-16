@@ -49,6 +49,8 @@ export interface RuntimeBridge {
   onGeminiStatus(listener: (status: GeminiStatus) => void): void;
   readAccount(): Promise<AccountProfile>;
   switchAccount(email: string): Promise<AccountProfile | null>;
+  addAccount(email: string): Promise<AccountProfile | null>;
+  removeAccount(email: string): Promise<AccountProfile | null>;
   petsRead(owner: string): Promise<PetLibraryState>;
   petsLoad(owner: string, id: string): Promise<PetSprite>;
   petsPrepare(owner: string): Promise<{ skillPath: string; directory: string }>;

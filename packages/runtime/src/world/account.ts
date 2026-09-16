@@ -46,6 +46,30 @@ export function createAccountTools(): PluginAccount {
       } catch {
         return null;
       }
+    },
+    addAccount: async (email: string) => {
+      pending = undefined;
+      const bridge = resolveBridge();
+      if (!bridge?.addAccount) return null;
+      try {
+        const profile = await bridge.addAccount(email);
+        if (profile) pending = Promise.resolve(profile);
+        return profile;
+      } catch {
+        return null;
+      }
+    },
+    removeAccount: async (email: string) => {
+      pending = undefined;
+      const bridge = resolveBridge();
+      if (!bridge?.removeAccount) return null;
+      try {
+        const profile = await bridge.removeAccount(email);
+        if (profile) pending = Promise.resolve(profile);
+        return profile;
+      } catch {
+        return null;
+      }
     }
   };
 }

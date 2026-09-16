@@ -34,6 +34,8 @@ export const CHANNEL = {
   geminiStatus: "bettergravity:gemini-status",
   readAccount: "bettergravity:read-account",
   switchAccount: "bettergravity:switch-account",
+  addAccount: "bettergravity:add-account",
+  removeAccount: "bettergravity:remove-account",
   petsRead: "bettergravity:pets-read",
   petsLoad: "bettergravity:pets-load",
   petsPrepare: "bettergravity:pets-prepare",

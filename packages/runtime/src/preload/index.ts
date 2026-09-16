@@ -123,6 +123,8 @@ const bridge: RuntimeBridge = {
   },
   readAccount: () => ipcRenderer.invoke(CHANNEL.readAccount),
   switchAccount: (email: string) => ipcRenderer.invoke(CHANNEL.switchAccount, email),
+  addAccount: (email: string) => ipcRenderer.invoke(CHANNEL.addAccount, email),
+  removeAccount: (email: string) => ipcRenderer.invoke(CHANNEL.removeAccount, email),
   petsRead: owner => ipcRenderer.invoke(CHANNEL.petsRead, owner),
   petsLoad: (owner, id) => ipcRenderer.invoke(CHANNEL.petsLoad, owner, id),
   petsPrepare: owner => ipcRenderer.invoke(CHANNEL.petsPrepare, owner),

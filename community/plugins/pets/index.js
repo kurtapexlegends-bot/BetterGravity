@@ -910,12 +910,32 @@ function petSurface(host, data) {
     "Fork Chat is ready whenever you want to test a new branch! 🌿"
   ];
 
-  function showBubble(text, duration = 4500) {
+  function showBubble(text, duration = 5000, tag = "💬 Tip") {
     if (bubbleTimer) {
       clearTimeout(bubbleTimer);
       bubbleTimer = null;
     }
-    speechBubble.textContent = text;
+    const currentName = typeof petName === "function" ? petName() : "Rocky";
+    speechBubble.innerHTML = `
+      <div class="bettergravity-pet-bubble__header">
+        <div class="bettergravity-pet-bubble__meta">
+          <span class="bettergravity-pet-bubble__tag">${tag}</span>
+          <span class="bettergravity-pet-bubble__name">${currentName}</span>
+        </div>
+        <button type="button" class="bettergravity-pet-bubble__close" aria-label="Dismiss">✕</button>
+      </div>
+      <div class="bettergravity-pet-bubble__body">${text}</div>
+    `;
+
+    const closeBtn = speechBubble.querySelector(".bettergravity-pet-bubble__close");
+    if (closeBtn) {
+      closeBtn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        speechBubble.hidden = true;
+        if (bubbleTimer) clearTimeout(bubbleTimer);
+      });
+    }
+
     speechBubble.hidden = false;
     layoutBubble();
     bubbleTimer = setTimeout(() => {
@@ -926,9 +946,11 @@ function petSurface(host, data) {
 
   function layoutBubble() {
     if (speechBubble.hidden) return;
-    const bubbleWidth = 240;
-    const bubbleX = Math.max(12, Math.min(window.innerWidth - bubbleWidth - 12, x + (width - bubbleWidth) / 2));
-    const bubbleY = Math.max(12, y - 56);
+    const bubbleRect = speechBubble.getBoundingClientRect();
+    const bubbleWidth = bubbleRect.width || 280;
+    const bubbleHeight = bubbleRect.height || 64;
+    const bubbleX = Math.max(16, Math.min(window.innerWidth - bubbleWidth - 16, x + (width - bubbleWidth) / 2));
+    const bubbleY = Math.max(16, y - bubbleHeight - 14);
     speechBubble.style.left = `${bubbleX}px`;
     speechBubble.style.top = `${bubbleY}px`;
   }
@@ -2104,6 +2126,7 @@ function petSurface(host, data) {
     host.send({ t: "open-library" });
   });
   on(speechBubble, "click", event => {
+    if (event.target.closest(".bettergravity-pet-bubble__close")) return;
     event.stopPropagation();
     speechBubble.hidden = true;
     if (bubbleTimer) clearTimeout(bubbleTimer);
@@ -3036,6 +3059,12 @@ function petSurface(host, data) {
           }
           break;
         }
+        case "bubble": {
+          if (typeof message.text === "string" && message.text) {
+            showBubble(message.text, message.duration || 5000, message.tag || "💬 Tip");
+          }
+          break;
+        }
         case "bye": {
           dispose();
           break;
@@ -3787,6 +3816,56 @@ async function createPet() {
   }
 }
 
+function tellPet(text, duration = 6000, tag = "💬 Tip") {
+  if (surface && typeof surface.send === "function") {
+    surface.send({ t: "bubble", text, duration, tag });
+  }
+}
+
+async function createPetWithGeminiWeb() {
+  let activeEmail = "kurtgpro2@gmail.com";
+  let activePlan = "PRO";
+  try {
+    const savedEmail = localStorage.getItem("bettergravity_active_account");
+    if (savedEmail) activeEmail = savedEmail;
+    const plans = JSON.parse(localStorage.getItem("bettergravity_account_plans") || "{}");
+    if (plans[activeEmail.toLowerCase()]) activePlan = plans[activeEmail.toLowerCase()];
+  } catch {}
+
+  const petSpritePrompt = `Generate a 2D pixel-art sprite sheet for a desktop pet companion.
+Grid specifications: exactly 8 columns by 11 rows of frames on a clean transparent background.
+Each frame cell must be 32x32 pixels, centered with clean silhouette.
+The 11 animation rows represent:
+Row 0: Idle (8 frames)
+Row 1: Walking right (8 frames)
+Row 2: Running right (8 frames)
+Row 3: Jumping (8 frames)
+Row 4: Sleeping / resting (8 frames)
+Row 5: Sitting / curious (8 frames)
+Row 6: Celebrating / cheering (8 frames)
+Row 7: Eating / snack (8 frames)
+Row 8: Playing / trick (8 frames)
+Row 9: Confused / looking around (8 frames)
+Row 10: Special companion emote (8 frames)
+Style: crisp 16-bit retro pixel art, high contrast, clean transparent background, no extra surrounding frame.`;
+
+  try {
+    if (navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(petSpritePrompt);
+    }
+  } catch {}
+
+  const geminiUrl = `https://gemini.google.com/app?authuser=${encodeURIComponent(activeEmail)}`;
+  if (typeof window !== "undefined" && window.BetterGravityBrowser?.open) {
+    await window.BetterGravityBrowser.open(geminiUrl);
+  } else {
+    window.open(geminiUrl, "_blank");
+  }
+
+  const noticeText = `✨ Pet generation prompt copied! Using Gemini Web account: ${activeEmail} (${activePlan}). Paste the prompt in Gemini Web to generate, then drop the image into your Pets folder.`;
+  tellPet(noticeText, 8000, "✨ Gemini Web");
+}
+
 function renderPetLibrary() {
   if (!libraryRoot || libraryDisposed) return;
   const records = [{ id: "rocky", displayName: "Rocky", description: "The original companion." },
@@ -3820,6 +3899,23 @@ function renderPetLibrary() {
   create.dataset.petLibraryFocus = "create";
   create.prepend(libraryIcon("create"));
   create.disabled = libraryBusy;
+
+  let activeEmail = "kurtgpro2@gmail.com";
+  let activePlan = "PRO";
+  try {
+    const savedEmail = localStorage.getItem("bettergravity_active_account");
+    if (savedEmail) activeEmail = savedEmail;
+    const plans = JSON.parse(localStorage.getItem("bettergravity_account_plans") || "{}");
+    if (plans[activeEmail.toLowerCase()]) activePlan = plans[activeEmail.toLowerCase()];
+  } catch {}
+
+  const createWeb = libraryButton(`Create with Gemini Web (${activePlan})`, createPetWithGeminiWeb);
+  createWeb.classList.add("is-gemini-web");
+  createWeb.dataset.petLibraryFocus = "create-web";
+  createWeb.title = `Use ${activeEmail} (${activePlan}) in Gemini Web to generate pet sprite sheet`;
+  createWeb.prepend(libraryIcon("create"));
+  createWeb.disabled = libraryBusy;
+
   const folder = libraryButton("Open folder", async () => {
     try { await plugin.pets.openFolder(); }
     catch (error) { libraryError = error?.message ?? String(error); renderPetLibrary(); }
@@ -3837,7 +3933,7 @@ function renderPetLibrary() {
   refresh.title = "Refresh pets";
   refresh.append(libraryIcon("refresh"));
   refresh.disabled = libraryBusy;
-  actions.append(create, folder, visibility, refresh);
+  actions.append(create, createWeb, folder, visibility, refresh);
   libraryRoot.append(actions, renderPetPreview());
   if (notice) {
     const message = libraryElement("p", "bettergravity-pet-library__notice", notice);

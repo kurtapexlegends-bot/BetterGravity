@@ -162,6 +162,20 @@ export class OverlayWindow {
     window.webContents.on("render-process-gone", gone);
     window.on("closed", gone);
 
+    // Bind to the owner page's lifetime: if the page is closed/destroyed/navigated away,
+    // the overlay MUST close so it does not linger as an invisible zombie window!
+    const onOwnerGone = () => {
+      logger.info(`Overlay owner page closed (${owner}). Closing overlay window.`);
+      this.close();
+    };
+    if (page && !page.isDestroyed()) {
+      page.once("destroyed", onOwnerGone);
+      const ownerWindow = BrowserWindow.fromWebContents(page);
+      if (ownerWindow && !ownerWindow.isDestroyed()) {
+        ownerWindow.once("closed", onOwnerGone);
+      }
+    }
+
     // about:blank rather than a file: the document is the plugin's to build, and
     // a blank page carries no CSP to fight and no asset to keep in step with the
     // rest of the runtime.

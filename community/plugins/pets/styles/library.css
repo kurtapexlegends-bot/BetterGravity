@@ -111,6 +111,15 @@
 .bettergravity-pet-library__button.is-selected { color: #a8c7fa; opacity: 1; }
 .bettergravity-pet-library__button.is-primary { background: var(--spark-accent, #1f3b9b); color: #fff; }
 .bettergravity-pet-library__button.is-primary:hover:not(:disabled) { background: var(--spark-accent-hover, #2c48a8); }
+.bettergravity-pet-library__button.is-gemini-web {
+  background: linear-gradient(135deg, #7c3aed 0%, #1a73e8 100%) !important;
+  color: #ffffff !important;
+  font-weight: 600 !important;
+  box-shadow: 0 2px 8px rgba(124, 58, 237, 0.35) !important;
+}
+.bettergravity-pet-library__button.is-gemini-web:hover:not(:disabled) {
+  background: linear-gradient(135deg, #6d28d9 0%, #1557b0 100%) !important;
+}
 .bettergravity-pet-library__button.bettergravity-pet-library__arrow {
   width: 44px;
   height: 44px;

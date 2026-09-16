@@ -121,6 +121,32 @@ export function readAccountProfile(homeDirectory: string): AccountProfile {
     }
   }
 
+  // 4. Try reading Brave Browser user profiles & accounts
+  try {
+    const localAppData = process.env.LOCALAPPDATA || path.join(homeDirectory, "AppData", "Local");
+    const braveUserData = path.join(localAppData, "BraveSoftware", "Brave-Browser", "User Data");
+    if (fs.existsSync(braveUserData)) {
+      const candidates = [
+        path.join(braveUserData, "Default", "Web Data"),
+        path.join(braveUserData, "Default", "Preferences"),
+        path.join(braveUserData, "Local State")
+      ];
+      for (const file of candidates) {
+        if (!fs.existsSync(file)) continue;
+        try {
+          const raw = fs.readFileSync(file, "binary");
+          const matches = raw.match(/[a-zA-Z0-9._%+-]+@gmail\.com/gi) || [];
+          for (const m of matches) {
+            const clean = m.toLowerCase().replace(/^(identifier|email|login|username|admin_email|emailorphone|fp-email|user_email|staff_email_edit|staff_email_add)+/i, "");
+            if (/^[a-z0-9][a-z0-9._%+-]*@gmail\.com$/i.test(clean) && clean.length > 10) {
+              accountsSet.add(clean);
+            }
+          }
+        } catch {}
+      }
+    }
+  } catch {}
+
   // 4. Derive display names from email if still missing
   if (email && !firstName && !fullName) {
     const handle = email.split("@")[0] || "";
@@ -190,6 +216,76 @@ export function switchAccount(homeDirectory: string, targetEmail: string): Accou
   const updated = {
     active: targetEmail,
     old: Array.from(newOld)
+  };
+
+  try {
+    fs.writeFileSync(filePath, JSON.stringify(updated, null, 2), "utf8");
+  } catch {
+    return null;
+  }
+
+  return readAccountProfile(homeDirectory);
+}
+
+export function addAccount(homeDirectory: string, newEmail: string): AccountProfile | null {
+  const filePath = path.join(homeDirectory, ...ACTIVE_ACCOUNT);
+  const cleanEmail = newEmail.trim().toLowerCase();
+  if (!cleanEmail || !cleanEmail.includes("@")) return null;
+
+  const data = readJson(filePath);
+  let active = "";
+  let oldList: string[] = [];
+  if (isRecord(data)) {
+    active = text(data, "active") || "";
+    const oldRaw = data["old"];
+    oldList = Array.isArray(oldRaw) ? oldRaw.filter((x): x is string => typeof x === "string") : [];
+  }
+
+  const oldSet = new Set<string>();
+  for (const item of oldList) {
+    if (item.toLowerCase() !== cleanEmail) {
+      oldSet.add(item);
+    }
+  }
+  if (active && active.toLowerCase() !== cleanEmail) {
+    oldSet.add(active);
+  }
+
+  const updated = {
+    active: active || cleanEmail,
+    old: Array.from(oldSet)
+  };
+
+  try {
+    fs.mkdirSync(path.dirname(filePath), { recursive: true });
+    fs.writeFileSync(filePath, JSON.stringify(updated, null, 2), "utf8");
+  } catch {
+    return null;
+  }
+
+  return readAccountProfile(homeDirectory);
+}
+
+export function removeAccount(homeDirectory: string, emailToRemove: string): AccountProfile | null {
+  const filePath = path.join(homeDirectory, ...ACTIVE_ACCOUNT);
+  const target = emailToRemove.trim().toLowerCase();
+  if (!target) return null;
+
+  const data = readJson(filePath);
+  if (!isRecord(data)) return null;
+
+  let currentActive = text(data, "active") || "";
+  const oldRaw = data["old"];
+  const oldList = Array.isArray(oldRaw) ? oldRaw.filter((x): x is string => typeof x === "string") : [];
+
+  const remainingOld = oldList.filter(e => e.trim().toLowerCase() !== target);
+  if (currentActive.toLowerCase() === target) {
+    currentActive = remainingOld.shift() || "";
+  }
+
+  const updated = {
+    active: currentActive,
+    old: remainingOld
   };
 
   try {

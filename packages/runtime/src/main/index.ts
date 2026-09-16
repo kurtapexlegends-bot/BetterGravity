@@ -18,7 +18,7 @@ import {
   type RuntimeState,
   type SettingsPatch
 } from "../protocol.js";
-import { readAccountProfile, switchAccount } from "./account.js";
+import { readAccountProfile, switchAccount, addAccount, removeAccount } from "./account.js";
 import { readGeminiPlugins, readPluginPatches, readPlugins, readThemes } from "./catalog.js";
 import { importPlugin, importThemeFolder, importThemes, installThemeText, removeItem, revealItem } from "./content.js";
 import { GeminiTranslator } from "./gemini/index.js";
@@ -256,6 +256,8 @@ function registerChannels(
   // file.
   ipcMain.handle(CHANNEL.readAccount, () => readAccountProfile(app.getPath("home")));
   ipcMain.handle(CHANNEL.switchAccount, (_event, email: string) => switchAccount(app.getPath("home"), email));
+  ipcMain.handle(CHANNEL.addAccount, (_event, email: string) => addAccount(app.getPath("home"), email));
+  ipcMain.handle(CHANNEL.removeAccount, (_event, email: string) => removeAccount(app.getPath("home"), email));
 
   // Adding or deleting content changes what is on disk, so each one answers with
   // the rebuilt state; the watcher would otherwise race the reply.
@@ -351,6 +353,47 @@ export function activate(context: RuntimeContext): void {
     void gemini.dispose();
     if (readSettings(paths.settings).reapplyAfterHostUpdate) {
       spawnGuardian(path.join(context.runtimeDirectory, "runtime"), paths.log);
+    }
+  });
+
+  // Protect against the Zombie Background Process & Invisible Overlay Bug:
+  // An overlay window or background service must NEVER keep the Electron process
+  // alive once all main editor windows are closed.
+  const isHelperWindow = (win: BrowserWindow): boolean => {
+    if (!win || win.isDestroyed()) return true;
+    const title = win.getTitle() || "";
+    return title.includes("BetterGravity") || title === "BetterGravity Overlay";
+  };
+
+  const checkAppQuitOnLastEditorWindow = () => {
+    const editors = BrowserWindow.getAllWindows().filter((w) => !isHelperWindow(w));
+    if (editors.length === 0) {
+      logger.info("All main editor windows closed. Disposing overlay and quitting process cleanly.");
+      overlay.dispose();
+      app.quit();
+    }
+  };
+
+  app.on("browser-window-created", (_event, win) => {
+    if (!isHelperWindow(win)) {
+      win.on("closed", () => {
+        setTimeout(checkAppQuitOnLastEditorWindow, 150);
+      });
+    }
+  });
+
+  // Intercept second-instance to make sure it NEVER focuses an invisible overlay window!
+  app.on("second-instance", () => {
+    const editors = BrowserWindow.getAllWindows().filter((w) => !isHelperWindow(w));
+    if (editors.length > 0) {
+      const mainWin = editors[0];
+      if (mainWin.isMinimized()) mainWin.restore();
+      mainWin.show();
+      mainWin.focus();
+    } else {
+      // If only helper/overlay windows were alive, quit cleanly so user's new instance can launch
+      overlay.dispose();
+      app.quit();
     }
   });
 
