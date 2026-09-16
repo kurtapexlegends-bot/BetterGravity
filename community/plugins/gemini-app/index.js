@@ -572,15 +572,474 @@ function listenToElement(element, type, listener, options) {
   remember(element, { disconnect: () => element.removeEventListener(type, listener, options) });
 }
 
+/* ---------------------------------------------------------------------------
+ * Context Progressive Circle, Limit & Thinking Effort Slider (Codex & Claude Code)
+ * ------------------------------------------------------------------------- */
+const MODEL_CONTEXT_LIMITS = {
+  // Gemini family
+  "3.8 flash": 1000000,
+  "3.8 thinking": 1000000,
+  "3.1 pro": 2000000,
+  "3.0 pro": 2000000,
+  "3.0 flash": 1000000,
+  "2.5 flash": 1000000,
+  "2.0 flash": 1000000,
+  "2.0 pro": 2000000,
+  "1.5 flash": 1000000,
+  "1.5 pro": 2000000,
+  "gemini": 1000000,
+  // Claude family
+  "claude 3.7": 200000,
+  "claude 3.5": 200000,
+  "claude": 200000,
+  "sonnet": 200000,
+  "opus": 200000,
+  "haiku": 200000,
+  // OpenAI & other models
+  "gpt-4": 128000,
+  "gpt-4o": 128000,
+  "gpt-4.5": 128000,
+  "o1": 200000,
+  "o3": 200000,
+  "gpt-oss": 128000,
+  "deepseek": 128000
+};
+
+function formatTokenLimit(tokens) {
+  if (!tokens || tokens <= 0) return "1M";
+  if (tokens >= 1000000) {
+    const m = tokens / 1000000;
+    return (m % 1 === 0 ? m.toFixed(0) : m.toFixed(1)) + "M";
+  }
+  if (tokens >= 1000) {
+    return Math.round(tokens / 1000) + "k";
+  }
+  return String(tokens);
+}
+
+function formatTokenCount(num) {
+  if (num >= 1000000) {
+    const m = num / 1000000;
+    return (m >= 10 ? m.toFixed(1) : m.toFixed(2)) + "M";
+  }
+  if (num >= 1000) {
+    const k = num / 1000;
+    return (k >= 10 ? k.toFixed(1) : k.toFixed(1)) + "k";
+  }
+  return Number(num).toLocaleString();
+}
+
+function getModelContextLimit(modelName) {
+  if (!modelName) return 1000000;
+  const lower = modelName.toLowerCase();
+  for (const [key, limit] of Object.entries(MODEL_CONTEXT_LIMITS)) {
+    if (lower.includes(key)) return limit;
+  }
+  if (lower.includes("pro")) return 2000000;
+  if (lower.includes("flash") || lower.includes("thinking")) return 1000000;
+  return 1000000;
+}
+
+function getElementFiber(node) {
+  if (!node) return null;
+  const keys = Object.keys(node);
+  const key = keys.find((k) => k.startsWith("__reactFiber"));
+  return key ? node[key] : null;
+}
+
+function getHostStore() {
+  const anchors = [
+    document.querySelector('[data-testid="conversation-view"]'),
+    document.querySelector('[data-testid="agent-input-box"]'),
+    document.querySelector('[data-testid="conversation-row-sidebar"]'),
+    document.body
+  ];
+  for (const anchor of anchors) {
+    if (!anchor) continue;
+    let fiber = getElementFiber(anchor);
+    for (let depth = 0; fiber && depth < 40; depth += 1, fiber = fiber.return) {
+      const store = fiber.memoizedProps?.store;
+      if (typeof store?.getState === "function") return store;
+      let dep = fiber.dependencies?.firstContext;
+      for (let i = 0; dep && i < 30; i += 1, dep = dep.next) {
+        const depStore = dep.memoizedValue?.store;
+        if (typeof depStore?.getState === "function") return depStore;
+      }
+    }
+  }
+  return null;
+}
+
+function getActiveConversationId() {
+  const view = document.querySelector('[data-testid="conversation-view"]');
+  const id = view?.getAttribute("data-cascade-id") ?? "";
+  if (id && id !== "conversation") return id;
+  const match = typeof window !== "undefined" && window.location?.pathname ? window.location.pathname.match(/\/c\/([a-zA-Z0-9_-]+)/i) : null;
+  return match ? match[1] : "";
+}
+
+function getConversationContextMetrics() {
+  const modelPill = document.querySelector(PILL_SELECTOR);
+  const rawModelName = modelPill?.dataset?.fullModelName || modelPill?.textContent || "Gemini 3.8 Flash";
+  const limit = getModelContextLimit(rawModelName);
+
+  let used = 0;
+  try {
+    const store = getHostStore();
+    const state = store?.getState?.();
+    const cascadeId = getActiveConversationId();
+    if (cascadeId && state?.trajectories?.[cascadeId]?.totalTokens) {
+      used = Number(state.trajectories[cascadeId].totalTokens);
+    } else if (cascadeId && state?.trajectorySummaries?.summaries?.[cascadeId]?.tokenCount) {
+      used = Number(state.trajectorySummaries.summaries[cascadeId].tokenCount);
+    }
+    if (!used && state?.activeTrajectory?.steps?.length) {
+      let stepTokens = 0;
+      for (const step of state.activeTrajectory.steps) {
+        if (step.tokenCount) stepTokens += step.tokenCount;
+        else if (step.content) stepTokens += Math.ceil(step.content.length / 3.8);
+      }
+      if (stepTokens > 0) used = stepTokens;
+    }
+  } catch {}
+
+  if (!used || used <= 0) {
+    const convView = document.querySelector('[data-testid="conversation-view"]');
+    if (convView) {
+      let charLength = 0;
+      const textNodes = convView.querySelectorAll('[data-testid="user-input-step"], [data-testid="cortex-step"], .step-container, [data-testid="assistant-response"], pre, code');
+      if (textNodes.length > 0) {
+        for (const el of textNodes) {
+          charLength += el.textContent?.length || 0;
+        }
+      } else {
+        const fullText = convView.textContent || "";
+        const inputLen = document.querySelector('[data-testid="agent-input-box"]')?.textContent?.length || 0;
+        charLength = Math.max(0, fullText.length - inputLen);
+      }
+      used = Math.max(1200, Math.round(charLength / 3.8));
+    } else {
+      used = 1200;
+    }
+  }
+
+  const ratio = Math.min(Math.max(used / limit, 0), 1);
+  const percentage = (ratio * 100).toFixed(1);
+  const remaining = Math.max(0, limit - used);
+
+  return {
+    used,
+    limit,
+    ratio,
+    percentage,
+    remaining,
+    modelName: rawModelName
+  };
+}
+
+const CONTEXT_RING_CIRCUMFERENCE = 43.982; // 2 * Math.PI * 7
+let activeContextPopover = null;
+
+function hideContextPopover() {
+  if (activeContextPopover) {
+    activeContextPopover.remove();
+    activeContextPopover = null;
+  }
+}
+
+function showContextPopover(anchorEl) {
+  hideContextPopover();
+  const metrics = getConversationContextMetrics();
+  const levelColor = metrics.ratio >= 0.90 ? "#ef4444" : (metrics.ratio >= 0.75 ? "#f59e0b" : "#4285f4");
+
+  const popover = document.createElement("div");
+  popover.className = "gemini-context-popover";
+  popover.innerHTML = `
+    <div class="gemini-context-popover-header">
+      <div style="display: flex; align-items: center; gap: 6px;">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="${levelColor}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"></circle>
+          <polyline points="12 6 12 12 16 14"></polyline>
+        </svg>
+        <span>Context Window</span>
+      </div>
+      <span style="font-size: 11px; padding: 2px 7px; border-radius: 9999px; background: rgba(255,255,255,0.1); color: ${levelColor}; font-weight: 600;">
+        ${metrics.percentage}%
+      </span>
+    </div>
+    <div class="gemini-context-popover-bar-bg">
+      <div class="gemini-context-popover-bar-fill" style="width: ${Math.max(Number(metrics.percentage), 2)}%; background: ${levelColor};"></div>
+    </div>
+    <div class="gemini-context-popover-stats">
+      <span>Used: <strong style="color: #fff;">${formatTokenCount(metrics.used)}</strong> tokens</span>
+      <span>Limit: <strong style="color: #a8c7fa;">${formatTokenLimit(metrics.limit)}</strong> tokens</span>
+    </div>
+    <div class="gemini-context-popover-detail">
+      <span>${formatTokenCount(metrics.remaining)} tokens remaining before conversation context limit</span>
+    </div>
+  `;
+
+  popover.addEventListener("click", (e) => e.stopPropagation());
+  anchorEl.appendChild(popover);
+  activeContextPopover = popover;
+
+  const onDismiss = (e) => {
+    if (!popover.contains(e.target) && !anchorEl.contains(e.target)) {
+      hideContextPopover();
+      document.removeEventListener("pointerdown", onDismiss);
+    }
+  };
+  setTimeout(() => document.addEventListener("pointerdown", onDismiss), 20);
+}
+
+function updateContextRing(ringWrap) {
+  const metrics = getConversationContextMetrics();
+  const fill = ringWrap.querySelector('.gemini-context-fill');
+  if (!fill) return;
+
+  const displayRatio = Math.max(metrics.ratio, 0.02);
+  const offset = CONTEXT_RING_CIRCUMFERENCE * (1 - Math.min(displayRatio, 1));
+  fill.style.strokeDashoffset = `${offset}`;
+
+  if (metrics.ratio >= 0.90) {
+    fill.setAttribute('data-level', 'alert');
+  } else if (metrics.ratio >= 0.75) {
+    fill.setAttribute('data-level', 'warn');
+  } else {
+    fill.removeAttribute('data-level');
+  }
+
+  ringWrap.title = `Context: ${formatTokenCount(metrics.used)} / ${formatTokenLimit(metrics.limit)} (${metrics.percentage}%) • Click for details`;
+  ringWrap.dataset.usedTokens = String(metrics.used);
+  ringWrap.dataset.limitTokens = String(metrics.limit);
+  ringWrap.dataset.pct = metrics.percentage;
+}
+
+function ensureContextRing(pill) {
+  let ringWrap = pill.querySelector('.gemini-context-ring-wrap');
+  if (!ringWrap) {
+    ringWrap = document.createElement('div');
+    ringWrap.className = 'gemini-context-ring-wrap';
+    ringWrap.setAttribute('role', 'button');
+    ringWrap.setAttribute('tabindex', '0');
+    ringWrap.setAttribute('aria-label', 'Context window usage');
+    ringWrap.innerHTML = `
+      <svg class="gemini-context-svg" viewBox="0 0 18 18">
+        <circle class="gemini-context-bg" cx="9" cy="9" r="7" fill="none" stroke-width="2"></circle>
+        <circle class="gemini-context-fill" cx="9" cy="9" r="7" fill="none" stroke-width="2" stroke-dasharray="${CONTEXT_RING_CIRCUMFERENCE}" stroke-dashoffset="${CONTEXT_RING_CIRCUMFERENCE}"></circle>
+      </svg>
+    `;
+
+    ringWrap.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      if (activeContextPopover) hideContextPopover();
+      else showContextPopover(ringWrap);
+    });
+
+    ringWrap.addEventListener('mouseenter', () => {
+      showContextPopover(ringWrap);
+    });
+
+    ringWrap.addEventListener('mouseleave', () => {
+      setTimeout(() => {
+        if (activeContextPopover && !activeContextPopover.matches(':hover') && !ringWrap.matches(':hover')) {
+          hideContextPopover();
+        }
+      }, 180);
+    });
+
+    const chevron = pill.querySelector('svg');
+    if (chevron) {
+      pill.insertBefore(ringWrap, chevron);
+    } else {
+      pill.appendChild(ringWrap);
+    }
+  }
+
+  updateContextRing(ringWrap);
+}
+
+function enhanceModelSelectorPanel(panel) {
+  if (!panel || !panel.isConnected) return;
+
+  const rows = panel.querySelectorAll('[role="menuitem"]');
+  for (const row of rows) {
+    const text = (row.textContent || "").trim();
+    if (text.includes("View Usage")) {
+      let stats = row.querySelector('.gemini-usage-stats');
+      if (!stats) {
+        stats = document.createElement('span');
+        stats.className = 'gemini-usage-stats';
+        stats.style.cssText = 'margin-left: auto; font-size: 11px; color: var(--gemini-text-dim, rgba(255,255,255,0.5)); padding-right: 8px; font-variant-numeric: tabular-nums;';
+        row.appendChild(stats);
+      }
+      const metrics = getConversationContextMetrics();
+      stats.textContent = `${formatTokenCount(metrics.used)} / ${formatTokenLimit(metrics.limit)}`;
+      continue;
+    }
+
+    const firstSpan = row.querySelector('span:first-child');
+    if (firstSpan && !row.querySelector('.gemini-model-limit-tag')) {
+      const limit = getModelContextLimit(text);
+      const tag = document.createElement('span');
+      tag.className = 'gemini-model-limit-tag';
+      tag.textContent = formatTokenLimit(limit);
+      tag.title = `Context Window Limit: ${limit.toLocaleString()} tokens`;
+      firstSpan.appendChild(tag);
+    }
+  }
+}
+
+const EFFORT_DESCRIPTIONS = {
+  low: "Faster responses with light reasoning. Best for quick questions and straightforward edits.",
+  medium: "Balanced reasoning depth and latency. Ideal for everyday coding tasks.",
+  high: "Deeper multi-step reasoning and thorough verification for complex problems."
+};
+
+function enhanceEffortSubmenu(submenu) {
+  if (!submenu || !submenu.isConnected) return;
+
+  const radioItems = Array.from(submenu.querySelectorAll('[role="menuitemradio"], [data-testid="model-selector-effort-option"]'));
+  if (radioItems.length === 0) return;
+
+  submenu.classList.add('gemini-effort-submenu-host');
+
+  let card = submenu.querySelector('.gemini-effort-slider-card');
+  if (!card) {
+    card = document.createElement('div');
+    card.className = 'gemini-effort-slider-card';
+
+    const stepItems = [];
+    radioItems.forEach((item) => {
+      const label = item.textContent?.trim() || "";
+      const match = label.match(/\b(Low|Medium|High|Off)\b/i);
+      const name = match ? match[1] : label;
+      const isChecked = item.getAttribute('aria-checked') === 'true' || 
+                        item.getAttribute('data-state') === 'checked' || 
+                        !!item.querySelector('[data-checked]');
+      stepItems.push({ name, element: item, isChecked });
+    });
+
+    if (stepItems.length < 2) return;
+
+    let activeIdx = stepItems.findIndex(s => s.isChecked);
+    if (activeIdx === -1) {
+      const pill = document.querySelector(PILL_SELECTOR);
+      const pillEffort = pill?.querySelector('span > span')?.textContent?.trim().toLowerCase();
+      if (pillEffort) {
+        activeIdx = stepItems.findIndex(s => s.name.toLowerCase() === pillEffort);
+      }
+      if (activeIdx === -1) activeIdx = Math.max(0, stepItems.length - 1);
+    }
+
+    const currentName = stepItems[activeIdx]?.name || "High";
+    const currentDesc = EFFORT_DESCRIPTIONS[currentName.toLowerCase()] || `Reasoning effort set to ${currentName}.`;
+
+    card.innerHTML = `
+      <div class="gemini-effort-slider-header">
+        <span class="gemini-effort-slider-title">Thinking Effort</span>
+        <span class="gemini-effort-current-badge">${currentName}</span>
+      </div>
+      <div class="gemini-effort-track" data-active-index="${activeIdx}">
+        <div class="gemini-effort-glider"></div>
+      </div>
+      <div class="gemini-effort-desc">${currentDesc}</div>
+    `;
+
+    const track = card.querySelector('.gemini-effort-track');
+    const badge = card.querySelector('.gemini-effort-current-badge');
+    const desc = card.querySelector('.gemini-effort-desc');
+
+    const stepButtons = [];
+    stepItems.forEach((s, idx) => {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'gemini-effort-step' + (idx === activeIdx ? ' is-active' : '');
+      btn.setAttribute('data-index', String(idx));
+      btn.textContent = s.name;
+
+      btn.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        selectIndex(idx);
+      });
+
+      track.appendChild(btn);
+      stepButtons.push(btn);
+    });
+
+    function selectIndex(newIdx) {
+      if (newIdx < 0 || newIdx >= stepItems.length) return;
+      activeIdx = newIdx;
+      track.setAttribute('data-active-index', String(newIdx));
+      stepButtons.forEach((b, i) => b.classList.toggle('is-active', i === newIdx));
+      const chosenName = stepItems[newIdx].name;
+      badge.textContent = chosenName;
+      desc.textContent = EFFORT_DESCRIPTIONS[chosenName.toLowerCase()] || `Reasoning effort set to ${chosenName}.`;
+
+      const radio = stepItems[newIdx].element;
+      if (radio && typeof radio.click === 'function') {
+        radio.click();
+      }
+    }
+
+    let dragging = false;
+    const computeIndexFromEvent = (e) => {
+      const rect = track.getBoundingClientRect();
+      const x = Math.max(0, Math.min(e.clientX - rect.left, rect.width));
+      return Math.min(Math.floor((x / rect.width) * stepItems.length), stepItems.length - 1);
+    };
+
+    track.addEventListener('pointerdown', (e) => {
+      dragging = true;
+      track.setPointerCapture?.(e.pointerId);
+      selectIndex(computeIndexFromEvent(e));
+    });
+
+    track.addEventListener('pointermove', (e) => {
+      if (dragging) selectIndex(computeIndexFromEvent(e));
+    });
+
+    track.addEventListener('pointerup', (e) => {
+      if (dragging) {
+        dragging = false;
+        track.releasePointerCapture?.(e.pointerId);
+        selectIndex(computeIndexFromEvent(e));
+      }
+    });
+
+    submenu.prepend(card);
+  }
+}
+
 plugin.dom.observe(PILL_SELECTOR, (pill) => {
   apply(pill);
+  ensureContextRing(pill);
   // React writes the new name into the existing text node when the model
   // changes, and rebuilds the span outright in some updates. Both are caught
   // here. Writing the short name triggers the observer once more, but a short
   // name shortens to itself, so that pass does nothing and the loop ends.
-  const observer = new MutationObserver(() => apply(pill));
+  const observer = new MutationObserver(() => {
+    apply(pill);
+    ensureContextRing(pill);
+  });
   observer.observe(pill, { subtree: true, childList: true, characterData: true });
   remember(pill, observer);
+});
+
+plugin.dom.observe('[data-testid="model-selector-panel"]', (panel) => {
+  enhanceModelSelectorPanel(panel);
+  const observer = new MutationObserver(() => enhanceModelSelectorPanel(panel));
+  observer.observe(panel, { subtree: true, childList: true });
+  remember(panel, observer);
+});
+
+plugin.dom.observe('[role="menu"][data-nested]', (submenu) => {
+  enhanceEffortSubmenu(submenu);
+  const observer = new MutationObserver(() => enhanceEffortSubmenu(submenu));
+  observer.observe(submenu, { subtree: true, childList: true });
+  remember(submenu, observer);
 });
 
 /* ---------------------------------------------------------------------------
@@ -10325,6 +10784,7 @@ plugin.onDispose(() => {
   closeSkillsView();
   cancelSentPromptGlide();
   document.getElementById("gemini-skills-button")?.remove();
+  for (const el of document.querySelectorAll(".gemini-context-ring-wrap, .gemini-context-popover, .gemini-model-limit-tag, .gemini-effort-slider-card, .gemini-usage-stats")) el.remove();
   const s = document.getElementById("gemini-theme-dynamic-styles");
   if (s) s.remove();
 });
