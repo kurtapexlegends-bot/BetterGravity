@@ -20,8 +20,8 @@ let pending: Promise<AccountProfile> | undefined;
 
 export function createAccountTools(): PluginAccount {
   return {
-    read: () => {
-      if (pending) return pending;
+    read: (forceRefresh = false) => {
+      if (!forceRefresh && pending) return pending;
 
       const bridge = resolveBridge();
       if (!bridge) return Promise.resolve(NO_NAME);
@@ -67,6 +67,15 @@ export function createAccountTools(): PluginAccount {
         const profile = await bridge.removeAccount(email);
         if (profile) pending = Promise.resolve(profile);
         return profile;
+      } catch {
+        return null;
+      }
+    },
+    getContextMetrics: async (conversationId?: string) => {
+      const bridge = resolveBridge();
+      if (!bridge?.getContextMetrics) return null;
+      try {
+        return await bridge.getContextMetrics(conversationId);
       } catch {
         return null;
       }

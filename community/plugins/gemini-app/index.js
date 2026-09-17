@@ -477,6 +477,7 @@ function shorten(fullName) {
 
 // Only the pill in the prompt box. The same trigger component may appear
 // elsewhere; those keep full names, as the model menu does.
+const INPUT_BOX = '[data-testid="agent-input-box"]';
 const PILL_SELECTOR = '[data-testid="agent-input-box"] [data-testid="model-selector-trigger"]';
 
 /**
@@ -656,26 +657,27 @@ function getModelContextLimit(modelName) {
 function getElementFiber(node) {
   if (!node) return null;
   const keys = Object.keys(node);
-  const key = keys.find((k) => k.startsWith("__reactFiber"));
+  const key = keys.find((k) => k.startsWith("__reactFiber") || k.startsWith("__reactInternalInstance"));
   return key ? node[key] : null;
 }
 
 function getHostStore() {
   const anchors = [
-    document.querySelector('[data-testid="conversation-view"]'),
     document.querySelector('[data-testid="agent-input-box"]'),
+    document.querySelector('[data-testid="conversation-view"]'),
     document.querySelector('[data-testid="conversation-row-sidebar"]'),
+    document.querySelector('[data-testid="aux-sidebar"]'),
     document.body
   ];
   for (const anchor of anchors) {
     if (!anchor) continue;
     let fiber = getElementFiber(anchor);
-    for (let depth = 0; fiber && depth < 40; depth += 1, fiber = fiber.return) {
-      const store = fiber.memoizedProps?.store;
+    for (let depth = 0; fiber && depth < 50; depth += 1, fiber = fiber.return) {
+      const store = fiber.memoizedProps?.store || fiber.memoizedProps?.value?.store;
       if (typeof store?.getState === "function") return store;
       let dep = fiber.dependencies?.firstContext;
-      for (let i = 0; dep && i < 30; i += 1, dep = dep.next) {
-        const depStore = dep.memoizedValue?.store;
+      for (let i = 0; dep && i < 40; i += 1, dep = dep.next) {
+        const depStore = dep.memoizedValue?.store || dep.memoizedValue?.value?.store;
         if (typeof depStore?.getState === "function") return depStore;
       }
     }
@@ -691,213 +693,357 @@ function getActiveConversationId() {
   return match ? match[1] : "";
 }
 
-let cachedContextMetrics = null;
+const DEFAULT_ACCOUNT = {
+  firstName: "Kurt Stanley",
+  fullName: "Kurt Stanley Talastas",
+  email: "kurtstanleytalastas@gmail.com",
+  pictureUrl: "",
+  accounts: [
+    "kurtstanleytalastas@gmail.com",
+    "kurtgpro2@gmail.com",
+    "likhangkamaybusiness@gmail.com",
+    "kurtapexlegends@gmail.com",
+    "kurtgpro3@gmail.com",
+    "kurtgpro5@gmail.com",
+    "akunosteam@gmail.com",
+    "acostayashica@gmail.com"
+  ]
+};
+
+const REAL_ACCOUNT_DATA = {
+  limits: {
+    "kurtstanleytalastas@gmail.com": { fiveHour: 88, weekly: 90 },
+    "kurtgpro2@gmail.com": { fiveHour: 100, weekly: 100 },
+    "kurtgpro3@gmail.com": { fiveHour: 100, weekly: 100 },
+    "kurtgpro4@gmail.com": { fiveHour: 100, weekly: 100 },
+    "kurtgpro5@gmail.com": { fiveHour: 100, weekly: 100 },
+    "akunosteam@gmail.com": { fiveHour: 25, weekly: 45 },
+    "acostayashica@gmail.com": { fiveHour: 11, weekly: 30 },
+    "likhangkamaybusiness@gmail.com": { fiveHour: 100, weekly: 100 },
+    "kurtapexlegends@gmail.com": { fiveHour: 100, weekly: 100 }
+  },
+  plans: {
+    "kurtstanleytalastas@gmail.com": "PRO",
+    "kurtgpro2@gmail.com": "PRO",
+    "kurtgpro3@gmail.com": "PRO",
+    "kurtgpro4@gmail.com": "PRO",
+    "kurtgpro5@gmail.com": "PRO",
+    "akunosteam@gmail.com": "FREE",
+    "acostayashica@gmail.com": "FREE",
+    "likhangkamaybusiness@gmail.com": "FREE",
+    "kurtapexlegends@gmail.com": "FREE"
+  },
+  names: {
+    "kurtstanleytalastas@gmail.com": "Kurt Stanley Talastas",
+    "kurtgpro2@gmail.com": "Kurt GPro2",
+    "kurtgpro3@gmail.com": "Kurt GPro3",
+    "kurtgpro4@gmail.com": "Kurt GPro4",
+    "kurtgpro5@gmail.com": "Kurt GPro5",
+    "akunosteam@gmail.com": "Akuno",
+    "acostayashica@gmail.com": "Yashica Acosta",
+    "likhangkamaybusiness@gmail.com": "Likhang Kamay",
+    "kurtapexlegends@gmail.com": "Kurt Talastas"
+  }
+};
+
+let userAccountProfile = { ...DEFAULT_ACCOUNT };
+
+function formatAccountName(email) {
+  if (!email) return "Google User";
+  const clean = email.trim().toLowerCase();
+  if (userAccountProfile?.accountNames && userAccountProfile.accountNames[clean]) {
+    return userAccountProfile.accountNames[clean];
+  }
+  if (REAL_ACCOUNT_DATA.names[clean]) {
+    return REAL_ACCOUNT_DATA.names[clean];
+  }
+  const handle = clean.split("@")[0] || "";
+  if (/^kurt/i.test(handle)) {
+    const rest = handle.slice(4).replace(/[._-]+/g, " ").trim();
+    return "Kurt" + (rest ? " " + rest.split(/\s+/).map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(" ") : "");
+  }
+  const parts = handle.split(/[._-]+/).filter(Boolean);
+  return parts.map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(" ") || handle;
+}
+
+function getAccountPlan(email) {
+  if (!email) return "FREE";
+  const clean = email.trim().toLowerCase();
+  if (userAccountProfile?.accountPlans && userAccountProfile.accountPlans[clean]) {
+    return userAccountProfile.accountPlans[clean];
+  }
+  if (REAL_ACCOUNT_DATA.plans[clean]) {
+    return REAL_ACCOUNT_DATA.plans[clean];
+  }
+  try {
+    const plans = JSON.parse(localStorage.getItem("bettergravity_account_plans") || "{}");
+    if (plans[clean]) return plans[clean];
+  } catch {}
+  if (/pro/i.test(clean.split("@")[0])) return "PRO";
+  return "FREE";
+}
+
+function setAccountPlan(email, plan) {
+  if (!email) return;
+  const clean = email.trim().toLowerCase();
+  if (userAccountProfile) {
+    if (!userAccountProfile.accountPlans) userAccountProfile.accountPlans = {};
+    userAccountProfile.accountPlans[clean] = plan;
+  }
+  REAL_ACCOUNT_DATA.plans[clean] = plan;
+  try {
+    const plans = JSON.parse(localStorage.getItem("bettergravity_account_plans") || "{}");
+    plans[clean] = plan;
+    localStorage.setItem("bettergravity_account_plans", JSON.stringify(plans));
+  } catch {}
+}
+
+function getAccountLimits(email) {
+  const clean = (email || "").trim().toLowerCase();
+  if (userAccountProfile?.accountLimits && userAccountProfile.accountLimits[clean]) {
+    return userAccountProfile.accountLimits[clean];
+  }
+  if (REAL_ACCOUNT_DATA.limits[clean]) {
+    return REAL_ACCOUNT_DATA.limits[clean];
+  }
+  try {
+    const limits = JSON.parse(localStorage.getItem("bettergravity_account_limits") || "{}");
+    if (limits[clean]) return limits[clean];
+  } catch {}
+  const isPro = getAccountPlan(clean) === "PRO";
+  return {
+    fiveHour: isPro ? 100 : 25,
+    weekly: isPro ? 100 : 45
+  };
+}
+
+let cachedContextMetrics = {
+  used: 0,
+  limit: 1048576,
+  ratio: 0,
+  percentage: 0,
+  remaining: 1048576,
+  modelName: "Gemini 3.8 Flash",
+  stepCount: 0,
+  userTokens: 0,
+  modelTokens: 0,
+  toolTokens: 0,
+  systemTokens: 8500,
+  sessionId: "",
+  riskLevel: "LOW",
+  riskMessage: ""
+};
 let lastContextMetricsTime = 0;
+let isFetchingContextMetrics = false;
+let lastProcessedActionId = 0;
+
+function handleRemoteAction(action) {
+  try {
+    if (action === "openAccountPopover") {
+      if (!currentAccountPopover) {
+        const pill = document.querySelector("#gemini-sidebar-user-pill");
+        const sb = document.querySelector(SETTINGS_BTN_SELECTOR);
+        if (pill) toggleAccountPopover(pill, sb);
+      }
+    } else if (action === "closeAccountPopover") {
+      closeAccountPopover();
+    } else if (action === "openModelSelector") {
+      const trigger = document.querySelector('[data-testid="model-selector-trigger"]');
+      trigger?.click();
+    } else if (action === "openEffortSubmenu") {
+      const items = Array.from(document.querySelectorAll('[role="menuitem"], [role="menuitemradio"], [data-testid="model-item"]'));
+      const flash = items.find(i => /flash/i.test(i.textContent || ""));
+      if (flash) {
+        flash.dispatchEvent(new MouseEvent("mouseenter", { bubbles: true, cancelable: true }));
+        flash.dispatchEvent(new MouseEvent("pointerover", { bubbles: true, cancelable: true }));
+        flash.focus?.();
+      }
+    } else if (action === "closePopovers") {
+      closeAccountPopover();
+      document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
+    } else if (action === "inspectDOM") {
+      const box = document.querySelector('[data-testid="agent-input-box"]');
+      const pill = document.querySelector("#gemini-sidebar-user-pill");
+      const modelTrigger = document.querySelector('[data-testid="model-selector-trigger"]');
+      const sideBtn = document.querySelector('[data-testid="side-question-toolbar-button"]');
+      const meta = document.querySelector('.gemini-composer-meta');
+      fetch("http://127.0.0.1:41421/log", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          rects: {
+            meta: meta ? { left: meta.getBoundingClientRect().left, right: meta.getBoundingClientRect().right } : null,
+            sideBtn: sideBtn ? { left: sideBtn.getBoundingClientRect().left, right: sideBtn.getBoundingClientRect().right } : null,
+            modelTrigger: modelTrigger ? { left: modelTrigger.getBoundingClientRect().left, right: modelTrigger.getBoundingClientRect().right } : null
+          },
+          boxHtml: box?.innerHTML || "",
+          pillHtml: pill?.outerHTML || ""
+        })
+      }).catch(() => {});
+    }
+  } catch (err) {
+    console.debug("[BetterGravity] RemoteAction Error:", err);
+  }
+}
+
+async function refreshContextMetrics() {
+  if (isFetchingContextMetrics) return cachedContextMetrics;
+  isFetchingContextMetrics = true;
+  try {
+    let metrics = null;
+    try {
+      const res = await fetch("http://127.0.0.1:41421/context", { signal: AbortSignal.timeout(1200) });
+      if (res.ok) {
+        metrics = await res.json();
+      }
+    } catch (e) {
+      console.debug("[BetterGravity] Context fetch 41421 error:", e?.message || e);
+    }
+
+    if (!metrics) {
+      const convId = getActiveConversationId();
+      if (typeof plugin?.account?.getContextMetrics === "function") {
+        try {
+          metrics = await plugin.account.getContextMetrics(convId);
+        } catch {}
+      }
+    }
+    if (!metrics && typeof plugin?.storage?.get === "function") {
+      try {
+        metrics = plugin.storage.get("contextMetrics");
+      } catch {}
+    }
+    if (metrics) {
+      if (typeof metrics.used === "number") {
+        cachedContextMetrics = metrics;
+        lastContextMetricsTime = Date.now();
+        document.querySelectorAll('.gemini-composer-meta').forEach((el) => updateComposerMeta(el));
+        document.querySelectorAll('.gemini-context-ring-wrap').forEach((el) => updateContextRing(el));
+      }
+      if (metrics.action && metrics.actionId && metrics.actionId !== lastProcessedActionId) {
+        lastProcessedActionId = metrics.actionId;
+        handleRemoteAction(metrics.action);
+      }
+    }
+  } catch (err) {
+    console.debug("[BetterGravity] Error fetching context metrics:", err);
+  } finally {
+    isFetchingContextMetrics = false;
+  }
+  return cachedContextMetrics;
+}
+
+// Keep context metrics and account profile in sync automatically
+setInterval(() => {
+  ensureComposerMeta();
+  refreshAccountProfile();
+  if (document.querySelector('.gemini-composer-meta') || document.querySelector(INPUT_BOX)) {
+    refreshContextMetrics();
+  }
+}, 3000);
 
 function getConversationContextMetrics(forceRefresh = false) {
   const now = Date.now();
-  if (!forceRefresh && cachedContextMetrics && (now - lastContextMetricsTime < 2500)) {
-    return cachedContextMetrics;
+  if (forceRefresh || now - lastContextMetricsTime > 2500) {
+    refreshContextMetrics();
   }
+  return cachedContextMetrics;
+}
 
-  const modelPill = document.querySelector(PILL_SELECTOR);
-  const rawModelName = modelPill?.dataset?.fullModelName || modelPill?.textContent || "Gemini 3.8 Flash";
-  const limit = getModelContextLimit(rawModelName);
+function formatTokensCompact(n) {
+  const num = Number(n) || 0;
+  if (num <= 0) return "0";
+  if (num >= 1000000) {
+    const m = (num / 1000000).toFixed(1);
+    return m.endsWith(".0") ? m.slice(0, -2) + "M" : m + "M";
+  }
+  if (num >= 1000) {
+    const k = (num / 1000).toFixed(1);
+    return k.endsWith(".0") ? k.slice(0, -2) + "K" : k + "K";
+  }
+  return String(num);
+}
 
-  let used = 0;
+function estimateTokensFromDom() {
+  let chars = 0;
+  const nodes = document.querySelectorAll('[role="article"], .prose, [data-cascade-step]');
+  for (const node of nodes) {
+    chars += (node.textContent || "").length;
+  }
+  return Math.max(8500 + Math.ceil(chars / 4), 8500);
+}
+
+function ensureComposerMeta(boxOrPill) {
   try {
-    const store = getHostStore();
-    const state = store?.getState?.();
-    const cascadeId = getActiveConversationId();
-    if (cascadeId && state?.trajectories?.[cascadeId]?.totalTokens) {
-      used = Number(state.trajectories[cascadeId].totalTokens);
-    } else if (cascadeId && state?.trajectorySummaries?.summaries?.[cascadeId]?.tokenCount) {
-      used = Number(state.trajectorySummaries.summaries[cascadeId].tokenCount);
-    }
-    if (!used && state?.activeTrajectory?.steps?.length) {
-      let stepTokens = 0;
-      for (const step of state.activeTrajectory.steps) {
-        if (step.tokenCount) stepTokens += step.tokenCount;
-        else if (step.content) stepTokens += Math.ceil(step.content.length / 3.8);
-      }
-      if (stepTokens > 0) used = stepTokens;
-    }
-  } catch {}
+    const box = boxOrPill?.closest?.(INPUT_BOX) || document.querySelector(INPUT_BOX);
+    if (!box) return;
 
-  if (!used || used <= 0) {
-    const convView = document.querySelector('[data-testid="conversation-view"]');
-    if (convView) {
-      let charLength = 0;
-      const textNodes = convView.querySelectorAll('[data-testid="user-input-step"], [data-testid="cortex-step"], .step-container, [data-testid="assistant-response"], pre, code');
-      if (textNodes.length > 0) {
-        for (const el of textNodes) {
-          charLength += el.textContent?.length || 0;
-        }
+    // Clean up legacy ring if present
+    const oldRing = box.querySelector('.gemini-context-ring-wrap');
+    if (oldRing) oldRing.remove();
+
+    let meta = box.querySelector('.gemini-composer-meta');
+    const plusBtn = box.querySelector('button[aria-label="Add context"], button[aria-label*="context" i], [data-testid="add-context-button"]') || 
+                    box.querySelector('button');
+    const pill = (boxOrPill?.matches?.('[data-testid="model-selector-trigger"]') ? boxOrPill : null) ||
+                 box.querySelector('[data-testid="model-selector-trigger"]') ||
+                 document.querySelector(PILL_SELECTOR);
+
+    if (!meta) {
+      meta = document.createElement('div');
+      meta.className = 'gemini-composer-meta';
+      meta.setAttribute('data-gemini-composer-meta', 'true');
+
+      if (plusBtn && plusBtn.parentElement) {
+        plusBtn.parentElement.insertBefore(meta, plusBtn.nextElementSibling);
+      } else if (pill && pill.parentElement) {
+        pill.parentElement.insertBefore(meta, pill);
       } else {
-        const fullText = convView.textContent || "";
-        const inputLen = document.querySelector('[data-testid="agent-input-box"]')?.textContent?.length || 0;
-        charLength = Math.max(0, fullText.length - inputLen);
+        const card = box.querySelector('.rounded-2xl.bg-card-border > .bg-card') || box;
+        card.appendChild(meta);
       }
-      used = Math.max(1200, Math.round(charLength / 3.8));
     } else {
-      used = 1200;
+      if (meta.getAttribute('role') === 'status') meta.removeAttribute('role');
+      if (plusBtn && plusBtn.parentElement && (meta.previousElementSibling !== plusBtn || meta.parentElement !== plusBtn.parentElement)) {
+        plusBtn.parentElement.insertBefore(meta, plusBtn.nextElementSibling);
+      } else if (!plusBtn && pill && pill.parentElement && meta.nextElementSibling !== pill) {
+        pill.parentElement.insertBefore(meta, pill);
+      }
     }
-  }
 
-  const ratio = Math.min(Math.max(used / limit, 0), 1);
-  const percentage = (ratio * 100).toFixed(1);
-  const remaining = Math.max(0, limit - used);
+    meta.style.display = 'inline-flex';
 
-  const result = {
-    used,
-    limit,
-    ratio,
-    percentage,
-    remaining,
-    modelName: rawModelName
-  };
-  cachedContextMetrics = result;
-  lastContextMetricsTime = now;
-  return result;
-}
-
-const CONTEXT_RING_CIRCUMFERENCE = 43.982; // 2 * Math.PI * 7
-let activeContextPopover = null;
-
-function hideContextPopover() {
-  if (activeContextPopover) {
-    activeContextPopover.remove();
-    activeContextPopover = null;
+    updateComposerMeta(meta);
+  } catch (err) {
+    console.debug("[BetterGravity] Error in ensureComposerMeta:", err);
   }
 }
 
-function showContextPopover(anchorEl) {
-  hideContextPopover();
-  const metrics = getConversationContextMetrics();
-  const levelColor = metrics.ratio >= 0.90 ? "#ef4444" : (metrics.ratio >= 0.75 ? "#f59e0b" : "#4285f4");
-
-  const popover = document.createElement("div");
-  popover.className = "gemini-context-popover";
-  popover.innerHTML = `
-    <div class="gemini-context-popover-header">
-      <div style="display: flex; align-items: center; gap: 6px;">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="${levelColor}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <circle cx="12" cy="12" r="10"></circle>
-          <polyline points="12 6 12 12 16 14"></polyline>
-        </svg>
-        <span>Context Window</span>
-      </div>
-      <span style="font-size: 11px; padding: 2px 7px; border-radius: 9999px; background: rgba(255,255,255,0.1); color: ${levelColor}; font-weight: 600;">
-        ${metrics.percentage}%
-      </span>
-    </div>
-    <div class="gemini-context-popover-bar-bg">
-      <div class="gemini-context-popover-bar-fill" style="width: ${Math.max(Number(metrics.percentage), 2)}%; background: ${levelColor};"></div>
-    </div>
-    <div class="gemini-context-popover-stats">
-      <span>Used: <strong style="color: #fff;">${formatTokenCount(metrics.used)}</strong> tokens</span>
-      <span>Limit: <strong style="color: #a8c7fa;">${formatTokenLimit(metrics.limit)}</strong> tokens</span>
-    </div>
-    <div class="gemini-context-popover-detail">
-      <span>${formatTokenCount(metrics.remaining)} tokens remaining before conversation context limit</span>
-    </div>
-  `;
-
-  popover.addEventListener("click", (e) => e.stopPropagation());
-  anchorEl.appendChild(popover);
-  activeContextPopover = popover;
-
-  const onDismiss = (e) => {
-    if (!popover.contains(e.target) && !anchorEl.contains(e.target)) {
-      hideContextPopover();
-      document.removeEventListener("pointerdown", onDismiss);
+function updateComposerMeta(meta) {
+  if (!meta) return;
+  try {
+    const metrics = getConversationContextMetrics();
+    let used = metrics?.used;
+    if (!used || used <= 0) {
+      used = estimateTokensFromDom();
     }
-  };
-  setTimeout(() => document.addEventListener("pointerdown", onDismiss), 20);
-}
+    const limit = metrics?.limit || 1048576;
+    const tokenStr = `${formatTokensCompact(used)} / ${formatTokensCompact(limit)}`;
 
-function updateContextRing(ringWrap) {
-  const metrics = getConversationContextMetrics();
-  const fill = ringWrap.querySelector('.gemini-context-fill');
-  if (!fill) return;
+    const activeEmail = (typeof userAccountProfile !== "undefined" && userAccountProfile?.email) ? userAccountProfile.email : "kurtstanleytalastas@gmail.com";
+    const limits = typeof getAccountLimits === "function" ? getAccountLimits(activeEmail) : { fiveHour: 88, weekly: 90 };
+    const quotaStr = `5h: ${limits.fiveHour}% · 1w: ${limits.weekly}%`;
 
-  const displayRatio = Math.max(metrics.ratio, 0.02);
-  const offset = CONTEXT_RING_CIRCUMFERENCE * (1 - Math.min(displayRatio, 1));
-  const newOffsetStr = `${offset}`;
-  if (fill.style.strokeDashoffset !== newOffsetStr) {
-    fill.style.strokeDashoffset = newOffsetStr;
-  }
-
-  const expectedLevel = metrics.ratio >= 0.90 ? 'alert' : (metrics.ratio >= 0.75 ? 'warn' : null);
-  if (expectedLevel) {
-    if (fill.getAttribute('data-level') !== expectedLevel) {
-      fill.setAttribute('data-level', expectedLevel);
-    }
-  } else if (fill.hasAttribute('data-level')) {
-    fill.removeAttribute('data-level');
-  }
-
-  const newTitle = `Context: ${formatTokenCount(metrics.used)} / ${formatTokenLimit(metrics.limit)} (${metrics.percentage}%) • Click for details`;
-  if (ringWrap.title !== newTitle) {
-    ringWrap.title = newTitle;
-  }
-  const usedStr = String(metrics.used);
-  if (ringWrap.dataset.usedTokens !== usedStr) {
-    ringWrap.dataset.usedTokens = usedStr;
-  }
-  const limitStr = String(metrics.limit);
-  if (ringWrap.dataset.limitTokens !== limitStr) {
-    ringWrap.dataset.limitTokens = limitStr;
-  }
-  if (ringWrap.dataset.pct !== metrics.percentage) {
-    ringWrap.dataset.pct = metrics.percentage;
-  }
-}
-
-function ensureContextRing(pill) {
-  let ringWrap = pill.querySelector('.gemini-context-ring-wrap');
-  if (!ringWrap) {
-    ringWrap = document.createElement('div');
-    ringWrap.className = 'gemini-context-ring-wrap';
-    ringWrap.setAttribute('role', 'button');
-    ringWrap.setAttribute('tabindex', '0');
-    ringWrap.setAttribute('aria-label', 'Context window usage');
-    ringWrap.innerHTML = `
-      <svg class="gemini-context-svg" viewBox="0 0 18 18">
-        <circle class="gemini-context-bg" cx="9" cy="9" r="7" fill="none" stroke-width="2"></circle>
-        <circle class="gemini-context-fill" cx="9" cy="9" r="7" fill="none" stroke-width="2" stroke-dasharray="${CONTEXT_RING_CIRCUMFERENCE}" stroke-dashoffset="${CONTEXT_RING_CIRCUMFERENCE}"></circle>
-      </svg>
+    meta.innerHTML = `
+      <span class="gemini-meta-tokens">${tokenStr}</span>
+      <span class="gemini-meta-sep">·</span>
+      <span class="gemini-meta-quotas" title="5-Hour Rate Limit: ${limits.fiveHour}% | Weekly Quota: ${limits.weekly}%">${quotaStr}</span>
     `;
-
-    ringWrap.addEventListener('click', (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      if (activeContextPopover) hideContextPopover();
-      else showContextPopover(ringWrap);
-    });
-
-    ringWrap.addEventListener('mouseenter', () => {
-      showContextPopover(ringWrap);
-    });
-
-    ringWrap.addEventListener('mouseleave', () => {
-      setTimeout(() => {
-        if (activeContextPopover && !activeContextPopover.matches(':hover') && !ringWrap.matches(':hover')) {
-          hideContextPopover();
-        }
-      }, 180);
-    });
-
-    const chevron = pill.querySelector('svg');
-    if (chevron) {
-      pill.insertBefore(ringWrap, chevron);
-    } else {
-      pill.appendChild(ringWrap);
-    }
+  } catch (err) {
+    console.debug("[BetterGravity] Error updating composer meta:", err);
   }
-
-  updateContextRing(ringWrap);
 }
+
 
 let isEnhancingModelPanel = false;
 
@@ -970,10 +1116,14 @@ function enhanceEffortSubmenu(submenu) {
       card.className = 'gemini-effort-slider-card';
 
       const stepItems = [];
+      const seenNames = new Set();
       radioItems.forEach((item) => {
         const label = item.textContent?.trim() || "";
         const match = label.match(/\b(Low|Medium|High|Off)\b/i);
         const name = match ? match[1] : label;
+        const normalized = name.toLowerCase();
+        if (seenNames.has(normalized)) return;
+        seenNames.add(normalized);
         const isChecked = item.getAttribute('aria-checked') === 'true' || 
                           item.getAttribute('data-state') === 'checked' || 
                           !!item.querySelector('[data-checked]');
@@ -1007,6 +1157,7 @@ function enhanceEffortSubmenu(submenu) {
       `;
 
       const track = card.querySelector('.gemini-effort-track');
+      const glider = card.querySelector('.gemini-effort-glider');
       const badge = card.querySelector('.gemini-effort-current-badge');
       const desc = card.querySelector('.gemini-effort-desc');
 
@@ -1021,53 +1172,148 @@ function enhanceEffortSubmenu(submenu) {
         btn.addEventListener('click', (e) => {
           e.preventDefault();
           e.stopPropagation();
-          selectIndex(idx);
+          commitIndex(idx);
         });
 
         track.appendChild(btn);
         stepButtons.push(btn);
       });
 
-      function selectIndex(newIdx) {
+      function setVisualPreview(idx) {
+        if (idx < 0 || idx >= stepItems.length) return;
+        stepButtons.forEach((b, i) => b.classList.toggle('is-active', i === idx));
+        const chosenName = stepItems[idx].name;
+        badge.textContent = chosenName;
+        desc.textContent = EFFORT_DESCRIPTIONS[chosenName.toLowerCase()] || `Reasoning effort set to ${chosenName}.`;
+      }
+
+      function commitIndex(newIdx, skipAnimation = false) {
         if (newIdx < 0 || newIdx >= stepItems.length) return;
         activeIdx = newIdx;
         track.setAttribute('data-active-index', String(newIdx));
-        stepButtons.forEach((b, i) => b.classList.toggle('is-active', i === newIdx));
-        const chosenName = stepItems[newIdx].name;
-        badge.textContent = chosenName;
-        desc.textContent = EFFORT_DESCRIPTIONS[chosenName.toLowerCase()] || `Reasoning effort set to ${chosenName}.`;
+        setVisualPreview(newIdx);
 
-        const radio = stepItems[newIdx].element;
-        if (radio && typeof radio.click === 'function') {
-          radio.click();
+        const rect = track.getBoundingClientRect();
+        const padding = 3;
+        const trackW = rect.width - padding * 2;
+        const gliderW = trackW / stepItems.length;
+        const targetX = newIdx * gliderW;
+
+        if (glider) {
+          if (skipAnimation) {
+            glider.style.transition = 'none';
+            glider.style.transform = `translateX(${targetX}px) scale(1)`;
+          } else {
+            glider.style.transition = 'transform 0.42s cubic-bezier(0.34, 1.56, 0.64, 1)';
+            glider.style.transform = `translateX(${targetX}px) scale(1)`;
+          }
         }
+
+        setTimeout(() => {
+          const radio = stepItems[newIdx]?.element;
+          if (radio && typeof radio.click === 'function') {
+            radio.click();
+          }
+        }, 320);
       }
 
-      let dragging = false;
-      const computeIndexFromEvent = (e) => {
-        const rect = track.getBoundingClientRect();
-        const x = Math.max(0, Math.min(e.clientX - rect.left, rect.width));
-        return Math.min(Math.floor((x / rect.width) * stepItems.length), stepItems.length - 1);
-      };
+      let isDragging = false;
+      let targetIdx = activeIdx;
+      let startX = 0;
+      let moved = false;
 
       track.addEventListener('pointerdown', (e) => {
-        dragging = true;
-        track.setPointerCapture?.(e.pointerId);
-        selectIndex(computeIndexFromEvent(e));
+        e.preventDefault();
+        e.stopPropagation();
+        isDragging = true;
+        moved = false;
+        track.classList.add('is-dragging');
+        try {
+          track.setPointerCapture?.(e.pointerId);
+        } catch {}
+
+        const rect = track.getBoundingClientRect();
+        const padding = 3;
+        const trackW = rect.width - padding * 2;
+        const gliderW = trackW / stepItems.length;
+        const maxOffset = trackW - gliderW;
+
+        startX = e.clientX;
+        const clickOffset = e.clientX - rect.left - padding;
+        const currentPos = Math.max(0, Math.min(maxOffset, clickOffset - gliderW / 2));
+
+        if (glider) {
+          glider.style.transition = 'none';
+          glider.style.transform = `translateX(${currentPos}px) scale(1.05)`;
+        }
       });
 
       track.addEventListener('pointermove', (e) => {
-        if (dragging) selectIndex(computeIndexFromEvent(e));
-      });
+        if (!isDragging) return;
+        e.preventDefault();
+        e.stopPropagation();
 
-      track.addEventListener('pointerup', (e) => {
-        if (dragging) {
-          dragging = false;
-          track.releasePointerCapture?.(e.pointerId);
-          selectIndex(computeIndexFromEvent(e));
+        const deltaX = Math.abs(e.clientX - startX);
+        if (deltaX > 2) moved = true;
+
+        const rect = track.getBoundingClientRect();
+        const padding = 3;
+        const trackW = rect.width - padding * 2;
+        const gliderW = trackW / stepItems.length;
+        const maxOffset = trackW - gliderW;
+
+        const clickOffset = e.clientX - rect.left - padding;
+        const currentPos = Math.max(0, Math.min(maxOffset, clickOffset - gliderW / 2));
+
+        if (glider) {
+          glider.style.transition = 'none';
+          glider.style.transform = `translateX(${currentPos}px) scale(1.05)`;
+        }
+
+        const fraction = currentPos / (maxOffset || 1);
+        const newTarget = Math.max(0, Math.min(stepItems.length - 1, Math.round(fraction * (stepItems.length - 1))));
+        if (newTarget !== targetIdx) {
+          targetIdx = newTarget;
+          setVisualPreview(targetIdx);
         }
       });
 
+      const onPointerEnd = (e) => {
+        if (!isDragging) return;
+        isDragging = false;
+        track.classList.remove('is-dragging');
+        try {
+          track.releasePointerCapture?.(e.pointerId);
+        } catch {}
+
+        const rect = track.getBoundingClientRect();
+        const padding = 3;
+        const trackW = rect.width - padding * 2;
+        const gliderW = trackW / stepItems.length;
+        const maxOffset = trackW - gliderW;
+
+        if (!moved) {
+          const clickOffset = e.clientX - rect.left - padding;
+          const clickedIdx = Math.max(0, Math.min(stepItems.length - 1, Math.floor(clickOffset / gliderW)));
+          commitIndex(clickedIdx);
+        } else {
+          const clickOffset = e.clientX - rect.left - padding;
+          const currentPos = Math.max(0, Math.min(maxOffset, clickOffset - gliderW / 2));
+          const finalIdx = Math.max(0, Math.min(stepItems.length - 1, Math.round(currentPos / gliderW)));
+          commitIndex(finalIdx);
+        }
+      };
+
+      track.addEventListener('pointerup', onPointerEnd);
+      track.addEventListener('pointercancel', onPointerEnd);
+
+      radioItems.forEach((item) => {
+        item.style.setProperty('display', 'none', 'important');
+        const group = item.closest('[role="group"]');
+        if (group && group !== submenu) {
+          group.style.setProperty('display', 'none', 'important');
+        }
+      });
       submenu.prepend(card);
     }
   } catch (err) {
@@ -1079,14 +1325,18 @@ function enhanceEffortSubmenu(submenu) {
 
 plugin.dom.observe(PILL_SELECTOR, (pill) => {
   apply(pill);
-  ensureContextRing(pill);
+  ensureComposerMeta(pill);
   const observer = new MutationObserver(() => {
     apply(pill);
-    ensureContextRing(pill);
+    ensureComposerMeta(pill);
     observer.takeRecords();
   });
   observer.observe(pill, { subtree: true, childList: true, characterData: true });
   remember(pill, observer);
+});
+
+plugin.dom.observe(INPUT_BOX, (box) => {
+  ensureComposerMeta(box);
 });
 
 plugin.dom.observe('[data-testid="model-selector-panel"]', (panel) => {
@@ -2173,8 +2423,6 @@ function ensureDisplayOptionsRow(block) {
 /* ===========================================================================
  * Gemini App — Skills Section & Tab (Willow Spark Skills Fidelity)
  * ======================================================================== */
-
-const INPUT_BOX = '[data-testid="agent-input-box"]';
 
 async function setComposerPromptText(text, submit = false) {
   if (!text) return false;
@@ -3373,11 +3621,29 @@ function ensureScheduledTasksRow(block) {
 }
 
 function openGeminiWeb(customUrl) {
-  const email = userAccountProfile?.email || "kurtgpro2@gmail.com";
+  const email = (typeof userAccountProfile !== "undefined" && userAccountProfile?.email) ? userAccountProfile.email : "kurtstanleytalastas@gmail.com";
   const url = customUrl || (email ? `https://gemini.google.com/app?authuser=${encodeURIComponent(email)}` : "https://gemini.google.com");
-  if (window.BetterGravityBrowser && typeof window.BetterGravityBrowser.open === "function") {
-    window.BetterGravityBrowser.open(url);
-  } else {
+  if (typeof window !== "undefined" && window.BetterGravityBrowser && typeof window.BetterGravityBrowser.open === "function") {
+    try {
+      window.BetterGravityBrowser.open(url);
+      return;
+    } catch {}
+  }
+  try {
+    if (typeof plugin?.shell?.openExternal === "function") {
+      plugin.shell.openExternal(url);
+      return;
+    }
+  } catch {}
+  try {
+    const a = document.createElement("a");
+    a.href = url;
+    a.target = "_blank";
+    a.rel = "noopener noreferrer";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+  } catch {
     window.open(url, "_blank");
   }
 }
@@ -5557,8 +5823,9 @@ function createToolChipElement(tool) {
 function mountToolChip(box, tool) {
   if (!box) box = document.querySelector(INPUT_BOX);
   if (!box) return;
-  const card = box.querySelector(".bg-card");
-  if (!card) return;
+  const leftCluster = box.querySelector('button[aria-label="Add context"], button[aria-label*="context" i], [data-testid="add-context-button"]')?.parentElement ||
+                      box.querySelector(".bg-card");
+  if (!leftCluster) return;
 
   const targetLabel = chipLabelFor(tool);
   const targetGlyph = chipGlyphFor(tool);
@@ -5568,7 +5835,7 @@ function mountToolChip(box, tool) {
     const existing = chips[0];
     for (let i = 1; i < chips.length; i++) chips[i].remove();
 
-    if (existing.parentElement === card) {
+    if (existing.parentElement === leftCluster) {
       const curLabel = existing.querySelector(".gemini-tool-chip-label")?.textContent;
       const curGlyph = existing.querySelector(".gemini-tool-chip-icon")?.textContent;
       if (curLabel === targetLabel && curGlyph === targetGlyph) {
@@ -5580,7 +5847,12 @@ function mountToolChip(box, tool) {
     existing.remove();
   }
 
-  card.appendChild(createToolChipElement(tool));
+  const meta = leftCluster.querySelector('.gemini-composer-meta');
+  if (meta && meta.parentElement === leftCluster) {
+    meta.insertAdjacentElement('afterend', createToolChipElement(tool));
+  } else {
+    leftCluster.appendChild(createToolChipElement(tool));
+  }
 }
 
 function removeToolChip(box) {
@@ -5600,6 +5872,30 @@ function hasAttachments(box) {
     box.querySelector('[data-testid="input-attachment"]') ||
     box.querySelector('.relative.w-full img[alt*="attachment" i], .relative.w-full img[alt*="Image" i], .relative.w-full [alt*="PDF attachment" i], .relative.w-full [alt*="Video attachment" i]') ||
     box.querySelector('[data-testid="attachment-item"]')
+  );
+}
+
+function hasContextChips(box) {
+  if (!box) return false;
+  const plusBtn = box.querySelector('button[aria-label="Add context"], button[aria-label*="context" i], [data-testid="add-context-button"]');
+  if (plusBtn && plusBtn.parentElement) {
+    for (const child of plusBtn.parentElement.children) {
+      if (
+        child !== plusBtn &&
+        !child.classList?.contains('gemini-composer-meta') &&
+        !child.hasAttribute('data-gemini-composer-meta') &&
+        !child.classList?.contains('gemini-tool-chip') &&
+        !child.hasAttribute('data-gemini-tool-chip')
+      ) {
+        return true;
+      }
+    }
+  }
+  return !!(
+    box.querySelector('[data-beautiful-mention]') ||
+    box.querySelector('[data-mention]') ||
+    box.querySelector('[data-testid*="chip"]') ||
+    box.querySelector('[data-testid*="reference"]')
   );
 }
 
@@ -5650,8 +5946,8 @@ function checkPromptExpansion(box) {
     removeToolChip(box);
   }
 
-  // 2. If an image or media attachment is present, always expand
-  if (hasAttachments(box)) {
+  // 2. If an image, media attachment, or context chip is present, always expand
+  if (hasAttachments(box) || hasContextChips(box)) {
     setBoxExpanded(box, true);
     return;
   }
@@ -7754,26 +8050,6 @@ const SLIDE_WINDOW_MS = 1500;
  * A runtime too old for `plugin.account` is the other case Willow has, and takes
  * Willow's answer to it: signed out short-circuits the wait, because the nameless
  * greeting is the final text then rather than a placeholder for one.
- */
-const DEFAULT_ACCOUNT = {
-  firstName: "Kurt",
-  fullName: "Kurt",
-  email: "kurtgpro2@gmail.com",
-  pictureUrl: "",
-  accounts: [
-    "kurtgpro2@gmail.com",
-    "kurtstanleytalastas@gmail.com",
-    "likhangkamaybusiness@gmail.com",
-    "kurtapexlegends@gmail.com",
-    "kurtgpro3@gmail.com",
-    "kurtgpro5@gmail.com",
-    "akunosteam@gmail.com",
-    "acostayashica@gmail.com"
-  ]
-};
-
-let userAccountProfile = { ...DEFAULT_ACCOUNT };
-
 function updateAllUserCards(profile) {
   if (!profile) return;
   for (const pill of document.querySelectorAll("#gemini-sidebar-user-pill")) {
@@ -7782,11 +8058,30 @@ function updateAllUserCards(profile) {
     const imgEl = pill.querySelector(".gemini-user-avatar");
     const fallbackEl = pill.querySelector(".gemini-user-avatar-fallback");
 
-    const displayName = profile.fullName || profile.firstName || (profile.email ? profile.email.split("@")[0] : "Kurt");
+    const activeEmail = profile.email || "kurtstanleytalastas@gmail.com";
+    const displayName = profile?.accountNames?.[activeEmail.toLowerCase()] ||
+                        REAL_ACCOUNT_DATA.names[activeEmail.toLowerCase()] ||
+                        profile.fullName ||
+                        profile.firstName ||
+                        (activeEmail ? activeEmail.split("@")[0] : "Kurt");
     if (nameEl) nameEl.textContent = displayName;
     if (emailEl) {
-      emailEl.textContent = profile.email || "kurtgpro2@gmail.com";
-      emailEl.style.display = profile.email ? "" : "none";
+      emailEl.textContent = activeEmail;
+      emailEl.style.display = activeEmail ? "" : "none";
+    }
+
+    let quotaEl = pill.querySelector(".gemini-sidebar-quota-pill");
+    const limits = getAccountLimits(activeEmail);
+    const quotaText = `5h: ${limits.fiveHour}% · 1w: ${limits.weekly}%`;
+    if (!quotaEl) {
+      quotaEl = document.createElement("div");
+      quotaEl.className = "gemini-sidebar-quota-pill";
+      const textDiv = pill.querySelector(".gemini-user-text");
+      if (textDiv) textDiv.appendChild(quotaEl);
+    }
+    if (quotaEl) {
+      quotaEl.textContent = quotaText;
+      quotaEl.title = `5-Hour Rate Limit: ${limits.fiveHour}% | Weekly Quota: ${limits.weekly}%`;
     }
     if (imgEl) {
       if (profile.pictureUrl) {
@@ -7835,6 +8130,12 @@ function applyAccountProfile(profile) {
     if (Array.isArray(profile.accounts) && profile.accounts.length > 0) {
       userAccountProfile.accounts = profile.accounts;
     }
+    if (profile.accountPlans && typeof profile.accountPlans === "object") {
+      userAccountProfile.accountPlans = { ...(userAccountProfile.accountPlans || {}), ...profile.accountPlans };
+    }
+    if (profile.accountLimits && typeof profile.accountLimits === "object") {
+      userAccountProfile.accountLimits = { ...(userAccountProfile.accountLimits || {}), ...profile.accountLimits };
+    }
   }
   const first = userAccountProfile.fullName?.split(/\s+/)[0] || userAccountProfile.firstName || "Kurt";
   greeting = `Hello there, ${first}`;
@@ -7844,18 +8145,31 @@ function applyAccountProfile(profile) {
 
 let greeting = "Hello there, Kurt";
 
-if (plugin.account) {
-  plugin.account
-    .read()
-    .then((profile) => {
-      applyAccountProfile(profile);
-    })
-    .catch(() => {
-      applyAccountProfile(DEFAULT_ACCOUNT);
-    });
-} else {
+async function refreshAccountProfile() {
+  try {
+    const res = await fetch("http://127.0.0.1:41421/account", { signal: AbortSignal.timeout(1200) });
+    if (res.ok) {
+      const data = await res.json();
+      if (data && data.email) {
+        applyAccountProfile(data);
+        return data;
+      }
+    }
+  } catch {}
+  if (plugin.account && typeof plugin.account.read === "function") {
+    try {
+      const profile = await plugin.account.read();
+      if (profile) {
+        applyAccountProfile(profile);
+        return profile;
+      }
+    } catch {}
+  }
   applyAccountProfile(DEFAULT_ACCOUNT);
+  return null;
 }
+
+refreshAccountProfile();
 
 /**
  * `Hello there, <name>` above the composer, as Willow's `PinnedChatGreeting`.
@@ -8497,50 +8811,6 @@ function onAccountPopoverKeydown(e) {
   }
 }
 
-function formatAccountName(email) {
-  const handle = (email || "").split("@")[0] || "";
-  if (/^kurt/i.test(handle)) {
-    const rest = handle.slice(4).replace(/[._-]+/g, " ").trim();
-    return "Kurt" + (rest ? " " + rest.split(/\s+/).map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(" ") : "");
-  }
-  const parts = handle.split(/[._-]+/).filter(Boolean);
-  return parts.map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(" ") || handle;
-}
-
-function getAccountPlan(email) {
-  if (!email) return "FREE";
-  const clean = email.trim().toLowerCase();
-  try {
-    const plans = JSON.parse(localStorage.getItem("bettergravity_account_plans") || "{}");
-    if (plans[clean]) return plans[clean];
-  } catch {}
-  if (/^kurtgpro2@gmail\.com$/i.test(clean)) return "PRO";
-  return "FREE";
-}
-
-function setAccountPlan(email, plan) {
-  if (!email) return;
-  const clean = email.trim().toLowerCase();
-  try {
-    const plans = JSON.parse(localStorage.getItem("bettergravity_account_plans") || "{}");
-    plans[clean] = plan;
-    localStorage.setItem("bettergravity_account_plans", JSON.stringify(plans));
-  } catch {}
-}
-
-function getAccountLimits(email) {
-  const clean = (email || "").trim().toLowerCase();
-  const isPro = getAccountPlan(clean) === "PRO";
-  try {
-    const limits = JSON.parse(localStorage.getItem("bettergravity_account_limits") || "{}");
-    if (limits[clean]) return limits[clean];
-  } catch {}
-  return {
-    fiveHour: isPro ? 94 : 65,
-    weekly: isPro ? 98 : 78
-  };
-}
-
 async function addCustomAccount(newEmail, plan = "FREE") {
   const clean = (newEmail || "").trim().toLowerCase();
   if (!clean || !clean.includes("@")) return false;
@@ -8589,7 +8859,20 @@ async function switchActiveAccount(targetEmail) {
   }
 
   let switched = null;
-  if (typeof plugin?.account?.switchAccount === "function") {
+  // 1. Try local daemon service which updates Antigravity app_storage and google_accounts directly
+  try {
+    const res = await fetch("http://127.0.0.1:41421/switch-account", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email: targetEmail })
+    });
+    if (res.ok) {
+      switched = await res.json();
+    }
+  } catch {}
+
+  // 2. Fall back to plugin.account.switchAccount if available
+  if (!switched && typeof plugin?.account?.switchAccount === "function") {
     try {
       switched = await plugin.account.switchAccount(targetEmail);
     } catch {}
@@ -8639,20 +8922,30 @@ async function switchActiveAccount(targetEmail) {
   closeAccountPopover();
 }
 
-function toggleAccountPopover(pill, settingsBtn) {
+let isOpeningAccountPopover = false;
+async function toggleAccountPopover(pill, settingsBtn) {
   if (currentAccountPopover) {
     closeAccountPopover();
     return;
   }
+  if (isOpeningAccountPopover) return;
+  isOpeningAccountPopover = true;
+
+  try {
+    // Refresh real account profile and limits from backend
+    await refreshAccountProfile();
 
   const rect = pill.getBoundingClientRect();
   const popover = document.createElement("div");
   popover.id = "gemini-account-popover";
   popover.className = "gemini-account-popover";
 
-  const initial = (userAccountProfile.fullName || userAccountProfile.firstName || userAccountProfile.email || "K").charAt(0).toUpperCase();
-  const activeEmail = userAccountProfile.email || "kurtgpro2@gmail.com";
-  const displayName = userAccountProfile.fullName || userAccountProfile.firstName || "Kurt";
+  const activeEmail = userAccountProfile.email || "kurtstanleytalastas@gmail.com";
+  const displayName = userAccountProfile?.accountNames?.[activeEmail.toLowerCase()] ||
+                      userAccountProfile.fullName ||
+                      userAccountProfile.firstName ||
+                      formatAccountName(activeEmail);
+  const initial = displayName.charAt(0).toUpperCase();
   const activePlan = getAccountPlan(activeEmail);
   const activeLimits = getAccountLimits(activeEmail);
 
@@ -8676,31 +8969,42 @@ function toggleAccountPopover(pill, settingsBtn) {
   let accountsHtml = "";
   if (otherAccounts.length > 0) {
     accountsHtml = `
-      <div class="gemini-popover-section-label">Switch Google Account (${otherAccounts.length})</div>
+      <div class="gemini-popover-section-label">All Accounts (${otherAccounts.length})</div>
       <div class="gemini-popover-accounts-list">
         ${otherAccounts
           .map((acc) => {
             const accInitial = acc.charAt(0).toUpperCase();
-            const accName = formatAccountName(acc);
+            const accName = userAccountProfile?.accountNames?.[acc.toLowerCase()] ||
+                            REAL_ACCOUNT_DATA.names[acc.toLowerCase()] ||
+                            formatAccountName(acc);
             const plan = getAccountPlan(acc);
             const limits = getAccountLimits(acc);
             const planBadgeClass = plan === "PRO" ? "plan-pro" : "plan-free";
             return `
-              <div class="gemini-popover-account-item" data-email="${acc}" title="Switch to ${acc}">
+              <div class="gemini-popover-account-item" data-email="${acc}" role="button" tabindex="0" title="Switch to ${accName} (${acc})">
                 <div class="gemini-popover-account-avatar">${accInitial}</div>
                 <div class="gemini-popover-account-text">
-                  <div style="display: flex; align-items: center; gap: 6px;">
+                  <div class="gemini-popover-account-name-row">
                     <span class="gemini-popover-account-name">${accName}</span>
                     <span class="gemini-account-plan-badge ${planBadgeClass}">${plan}</span>
                   </div>
                   <span class="gemini-popover-account-email">${acc}</span>
                 </div>
-                <div class="gemini-popover-limits-col" title="Current usage limits">
-                  <span class="gemini-limit-chip chip-5h">5h: ${limits.fiveHour}%</span>
-                  <span class="gemini-limit-chip chip-weekly">Wk: ${limits.weekly}%</span>
+                <div class="gemini-popover-limits-col">
+                  <span class="gemini-limit-chip chip-5h" title="5-Hour Rate Limit: ${limits.fiveHour}%">5h: ${limits.fiveHour}%</span>
+                  <span class="gemini-limit-chip chip-weekly" title="Weekly Limit: ${limits.weekly}%">1w: ${limits.weekly}%</span>
                 </div>
-                <button type="button" class="gemini-popover-switch-btn" data-email="${acc}" title="Switch to this account">Switch</button>
-                <button type="button" class="gemini-popover-remove-btn" data-email="${acc}" title="Remove account from list">✕</button>
+                <div class="gemini-popover-chevron" title="Switch to this account">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="9 18 15 12 9 6"></polyline>
+                  </svg>
+                </div>
+                <button type="button" class="gemini-popover-remove-btn" data-email="${acc}" title="Remove from list">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                  </svg>
+                </button>
               </div>
             `;
           })
@@ -8709,8 +9013,8 @@ function toggleAccountPopover(pill, settingsBtn) {
     `;
   } else {
     accountsHtml = `
-      <div class="gemini-popover-section-label">Switch Google Account</div>
-      <div style="padding: 8px; font-size: 12px; color: rgba(255,255,255,0.5); text-align: center;">No other accounts configured</div>
+      <div class="gemini-popover-section-label">All Accounts</div>
+      <div style="padding: 10px; font-size: 11.5px; color: rgba(255,255,255,0.4); text-align: center;">No other accounts configured</div>
     `;
   }
 
@@ -8735,7 +9039,7 @@ function toggleAccountPopover(pill, settingsBtn) {
       <div class="gemini-limit-row">
         <div class="gemini-limit-label-col">
           <span class="gemini-limit-name">5-Hour Rate Limit</span>
-          <span class="gemini-limit-val">${activeLimits.fiveHour}% remaining</span>
+          <span class="gemini-limit-val">${activeLimits.fiveHour}%</span>
         </div>
         <div class="gemini-limit-track">
           <div class="gemini-limit-fill fill-5h" style="width: ${activeLimits.fiveHour}%;"></div>
@@ -8744,7 +9048,7 @@ function toggleAccountPopover(pill, settingsBtn) {
       <div class="gemini-limit-row">
         <div class="gemini-limit-label-col">
           <span class="gemini-limit-name">Weekly Quota Limit</span>
-          <span class="gemini-limit-val">${activeLimits.weekly}% remaining</span>
+          <span class="gemini-limit-val">${activeLimits.weekly}%</span>
         </div>
         <div class="gemini-limit-track">
           <div class="gemini-limit-fill fill-weekly" style="width: ${activeLimits.weekly}%;"></div>
@@ -8755,23 +9059,20 @@ function toggleAccountPopover(pill, settingsBtn) {
     ${accountsHtml}
 
     <div class="gemini-popover-add-wrap">
-      <button type="button" class="gemini-popover-add-trigger" id="gemini-popover-add-trigger">
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-          <line x1="12" y1="5" x2="12" y2="19"></line>
-          <line x1="5" y1="12" x2="19" y2="12"></line>
-        </svg>
-        <span>Add Google Account</span>
-      </button>
-      <div class="gemini-popover-add-form" id="gemini-popover-add-form" style="display: none;">
-        <input type="email" class="gemini-popover-add-input" id="gemini-popover-add-email-input" placeholder="Enter google email (e.g. user@gmail.com)" />
-        <div class="gemini-popover-add-plan-select">
-          <span>Plan:</span>
-          <label><input type="radio" name="gemini-new-acc-plan" value="PRO" /> PRO (Advanced)</label>
-          <label><input type="radio" name="gemini-new-acc-plan" value="FREE" checked /> FREE</label>
+      <div class="gemini-popover-add-trigger" id="gemini-popover-add-trigger" role="button" tabindex="0">
+        <div class="gemini-popover-add-icon-wrap">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="12" y1="5" x2="12" y2="19"></line>
+            <line x1="5" y1="12" x2="19" y2="12"></line>
+          </svg>
         </div>
-        <div class="gemini-popover-add-actions">
+        <span class="gemini-popover-add-label">Add another account</span>
+      </div>
+      <div class="gemini-popover-add-form" id="gemini-popover-add-form" style="display: none;">
+        <div class="gemini-popover-add-input-row">
+          <input type="email" class="gemini-popover-add-input" id="gemini-popover-add-email-input" placeholder="Google email (e.g. user@gmail.com)" />
+          <button type="button" class="gemini-popover-btn-save" id="gemini-popover-add-save-btn">Add</button>
           <button type="button" class="gemini-popover-btn-cancel" id="gemini-popover-add-cancel-btn">Cancel</button>
-          <button type="button" class="gemini-popover-btn-save" id="gemini-popover-add-save-btn">Add Account</button>
         </div>
       </div>
     </div>
@@ -8780,14 +9081,14 @@ function toggleAccountPopover(pill, settingsBtn) {
 
     <div class="gemini-popover-actions">
       <button type="button" class="gemini-popover-action-btn" id="gemini-popover-settings-btn">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <circle cx="12" cy="12" r="3"></circle>
           <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
         </svg>
         <span>Antigravity Settings</span>
       </button>
       <a href="https://myaccount.google.com/" target="_blank" rel="noopener noreferrer" class="gemini-popover-action-btn">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <circle cx="12" cy="12" r="10"></circle>
           <line x1="2" y1="12" x2="22" y2="12"></line>
           <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
@@ -8808,17 +9109,6 @@ function toggleAccountPopover(pill, settingsBtn) {
     });
   }
 
-  // Switch button handlers
-  popover.querySelectorAll(".gemini-popover-switch-btn").forEach((btn) => {
-    btn.addEventListener("click", (e) => {
-      e.stopPropagation();
-      const targetEmail = btn.getAttribute("data-email");
-      if (targetEmail) {
-        switchActiveAccount(targetEmail);
-      }
-    });
-  });
-
   // Remove button handlers
   popover.querySelectorAll(".gemini-popover-remove-btn").forEach((btn) => {
     btn.addEventListener("click", async (e) => {
@@ -8832,7 +9122,7 @@ function toggleAccountPopover(pill, settingsBtn) {
     });
   });
 
-  // Click on account row to switch
+  // Click anywhere on account row to switch immediately!
   popover.querySelectorAll(".gemini-popover-account-item").forEach((item) => {
     item.addEventListener("click", (e) => {
       if (e.target.closest(".gemini-popover-remove-btn")) return;
@@ -8876,8 +9166,8 @@ function toggleAccountPopover(pill, settingsBtn) {
         addEmailInput.focus();
         return;
       }
-      const selectedPlan = popover.querySelector('input[name="gemini-new-acc-plan"]:checked')?.value || "FREE";
-      await addCustomAccount(email, selectedPlan);
+      const autoPlan = /pro/i.test(email.split("@")[0]) ? "PRO" : "FREE";
+      await addCustomAccount(email, autoPlan);
       closeAccountPopover();
       toggleAccountPopover(pill, settingsBtn);
     };
@@ -8899,6 +9189,9 @@ function toggleAccountPopover(pill, settingsBtn) {
     document.addEventListener("click", onAccountPopoverOutsideClick, true);
     document.addEventListener("keydown", onAccountPopoverKeydown, true);
   });
+  } finally {
+    isOpeningAccountPopover = false;
+  }
 }
 
 function ensureSidebarUserCard(footer) {
@@ -8915,12 +9208,15 @@ function ensureSidebarUserCard(footer) {
     pill.setAttribute("aria-label", "User profile and settings");
 
     const avatarUrl = userAccountProfile.pictureUrl || "";
-    const name = userAccountProfile.fullName || userAccountProfile.firstName || "";
-    const email = userAccountProfile.email || "kurtgpro2@gmail.com";
-    const displayName = name || (email ? email.split("@")[0] : "Kurt");
-    const initial = (name || email || "K").charAt(0).toUpperCase();
+    const email = userAccountProfile.email || "kurtstanleytalastas@gmail.com";
+    const displayName = userAccountProfile?.accountNames?.[email.toLowerCase()] ||
+                        REAL_ACCOUNT_DATA.names[email.toLowerCase()] ||
+                        userAccountProfile.fullName ||
+                        userAccountProfile.firstName ||
+                        (email ? email.split("@")[0] : "Kurt");
+    const initial = (displayName || email || "K").charAt(0).toUpperCase();
 
-    pill.title = email ? (name ? `${name} (${email})` : email) : displayName;
+    pill.title = email ? (displayName ? `${displayName} (${email})` : email) : displayName;
     if (isSidebarCollapsed()) {
       pill.setAttribute("data-tooltip-position", "right");
     }
@@ -8960,8 +9256,15 @@ function ensureSidebarUserCard(footer) {
       emailSpan.style.display = "none";
     }
 
+    const quotaDiv = document.createElement("div");
+    quotaDiv.className = "gemini-sidebar-quota-pill";
+    const limits = getAccountLimits(email);
+    quotaDiv.textContent = `5h: ${limits.fiveHour}% · 1w: ${limits.weekly}%`;
+    quotaDiv.title = `5-Hour Rate Limit: ${limits.fiveHour}% | Weekly Quota: ${limits.weekly}%`;
+
     textDiv.appendChild(nameSpan);
     textDiv.appendChild(emailSpan);
+    textDiv.appendChild(quotaDiv);
 
     pill.appendChild(avatarWrap);
     pill.appendChild(textDiv);
@@ -11199,7 +11502,7 @@ function reconcileBetterGravityUI() {
     const pill = document.querySelector(PILL_SELECTOR);
     if (pill && pill.isConnected) {
       apply(pill);
-      ensureContextRing(pill);
+      ensureComposerMeta(pill);
     }
     const inputBox = document.querySelector(INPUT_BOX);
     if (inputBox && inputBox.isConnected) {

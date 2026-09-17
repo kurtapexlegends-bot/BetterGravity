@@ -66,23 +66,26 @@ export function readAccountProfile(homeDirectory: string): AccountProfile {
   let pictureUrl: string | undefined;
   const accountsSet = new Set<string>();
 
-  // 1. Try reading from google_accounts.json for active and historical accounts
-  const activeJson = readJson(path.join(homeDirectory, ...ACTIVE_ACCOUNT));
-  if (isRecord(activeJson)) {
-    const activeEmail = text(activeJson, "active");
-    if (activeEmail) {
-      email = activeEmail;
-      accountsSet.add(activeEmail);
-    }
-    const oldAccounts = activeJson["old"];
-    if (Array.isArray(oldAccounts)) {
-      for (const item of oldAccounts) {
-        if (typeof item === "string" && item.trim()) {
-          accountsSet.add(item.trim());
+  // 1. Try reading Antigravity's real active login username from app_storage.json
+  try {
+    const appStorageCandidates = [
+      path.join(homeDirectory, "AppData", "Roaming", "antigravity", "app_storage.json"),
+      path.join(homeDirectory, "AppData", "Roaming", "Antigravity", "app_storage.json")
+    ];
+    for (const p of appStorageCandidates) {
+      if (fs.existsSync(p)) {
+        const d = readJson(p);
+        if (isRecord(d)) {
+          const activeLogin = text(d, "jetski.onboarding.lastLoginUsername");
+          if (activeLogin && activeLogin.includes("@")) {
+            email = activeLogin.toLowerCase().trim();
+            accountsSet.add(email);
+            break;
+          }
         }
       }
     }
-  }
+  } catch {}
 
   // 2. Try reading from oauth_creds.json for id_token claims
   const credsJson = readJson(path.join(homeDirectory, ...OAUTH_CREDS));
@@ -95,7 +98,25 @@ export function readAccountProfile(homeDirectory: string): AccountProfile {
         if (typeof claims.given_name === "string" && claims.given_name.trim()) firstName = claims.given_name.trim();
         if (typeof claims.name === "string" && claims.name.trim()) fullName = claims.name.trim();
         if (typeof claims.picture === "string" && claims.picture.trim()) pictureUrl = claims.picture.trim();
-        if (email) accountsSet.add(email);
+        if (claims.email) accountsSet.add(claims.email.trim());
+      }
+    }
+  }
+
+  // 3. Try reading from google_accounts.json for active and historical accounts
+  const activeJson = readJson(path.join(homeDirectory, ...ACTIVE_ACCOUNT));
+  if (isRecord(activeJson)) {
+    const activeEmail = text(activeJson, "active");
+    if (!email && activeEmail) {
+      email = activeEmail;
+    }
+    if (activeEmail) accountsSet.add(activeEmail);
+    const oldAccounts = activeJson["old"];
+    if (Array.isArray(oldAccounts)) {
+      for (const item of oldAccounts) {
+        if (typeof item === "string" && item.trim()) {
+          accountsSet.add(item.trim());
+        }
       }
     }
   }
@@ -123,7 +144,7 @@ export function readAccountProfile(homeDirectory: string): AccountProfile {
 
   // 4. Try reading Brave Browser user profiles & accounts
   try {
-    const localAppData = process.env.LOCALAPPDATA || path.join(homeDirectory, "AppData", "Local");
+    const localAppData = path.join(homeDirectory, "AppData", "Local");
     const braveUserData = path.join(localAppData, "BraveSoftware", "Brave-Browser", "User Data");
     if (fs.existsSync(braveUserData)) {
       const candidates = [
@@ -147,7 +168,95 @@ export function readAccountProfile(homeDirectory: string): AccountProfile {
     }
   } catch {}
 
-  // 4. Derive display names from email if still missing
+  // 5. Try reading ~/.antigravity_cockpit accounts and quota cache
+  const accountPlans: Record<string, string> = {};
+  const accountLimits: Record<string, { fiveHour: number; weekly: number }> = {};
+  const accountNames: Record<string, string> = {};
+
+  try {
+    const cockpitAccountsDir = path.join(homeDirectory, ".antigravity_cockpit", "gemini_accounts");
+    if (fs.existsSync(cockpitAccountsDir)) {
+      const files = fs.readdirSync(cockpitAccountsDir);
+      for (const file of files) {
+        if (!file.endsWith(".json") || file.includes(".bak")) continue;
+        const entry = readJson(path.join(cockpitAccountsDir, file));
+        if (isRecord(entry)) {
+          const entryEmail = text(entry, "email");
+          if (entryEmail) {
+            const clean = entryEmail.toLowerCase();
+            accountsSet.add(entryEmail);
+            const entryName = text(entry, "name");
+            if (entryName) accountNames[clean] = entryName;
+            const tierId = text(entry, "tier_id");
+            const planName = text(entry, "plan_name");
+            if (tierId === "g1-pro-tier" || (planName && /pro/i.test(planName))) {
+              accountPlans[clean] = "PRO";
+            } else if (tierId === "free-tier" || (planName && /free|individual/i.test(planName))) {
+              accountPlans[clean] = "FREE";
+            }
+            if (email && clean === email.toLowerCase()) {
+              if (!fullName && typeof entry["name"] === "string") fullName = text(entry, "name");
+              if (!pictureUrl && typeof entry["picture"] === "string") pictureUrl = text(entry, "picture");
+            }
+          }
+        }
+      }
+    }
+    const cockpitListFile = path.join(homeDirectory, ".antigravity_cockpit", "gemini_accounts.json");
+    const cockpitList = readJson(cockpitListFile);
+    if (isRecord(cockpitList) && Array.isArray(cockpitList["accounts"])) {
+      for (const item of cockpitList["accounts"]) {
+        if (isRecord(item)) {
+          const accEmail = text(item, "email");
+          if (accEmail) {
+            const clean = accEmail.toLowerCase();
+            accountsSet.add(accEmail);
+            const accName = text(item, "name");
+            if (accName && !accountNames[clean]) accountNames[clean] = accName;
+            const planName = text(item, "plan_name");
+            if (planName && /pro/i.test(planName)) accountPlans[clean] = "PRO";
+            else if (planName && /free|individual/i.test(planName)) accountPlans[clean] = "FREE";
+          }
+        }
+      }
+    }
+    const quotaDir = path.join(homeDirectory, ".antigravity_cockpit", "cache", "quota_api_v1_plugin", "authorized");
+    if (fs.existsSync(quotaDir)) {
+      const qFiles = fs.readdirSync(quotaDir);
+      for (const qf of qFiles) {
+        if (!qf.endsWith(".json")) continue;
+        const qData = readJson(path.join(quotaDir, qf));
+        if (isRecord(qData) && typeof qData["email"] === "string") {
+          const qEmail = qData["email"].toLowerCase().trim();
+          const models = (qData["payload"] as Record<string, unknown>)?.["models"] as Record<string, unknown> | undefined;
+          if (isRecord(models)) {
+            let minRemaining = 1.0;
+            let sumRemaining = 0;
+            let count = 0;
+            for (const mId in models) {
+              const mObj = models[mId];
+              if (isRecord(mObj) && isRecord(mObj["quotaInfo"])) {
+                const frac = mObj["quotaInfo"]["remainingFraction"];
+                if (typeof frac === "number") {
+                  minRemaining = Math.min(minRemaining, frac);
+                  sumRemaining += frac;
+                  count++;
+                }
+              }
+            }
+            const fiveHourPct = Math.round(minRemaining * 100);
+            const weeklyPct = count > 0 ? Math.round((sumRemaining / count) * 100) : 100;
+            accountLimits[qEmail] = { fiveHour: fiveHourPct, weekly: weeklyPct };
+            if (!accountPlans[qEmail]) {
+              accountPlans[qEmail] = /pro/i.test(qEmail.split("@")[0]) ? "PRO" : "FREE";
+            }
+          }
+        }
+      }
+    }
+  } catch {}
+
+  // 6. Derive display names from email if still missing
   if (email && !firstName && !fullName) {
     const handle = email.split("@")[0] || "";
     let cleanName = "Account";
@@ -184,13 +293,19 @@ export function readAccountProfile(homeDirectory: string): AccountProfile {
   }
 
   const accounts = accountsSet.size > 0 ? Array.from(accountsSet) : undefined;
+  const hasPlans = Object.keys(accountPlans).length > 0;
+  const hasLimits = Object.keys(accountLimits).length > 0;
+  const hasNames = Object.keys(accountNames).length > 0;
 
   return {
     ...(firstName === undefined ? {} : { firstName }),
     ...(fullName === undefined ? {} : { fullName }),
     ...(email === undefined ? {} : { email }),
     ...(pictureUrl === undefined ? {} : { pictureUrl }),
-    ...(accounts === undefined ? {} : { accounts })
+    ...(accounts === undefined ? {} : { accounts }),
+    ...(hasPlans ? { accountPlans } : {}),
+    ...(hasLimits ? { accountLimits } : {}),
+    ...(hasNames ? { accountNames } : {})
   };
 }
 
@@ -200,8 +315,9 @@ export function switchAccount(homeDirectory: string, targetEmail: string): Accou
   if (!isRecord(data)) return null;
 
   const currentActive = text(data, "active");
-  const oldRaw = data["old"];
-  const oldList = Array.isArray(oldRaw) ? oldRaw.filter((x): x is string => typeof x === "string") : [];
+  const oldList = Array.isArray(data["old"])
+    ? (data["old"].filter((item) => typeof item === "string") as string[])
+    : [];
 
   const newOld = new Set<string>();
   if (currentActive && currentActive.toLowerCase() !== targetEmail.toLowerCase()) {
@@ -223,6 +339,48 @@ export function switchAccount(homeDirectory: string, targetEmail: string): Accou
   } catch {
     return null;
   }
+
+  // Update Antigravity's app_storage.json lastLoginUsername
+  try {
+    const appStorageCandidates = [
+      path.join(homeDirectory, "AppData", "Roaming", "antigravity", "app_storage.json"),
+      path.join(homeDirectory, "AppData", "Roaming", "Antigravity", "app_storage.json")
+    ];
+    for (const appStoragePath of appStorageCandidates) {
+      if (fs.existsSync(appStoragePath)) {
+        const storageData = readJson(appStoragePath);
+        if (isRecord(storageData)) {
+          storageData["jetski.onboarding.lastLoginUsername"] = targetEmail;
+          fs.writeFileSync(appStoragePath, JSON.stringify(storageData, null, 2), "utf8");
+        }
+      }
+    }
+  } catch {}
+
+  // If cockpit credentials exist for targetEmail, sync into .gemini/oauth_creds.json
+  try {
+    const cockpitAccountsDir = path.join(homeDirectory, ".antigravity_cockpit", "gemini_accounts");
+    if (fs.existsSync(cockpitAccountsDir)) {
+      const files = fs.readdirSync(cockpitAccountsDir);
+      for (const file of files) {
+        if (!file.endsWith(".json") || file.includes(".bak")) continue;
+        const entry = readJson(path.join(cockpitAccountsDir, file));
+        if (isRecord(entry) && text(entry, "email")?.toLowerCase() === targetEmail.toLowerCase()) {
+          const credsPath = path.join(homeDirectory, ...OAUTH_CREDS);
+          const credsData: Record<string, unknown> = {
+            access_token: entry["access_token"],
+            expiry_date: entry["expiry_date"],
+            id_token: entry["id_token"],
+            refresh_token: entry["refresh_token"],
+            scope: entry["scope"] || "openid https://www.googleapis.com/auth/cloud-platform https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/userinfo.email",
+            token_type: entry["token_type"] || "Bearer"
+          };
+          fs.writeFileSync(credsPath, JSON.stringify(credsData, null, 2), "utf8");
+          break;
+        }
+      }
+    }
+  } catch {}
 
   return readAccountProfile(homeDirectory);
 }

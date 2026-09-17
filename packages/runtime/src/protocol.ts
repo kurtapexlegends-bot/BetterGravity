@@ -53,6 +53,7 @@ export const CHANNEL = {
   overlayMessage: "bettergravity:overlay-message",
   overlaySurface: "bettergravity:overlay-surface",
   overlayAttached: "bettergravity:overlay-attached",
+  getContextMetrics: "bettergravity:get-context-metrics",
   log: "bettergravity:log"
 } as const;
 
@@ -185,6 +186,26 @@ export interface AccountProfile {
   readonly email?: string;
   readonly pictureUrl?: string;
   readonly accounts?: readonly string[];
+  readonly accountPlans?: Readonly<Record<string, string>>;
+  readonly accountLimits?: Readonly<Record<string, { readonly fiveHour: number; readonly weekly: number }>>;
+  readonly accountNames?: Readonly<Record<string, string>>;
+}
+
+export interface ContextMetrics {
+  readonly used: number;
+  readonly limit: number;
+  readonly ratio: number;
+  readonly percentage: number;
+  readonly remaining: number;
+  readonly modelName: string;
+  readonly stepCount: number;
+  readonly userTokens: number;
+  readonly modelTokens: number;
+  readonly toolTokens: number;
+  readonly systemTokens: number;
+  readonly sessionId: string;
+  readonly riskLevel: "LOW" | "MODERATE" | "HIGH";
+  readonly riskMessage: string;
 }
 
 /** Persisted per-plugin key/value data, keyed by plugin id. */

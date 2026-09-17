@@ -19,6 +19,7 @@ import {
   type SettingsPatch
 } from "../protocol.js";
 import { readAccountProfile, switchAccount, addAccount, removeAccount } from "./account.js";
+import { readContextMetrics } from "./context.js";
 import { readGeminiPlugins, readPluginPatches, readPlugins, readThemes } from "./catalog.js";
 import { importPlugin, importThemeFolder, importThemes, installThemeText, removeItem, revealItem } from "./content.js";
 import { GeminiTranslator } from "./gemini/index.js";
@@ -258,6 +259,7 @@ function registerChannels(
   ipcMain.handle(CHANNEL.switchAccount, (_event, email: string) => switchAccount(app.getPath("home"), email));
   ipcMain.handle(CHANNEL.addAccount, (_event, email: string) => addAccount(app.getPath("home"), email));
   ipcMain.handle(CHANNEL.removeAccount, (_event, email: string) => removeAccount(app.getPath("home"), email));
+  ipcMain.handle(CHANNEL.getContextMetrics, (_event, id?: string) => readContextMetrics(id));
 
   // Adding or deleting content changes what is on disk, so each one answers with
   // the rebuilt state; the watcher would otherwise race the reply.

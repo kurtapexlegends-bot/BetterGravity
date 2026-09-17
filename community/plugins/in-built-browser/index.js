@@ -510,7 +510,7 @@ const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
 // a persistent full-window container. Track each pane, not that empty container.
 const OVERLAYS = '[role="tooltip"]:not(.willow-tooltip-description), .willow-tooltip-pane, [data-base-ui-tooltip-popup], [data-radix-tooltip-content], [role="dialog"], [role="menu"], .react-tooltip, .gemini-tooltip, .bettergravity-pet, .bettergravity-pet-tray, .bettergravity-pet-chat, [data-floating-ui-portal], [data-base-ui-portal]';
 const CHAT_CONTENT = '[role="article"][aria-label="Agent response"], [data-testid="agent-input-box"]';
-const BROWSER_STRUCTURE = `${OVERLAYS}, [data-testid="conversation-view"], [data-testid="agent-input-box"], button[data-tab-id="terminal"], [data-aux-pane-open], [data-tooltip-id="input-send-button-cancel-tooltip"]`;
+const BROWSER_STRUCTURE = `${OVERLAYS}, [data-testid="conversation-view"], [data-testid="agent-input-box"], [data-aux-pane-open], [data-tooltip-id="input-send-button-cancel-tooltip"]`;
 let noteStyles = {};
 let originalStyle;
 let previewTimer;
@@ -533,7 +533,7 @@ function activeConversationContext() {
   const id = location.pathname.match(/\/c\/([^/]+)/)?.[1];
   const conversation = document.querySelector('[data-testid="conversation-view"]');
   // These full-page views retain /c/:id while covering the conversation.
-  if (document.body.matches(".bettergravity-pets-open, .gemini-skills-open") || conversation?.closest("[data-pet-page-hidden], [data-gemini-skills-hidden]")) return null;
+  if (document.body?.matches?.(".bettergravity-pets-open, .gemini-skills-open") || conversation?.closest("[data-pet-page-hidden], [data-gemini-skills-hidden]")) return null;
   if (id) return id;
   if (document.querySelector('[data-testid="agent-input-box"], [data-testid="composer-input"]')) return "home";
   return null;
@@ -611,14 +611,14 @@ function button(label, icon, action, className = "bg-browser-icon") {
 function showError(error) {
   if (disposed || !errorBox) return;
   const message = error?.message || String(error);
-  if (message.includes("is no longer open")) return;
+  if (message.includes("is no longer open") || message.includes("runtime update is ready")) return;
   errorBox.textContent = message;
   errorBox.hidden = false;
   scheduleBounds();
 }
 async function request(action, args = {}) {
-  if (disposed) return;
-  if (!plugin.browser?.available) throw new Error("The native browser runtime update is ready. Restart Antigravity to load it.");
+  if (disposed) return null;
+  if (!plugin.browser?.available) return null;
   const result = await plugin.browser.request(action, { context, ...args });
   if (result?.browserId && result.context === context && !disposed) render(result, action === "attach" || action === "state");
   return result;
@@ -782,14 +782,10 @@ function agentEffect(node, duration, onHidden) {
 }
 
 function findAuxAnchor() {
-  const terminal = document.querySelector('button[data-tab-id="terminal"]');
-  if (terminal) return terminal;
-  const anyTab = document.querySelector('[data-active-tab-id] button[data-tab-id]');
-  if (anyTab) return anyTab;
-  const anyHeader = document.querySelector('[data-active-tab-id]');
-  if (anyHeader) return anyHeader.firstElementChild || anyHeader;
   const auxSidebar = document.querySelector('[data-testid="aux-sidebar"], [data-aux-pane-open]');
-  if (auxSidebar) return auxSidebar.querySelector('button') || auxSidebar.firstElementChild;
+  if (auxSidebar) return auxSidebar.querySelector('[data-active-tab-id] button[data-tab-id]') || auxSidebar.querySelector('button') || auxSidebar.firstElementChild;
+  const anyHeader = document.querySelector('[data-testid="aux-sidebar"] [data-active-tab-id]');
+  if (anyHeader) return anyHeader.firstElementChild || anyHeader;
   return null;
 }
 
@@ -946,15 +942,12 @@ function updateSelection() {
 function mountPageTabs() {
   if (!toolbar || !tabs) return;
   const plus = toolbar.querySelector('[data-testid="aux-panel-plus-dropdown-trigger"]');
-  // Share the native file-tab scroller so its existing + and pane controls
-  // keep their position. Older hosts without a scroller use the same row.
-  const native = [...toolbar.children].find(node => node.classList.contains("overflow-x-auto"));
-  if (tabHost?.isConnected && (!native || tabHost === native) && tabs.parentElement === tabHost) return;
-  if (tabHost) { if (ownedTabHost) tabHost.remove(); else tabHost.removeAttribute("data-bg-browser-tab-host"); }
-  ownedTabHost = !native;
-  tabHost = native || element("div", "bg-browser-tab-host");
+  if (tabHost?.isConnected && tabs.parentElement === tabHost) return;
+  if (tabHost && ownedTabHost) { tabHost.remove(); }
+  ownedTabHost = true;
+  tabHost = element("div", "bg-browser-tab-host");
   tabHost.setAttribute("data-bg-browser-tab-host", "");
-  if (ownedTabHost) { if (plus) plus.before(tabHost); else toolbar.append(tabHost); }
+  if (plus) plus.before(tabHost); else toolbar.append(tabHost);
   tabHost.append(tabs);
 }
 
@@ -1131,13 +1124,14 @@ function syncBounds() {
     if (!compositing && surface) surface.hidden = true;
   }
   const wrapper = toolbar?.closest("[data-aux-pane-open]");
-  const blocked = state?.supportsCompositing ? occluded : !!document.querySelector('[role="dialog"], [data-state="open"][role="menu"]');
-  // Windows marks the host document hidden when a transparent desktop pet
-  // becomes clickable. That is window occlusion, not a hidden browser pane.
-  // Keep its native child attached; Electron hides it with its parent window.
-  const visible = open && shown && right > left && bottom > top && (compositing || !resizing && !overlay && !blocked) && !state?.permission && !state?.dialog && wrapper?.getAttribute("data-aux-pane-open") !== "false" && tab?.url !== "about:blank" && !!tab && !tab.error;
+  const blocked = occluded;
+  const visible = open && shown && right > left && bottom > top && !blocked && !state?.permission && !state?.dialog && wrapper?.getAttribute("data-aux-pane-open") !== "false" && !!tab && !tab.error;
   const moving = layoutNodes.some(node => node.getAnimations?.().some(animation => animation.playState === "running" || animation.pending));
   const ready = open && shown && right - left > 1 && bottom - top > 1 && wrapper?.getAttribute("data-aux-pane-open") !== "false" && !moving;
+  if (!compositing) {
+    if (surface) surface.hidden = true;
+    if (frozen) frozen.hidden = true;
+  }
   sendBounds({ context, x: left, y: top, width: Math.max(0, right - left), height: Math.max(0, bottom - top), visible: !!visible, composited: compositing, hostDragging, frameGeneration, ...(ready && pendingReveal ? { revealSequence: pendingReveal } : {}) });
   if (ready) pendingReveal = 0;
   if (open) maskNative();
@@ -1155,8 +1149,7 @@ function revealForAgent(next) {
   if (!requested && !legacyActivity) return;
   if (requested) { revealSequence = next.revealSequence; pendingReveal = revealSequence; }
   if (!root) {
-    const terminal = document.querySelector('button[data-tab-id="terminal"]');
-    if (terminal) mount(terminal);
+    mount(findAuxAnchor());
   }
   showNativePane();
 }
@@ -1589,7 +1582,7 @@ function syncContext() {
   syncPaneVisibility(active, routeChanged);
   if (!active) return null;
   if (routeChanged || viewChanged) {
-    mount(document.querySelector('button[data-tab-id="terminal"]'));
+    mount(findAuxAnchor());
     if (!root && plugin.browser?.available) act("attach");
   }
   return active;
@@ -1606,13 +1599,6 @@ function onKey(event) {
 function unmount() {
   suspendView(); removeResize(); clearPreview(); clearAgentCursor(false); cursorEffect?.dispose(); agentCursor?.destroy(); agentCursor = cursorLayer = cursorEffect = null;
   agentPresentationKey = null; lastCursorState = null;
-  if (disposed) disconnectTaskState();
-  borderEffect?.dispose(); dockEffect?.dispose(); borderEffect = dockEffect = null;
-  restoreNative(); resizeObserver?.disconnect(); layoutObserver?.disconnect(); overlayObserver?.disconnect(); toolbarObserver?.disconnect(); toolbar?._bgBrowserCleanup?.();
-  toolbar?.removeAttribute("data-bg-browser-selected"); body?.removeAttribute("data-bg-browser-container"); root?.remove();
-  plusMenu?.cleanup(); plusMenu = null; tabs?.remove();
-  if (ownedTabHost) tabHost?.remove(); else tabHost?.removeAttribute("data-bg-browser-tab-host");
-  tabHost = tabs = null; ownedTabHost = false;
   root = toolbar = body = viewport = overlay = surface = null; open = false; state = null; layoutNodes = []; overlayNodes = []; compositing = false; frameGeneration++; queuedFrame = null; lastTabs = ""; lastBounds = "";
   agentBorder = agentDock = agentControl = agentControlIcon = agentControlLabel = statusText = commentsControl = statusBar = null;
 }
@@ -1627,7 +1613,6 @@ if (document.body) {
   }, { once: true });
 }
 syncContext();
-plugin.dom.observe('button[data-tab-id="terminal"]', mount);
 plugin.dom.observe('[data-active-tab-id]', mount);
 plugin.dom.observe('[data-testid="aux-sidebar"]', mount);
 
@@ -1692,8 +1677,8 @@ const occlusion = new MutationObserver(records => {
   const active = syncContext();
   if (active !== context) return;
   if (!root || !root.isConnected || !toolbar?.isConnected || body !== toolbar.nextElementSibling) {
-    const terminal = document.querySelector('button[data-tab-id="terminal"]');
-    if (terminal) mount(terminal); else if (root) unmount();
+    const anchor = findAuxAnchor();
+    if (anchor) mount(anchor); else if (root) unmount();
   }
   if (root) { mountPageTabs(); mountPlusMenu(); watchLayout(); connectTaskState(); if (!taskStore) refreshTaskState(); if (open) watchOverlays(); scheduleBounds(); }
 });

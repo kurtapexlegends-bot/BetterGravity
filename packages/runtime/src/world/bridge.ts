@@ -5,6 +5,7 @@ import type {
   CatalogResult,
   ContentKind,
   ContentResult,
+  ContextMetrics,
   DirectoryKey,
   GeminiConfig,
   GeminiKeyTest,
@@ -51,6 +52,7 @@ export interface RuntimeBridge {
   switchAccount(email: string): Promise<AccountProfile | null>;
   addAccount(email: string): Promise<AccountProfile | null>;
   removeAccount(email: string): Promise<AccountProfile | null>;
+  getContextMetrics?(conversationId?: string): Promise<ContextMetrics | null>;
   petsRead(owner: string): Promise<PetLibraryState>;
   petsLoad(owner: string, id: string): Promise<PetSprite>;
   petsPrepare(owner: string): Promise<{ skillPath: string; directory: string }>;
