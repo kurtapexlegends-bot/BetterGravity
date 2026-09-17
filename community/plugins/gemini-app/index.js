@@ -837,6 +837,139 @@ let lastContextMetricsTime = 0;
 let isFetchingContextMetrics = false;
 let lastProcessedActionId = 0;
 
+function applyPromptBoxPatch() {
+  try {
+    let styleEl = document.querySelector("#bettergravity-prompt-patch");
+    if (!styleEl) {
+      styleEl = document.createElement("style");
+      styleEl.id = "bettergravity-prompt-patch";
+      document.head.appendChild(styleEl);
+    }
+    const css = `
+      /* 1-row layout */
+      [data-testid="agent-input-box"] > .rounded-2xl.bg-card-border > .bg-card:not([data-mention-menu]) {
+        display: grid !important;
+        grid-template-columns: 32px auto minmax(0, 1fr) auto 32px 32px !important;
+        grid-template-areas: "plus meta text pill mic send" !important;
+        column-gap: 6px !important;
+        row-gap: 0 !important;
+        align-items: end !important;
+      }
+
+      [data-testid="agent-input-box"]:not(:has([data-testid="send-button"]:not(:disabled))):not(:has([data-tooltip-id="input-send-button-cancel-tooltip"])):not([data-expanded="true"]):not(:has([data-gemini-tool-chip])):not(:has([data-testid="input-attachment"])):not(:has(button[aria-label="Add context"] ~ *:not(.gemini-composer-meta):not(input):not(:has([data-testid="model-selector-trigger"])):not(:has([data-testid="side-question-toolbar-button"])))):not(:has([data-beautiful-mention])):not(:has([data-mention])) > .rounded-2xl.bg-card-border > .bg-card:not([data-mention-menu]) {
+        grid-template-columns: 32px auto minmax(0, 1fr) auto 32px !important;
+        grid-template-areas: "plus meta text pill mic" !important;
+      }
+
+      /* 2-row layout */
+      [data-testid="agent-input-box"][data-expanded="true"] > .rounded-2xl.bg-card-border > .bg-card:not([data-mention-menu]),
+      [data-testid="agent-input-box"]:has([data-testid="input-attachment"]) > .rounded-2xl.bg-card-border > .bg-card:not([data-mention-menu]),
+      [data-testid="agent-input-box"]:has(.border-b) > .rounded-2xl.bg-card-border > .bg-card:not([data-mention-menu]),
+      [data-testid="agent-input-box"]:has([data-gemini-tool-chip]) > .rounded-2xl.bg-card-border > .bg-card:not([data-mention-menu]),
+      [data-testid="agent-input-box"]:has(button[aria-label="Add context"] ~ *:not(.gemini-composer-meta):not(input):not(:has([data-testid="model-selector-trigger"])):not(:has([data-testid="side-question-toolbar-button"]))) > .rounded-2xl.bg-card-border > .bg-card:not([data-mention-menu]),
+      [data-testid="agent-input-box"]:has([data-beautiful-mention]) > .rounded-2xl.bg-card-border > .bg-card:not([data-mention-menu]),
+      [data-testid="agent-input-box"]:has([data-mention]) > .rounded-2xl.bg-card-border > .bg-card:not([data-mention-menu]) {
+        grid-template-columns: 32px auto minmax(0, 1fr) auto 32px 32px !important;
+        grid-template-areas:
+          "text text text text text text"
+          "plus meta . pill mic send" !important;
+        row-gap: 10px !important;
+      }
+
+      [data-testid="agent-input-box"]:not(:has([data-testid="send-button"]:not(:disabled))):not(:has([data-tooltip-id="input-send-button-cancel-tooltip"])):has([data-testid="input-attachment"]) > .rounded-2xl.bg-card-border > .bg-card:not([data-mention-menu]),
+      [data-testid="agent-input-box"]:not(:has([data-testid="send-button"]:not(:disabled))):not(:has([data-tooltip-id="input-send-button-cancel-tooltip"])):has(.border-b) > .rounded-2xl.bg-card-border > .bg-card:not([data-mention-menu]),
+      [data-testid="agent-input-box"]:not(:has([data-testid="send-button"]:not(:disabled))):not(:has([data-tooltip-id="input-send-button-cancel-tooltip"])):has([data-gemini-tool-chip]) > .rounded-2xl.bg-card-border > .bg-card:not([data-mention-menu]),
+      [data-testid="agent-input-box"]:not(:has([data-testid="send-button"]:not(:disabled))):not(:has([data-tooltip-id="input-send-button-cancel-tooltip"])):has(button[aria-label="Add context"] ~ *:not(.gemini-composer-meta):not(input):not(:has([data-testid="model-selector-trigger"])):not(:has([data-testid="side-question-toolbar-button"]))) > .rounded-2xl.bg-card-border > .bg-card:not([data-mention-menu]),
+      [data-testid="agent-input-box"]:not(:has([data-testid="send-button"]:not(:disabled))):not(:has([data-tooltip-id="input-send-button-cancel-tooltip"])):has([data-beautiful-mention]) > .rounded-2xl.bg-card-border > .bg-card:not([data-mention-menu]),
+      [data-testid="agent-input-box"]:not(:has([data-testid="send-button"]:not(:disabled))):not(:has([data-tooltip-id="input-send-button-cancel-tooltip"])):has([data-mention]) > .rounded-2xl.bg-card-border > .bg-card:not([data-mention-menu]) {
+        grid-template-columns: 32px auto minmax(0, 1fr) auto 32px !important;
+        grid-template-areas:
+          "text text text text text"
+          "plus meta . pill mic" !important;
+        row-gap: 10px !important;
+      }
+
+      /* Flatten wrappers */
+      [data-testid="agent-input-box"] > .rounded-2xl.bg-card-border > .bg-card:not([data-mention-menu]) > .justify-between,
+      [data-testid="agent-input-box"] > .rounded-2xl.bg-card-border > .bg-card:not([data-mention-menu]) > .justify-between > div:first-child,
+      [data-testid="agent-input-box"] > .rounded-2xl.bg-card-border > .bg-card:not([data-mention-menu]) > .justify-between > div:last-child,
+      [data-testid="agent-input-box"] > .rounded-2xl.bg-card-border > .bg-card:not([data-mention-menu]) > .justify-between > div:last-child div:not([role="status"]):not(button *) {
+        display: contents !important;
+      }
+
+      /* Pin plus and meta to left */
+      [data-testid="agent-input-box"] button[aria-label="Add context"] {
+        grid-area: plus !important;
+        align-self: center !important;
+        flex-shrink: 0 !important;
+      }
+
+      [data-testid="agent-input-box"] .gemini-composer-meta {
+        grid-area: meta !important;
+        align-self: center !important;
+        flex-shrink: 0 !important;
+      }
+
+      /* Pin text input */
+      [data-testid="agent-input-box"] > .rounded-2xl.bg-card-border > .bg-card:not([data-mention-menu]) > .relative.w-full {
+        grid-area: text !important;
+        align-self: center !important;
+      }
+
+      /* Right cluster container (model selector & side question) */
+      [data-testid="agent-input-box"] > .rounded-2xl.bg-card-border > .bg-card:not([data-mention-menu]) > .justify-between > div:first-child > div:not(.gemini-composer-meta),
+      [data-testid="agent-input-box"] > .rounded-2xl.bg-card-border > .bg-card:not([data-mention-menu]) .justify-between > div:first-child > div:has([data-testid="model-selector-trigger"]),
+      [data-testid="agent-input-box"] > .rounded-2xl.bg-card-border > .bg-card:not([data-mention-menu]) .justify-between > div:first-child > div:has([data-testid="side-question-toolbar-button"]),
+      [data-testid="agent-input-box"] > .rounded-2xl.bg-card-border > .bg-card:not([data-mention-menu]) .justify-between div:has(> [data-testid="side-question-toolbar-button"]),
+      [data-testid="agent-input-box"] > .rounded-2xl.bg-card-border > .bg-card:not([data-mention-menu]) .justify-between div:has(> div > [data-testid="model-selector-trigger"]),
+      [data-testid="agent-input-box"] > .rounded-2xl.bg-card-border > .bg-card:not([data-mention-menu]) .justify-between div:has(> .no-focus-agent-input > [data-testid="model-selector-trigger"]) {
+        grid-area: pill !important;
+        display: inline-flex !important;
+        align-items: center !important;
+        gap: 6px !important;
+        justify-self: end !important;
+        margin-left: auto !important;
+        min-width: 0 !important;
+      }
+
+      [data-testid="agent-input-box"] [data-testid="side-question-toolbar-button"],
+      [data-testid="agent-input-box"] [data-testid*="side-question"],
+      [data-testid="agent-input-box"] [data-testid*="chip"],
+      [data-testid="agent-input-box"] [data-testid*="reference"] {
+        order: 1 !important;
+        flex-shrink: 0 !important;
+      }
+
+      [data-testid="agent-input-box"] .no-focus-agent-input,
+      [data-testid="agent-input-box"] [data-testid="model-selector-trigger"] {
+        order: 2 !important;
+        justify-self: end !important;
+      }
+
+      /* Mic and send controls */
+      [data-testid="agent-input-box"] button[aria-label*="Record"],
+      [data-testid="agent-input-box"] [data-tooltip-id="input-send-button-record-tooltip"] {
+        grid-area: mic !important;
+        align-self: center !important;
+      }
+
+      [data-testid="agent-input-box"] [data-testid="send-button"],
+      [data-testid="agent-input-box"] button[aria-label^="Cancel"],
+      [data-testid="agent-input-box"] [data-tooltip-id="input-send-button-cancel-tooltip"] {
+        grid-area: send !important;
+        align-self: center !important;
+      }
+    `;
+    if (styleEl.textContent !== css) {
+      styleEl.textContent = css;
+    }
+  } catch (e) {
+    console.debug("[BetterGravity] Prompt patch error:", e);
+  }
+}
+
+applyPromptBoxPatch();
+
 function handleRemoteAction(action) {
   try {
     if (action === "openAccountPopover") {
@@ -863,18 +996,31 @@ function handleRemoteAction(action) {
       document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
     } else if (action === "inspectDOM") {
       const box = document.querySelector('[data-testid="agent-input-box"]');
+      const card = box?.querySelector('.bg-card');
       const pill = document.querySelector("#gemini-sidebar-user-pill");
+      const plus = box?.querySelector('button[aria-label="Add context"]');
+      const text = box?.querySelector('.relative.w-full');
       const modelTrigger = document.querySelector('[data-testid="model-selector-trigger"]');
       const sideBtn = document.querySelector('[data-testid="side-question-toolbar-button"]');
       const meta = document.querySelector('.gemini-composer-meta');
+      const mic = box?.querySelector('button[aria-label*="Record"]');
+      const send = box?.querySelector('[data-testid="send-button"]');
+      const cancel = box?.querySelector('button[aria-label*="Cancel"]');
+      const r = el => el ? { left: Math.round(el.getBoundingClientRect().left), right: Math.round(el.getBoundingClientRect().right), top: Math.round(el.getBoundingClientRect().top), bottom: Math.round(el.getBoundingClientRect().bottom), width: Math.round(el.getBoundingClientRect().width), height: Math.round(el.getBoundingClientRect().height) } : null;
       fetch("http://127.0.0.1:41421/log", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           rects: {
-            meta: meta ? { left: meta.getBoundingClientRect().left, right: meta.getBoundingClientRect().right } : null,
-            sideBtn: sideBtn ? { left: sideBtn.getBoundingClientRect().left, right: sideBtn.getBoundingClientRect().right } : null,
-            modelTrigger: modelTrigger ? { left: modelTrigger.getBoundingClientRect().left, right: modelTrigger.getBoundingClientRect().right } : null
+            card: r(card),
+            plus: r(plus),
+            meta: r(meta),
+            text: r(text),
+            sideBtn: r(sideBtn),
+            modelTrigger: r(modelTrigger),
+            mic: r(mic),
+            send: r(send),
+            cancel: r(cancel)
           },
           boxHtml: box?.innerHTML || "",
           pillHtml: pill?.outerHTML || ""
@@ -933,8 +1079,9 @@ async function refreshContextMetrics() {
   return cachedContextMetrics;
 }
 
-// Keep context metrics and account profile in sync automatically
+// Keep context metrics, prompt box layout, and account profile in sync automatically
 setInterval(() => {
+  applyPromptBoxPatch();
   ensureComposerMeta();
   refreshAccountProfile();
   if (document.querySelector('.gemini-composer-meta') || document.querySelector(INPUT_BOX)) {
@@ -5882,10 +6029,12 @@ function hasContextChips(box) {
     for (const child of plusBtn.parentElement.children) {
       if (
         child !== plusBtn &&
+        child.tagName !== 'INPUT' &&
         !child.classList?.contains('gemini-composer-meta') &&
         !child.hasAttribute('data-gemini-composer-meta') &&
         !child.classList?.contains('gemini-tool-chip') &&
-        !child.hasAttribute('data-gemini-tool-chip')
+        !child.hasAttribute('data-gemini-tool-chip') &&
+        !child.querySelector?.('[data-testid="model-selector-trigger"], [data-testid="side-question-toolbar-button"]')
       ) {
         return true;
       }
@@ -5893,9 +6042,7 @@ function hasContextChips(box) {
   }
   return !!(
     box.querySelector('[data-beautiful-mention]') ||
-    box.querySelector('[data-mention]') ||
-    box.querySelector('[data-testid*="chip"]') ||
-    box.querySelector('[data-testid*="reference"]')
+    box.querySelector('[data-mention]')
   );
 }
 

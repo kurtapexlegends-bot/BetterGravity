@@ -87,8 +87,8 @@
  * so a wrapped draft grows upward above them. */
 [data-testid="agent-input-box"] > .rounded-2xl.bg-card-border > .bg-card:not([data-mention-menu]) {
   display: grid !important;
-  grid-template-columns: auto minmax(0, 1fr) auto 32px 32px;
-  grid-template-areas: "plus text pill mic send";
+  grid-template-columns: 32px auto minmax(0, 1fr) auto 32px 32px;
+  grid-template-areas: "plus meta text pill mic send";
   column-gap: 6px;
   row-gap: 0;
   align-items: end;
@@ -105,53 +105,28 @@
   transition: none !important;
 }
 
-/* Flatten the control row so the left cluster and trailing controls become grid items */
-[data-testid="agent-input-box"] > .rounded-2xl.bg-card-border > .bg-card:not([data-mention-menu]) > .justify-between {
+/* Flatten the control row and clusters so plus, meta, pill, mic, and send become individual grid items */
+[data-testid="agent-input-box"] > .rounded-2xl.bg-card-border > .bg-card:not([data-mention-menu]) > .justify-between,
+[data-testid="agent-input-box"] > .rounded-2xl.bg-card-border > .bg-card:not([data-mention-menu]) > .justify-between > div:first-child,
+[data-testid="agent-input-box"] > .rounded-2xl.bg-card-border > .bg-card:not([data-mention-menu]) > .justify-between > div:last-child,
+[data-testid="agent-input-box"] > .rounded-2xl.bg-card-border > .bg-card:not([data-mention-menu]) > .justify-between > div:last-child div:not([role="status"]):not(button *) {
   display: contents !important;
 }
 
-/* The left cluster (holds plus button, token/quota meta, and dynamic context chips).
- * KEEP THIS CONTAINER INTACT as a flexbox so context chips, files, and token counters
- * remain together and never become unplaced grid items of .bg-card! */
-[data-testid="agent-input-box"] > .rounded-2xl.bg-card-border > .bg-card:not([data-mention-menu]) > .justify-between > div:first-child,
-[data-testid="agent-input-box"] > .rounded-2xl.bg-card-border > .bg-card:not([data-mention-menu]) > .justify-between > div:has(button[aria-label="Add context"]) {
-  grid-area: plus !important;
-  display: inline-flex !important;
-  align-items: center !important;
-  gap: 6px !important;
-  min-width: 0 !important;
-  max-width: 100% !important;
-  margin-bottom: 4px !important;
-  overflow-x: auto !important;
-  scrollbar-width: none !important;
-}
-
-[data-testid="agent-input-box"] > .rounded-2xl.bg-card-border > .bg-card:not([data-mention-menu]) > .justify-between > div:first-child::-webkit-scrollbar,
-[data-testid="agent-input-box"] > .rounded-2xl.bg-card-border > .bg-card:not([data-mention-menu]) > .justify-between > div:has(button[aria-label="Add context"])::-webkit-scrollbar {
-  display: none !important;
-}
-
-/* Ensure chips or items inside the left cluster stay crisp and don't shrink */
-[data-testid="agent-input-box"] > .rounded-2xl.bg-card-border > .bg-card:not([data-mention-menu]) > .justify-between > div:first-child > * {
-  flex-shrink: 0 !important;
-}
-
 /* Model and Context Chips Container: kept intact as an inline-flex container in the pill area */
-[data-testid="agent-input-box"] > .rounded-2xl.bg-card-border > .bg-card:not([data-mention-menu]) > .justify-between > div:has([data-testid="model-selector-trigger"]),
-[data-testid="agent-input-box"] .justify-between .flex:has(> [data-testid="model-selector-trigger"]),
-[data-testid="agent-input-box"] .justify-between .flex:has(> .no-focus-agent-input > [data-testid="model-selector-trigger"]) {
+[data-testid="agent-input-box"] > .rounded-2xl.bg-card-border > .bg-card:not([data-mention-menu]) > .justify-between > div:first-child > div:not(.gemini-composer-meta),
+[data-testid="agent-input-box"] > .rounded-2xl.bg-card-border > .bg-card:not([data-mention-menu]) .justify-between > div:first-child > div:has([data-testid="model-selector-trigger"]),
+[data-testid="agent-input-box"] > .rounded-2xl.bg-card-border > .bg-card:not([data-mention-menu]) .justify-between > div:first-child > div:has([data-testid="side-question-toolbar-button"]),
+[data-testid="agent-input-box"] > .rounded-2xl.bg-card-border > .bg-card:not([data-mention-menu]) .justify-between div:has(> [data-testid="side-question-toolbar-button"]),
+[data-testid="agent-input-box"] > .rounded-2xl.bg-card-border > .bg-card:not([data-mention-menu]) .justify-between div:has(> div > [data-testid="model-selector-trigger"]),
+[data-testid="agent-input-box"] > .rounded-2xl.bg-card-border > .bg-card:not([data-mention-menu]) .justify-between div:has(> .no-focus-agent-input > [data-testid="model-selector-trigger"]) {
   grid-area: pill !important;
   display: inline-flex !important;
   align-items: center !important;
   gap: 6px !important;
   justify-self: end !important;
+  margin-left: auto !important;
   min-width: 0 !important;
-}
-
-/* Flatten only the mic & send wrapper div so mic and send become individual grid items */
-[data-testid="agent-input-box"] > .rounded-2xl.bg-card-border > .bg-card:not([data-mention-menu]) > .justify-between > div:last-child:has(button[aria-label*="Record"], [data-testid="send-button"], button[aria-label*="Cancel"]),
-[data-testid="agent-input-box"] > .rounded-2xl.bg-card-border > .bg-card:not([data-mention-menu]) > .justify-between > div:last-child:has(button[aria-label*="Record"], [data-testid="send-button"], button[aria-label*="Cancel"]) div:not([role="status"]):not(button *) {
-  display: contents !important;
 }
 
 [data-testid="agent-input-box"] > .rounded-2xl.bg-card-border > .bg-card:not([data-mention-menu]) > .relative.w-full {
@@ -257,13 +232,13 @@
 [data-testid="agent-input-box"]:has([data-testid="input-attachment"]) > .rounded-2xl.bg-card-border > .bg-card:not([data-mention-menu]),
 [data-testid="agent-input-box"]:has(.border-b) > .rounded-2xl.bg-card-border > .bg-card:not([data-mention-menu]),
 [data-testid="agent-input-box"]:has([data-gemini-tool-chip]) > .rounded-2xl.bg-card-border > .bg-card:not([data-mention-menu]),
-[data-testid="agent-input-box"]:has(button[aria-label="Add context"] ~ *:not(.gemini-composer-meta)) > .rounded-2xl.bg-card-border > .bg-card:not([data-mention-menu]),
+[data-testid="agent-input-box"]:has(button[aria-label="Add context"] ~ *:not(.gemini-composer-meta):not(input):not(:has([data-testid="model-selector-trigger"])):not(:has([data-testid="side-question-toolbar-button"]))) > .rounded-2xl.bg-card-border > .bg-card:not([data-mention-menu]),
 [data-testid="agent-input-box"]:has([data-beautiful-mention]) > .rounded-2xl.bg-card-border > .bg-card:not([data-mention-menu]),
 [data-testid="agent-input-box"]:has([data-mention]) > .rounded-2xl.bg-card-border > .bg-card:not([data-mention-menu]) {
-  grid-template-columns: minmax(0, 1fr) auto 32px 32px;
+  grid-template-columns: 32px auto minmax(0, 1fr) auto 32px 32px;
   grid-template-areas:
-    "text text text text"
-    "plus pill mic send";
+    "text text text text text text"
+    "plus meta . pill mic send";
   row-gap: 10px;
   padding: 16px 15px 12px 18px !important;
   transition: none !important;
@@ -272,13 +247,13 @@
 [data-testid="agent-input-box"][data-expanded="true"] [role="combobox"][contenteditable],
 [data-testid="agent-input-box"]:has([data-gemini-tool-chip]) [role="combobox"][contenteditable],
 [data-testid="agent-input-box"]:has([data-testid="input-attachment"]) [role="combobox"][contenteditable],
-[data-testid="agent-input-box"]:has(button[aria-label="Add context"] ~ *:not(.gemini-composer-meta)) [role="combobox"][contenteditable],
+[data-testid="agent-input-box"]:has(button[aria-label="Add context"] ~ *:not(.gemini-composer-meta):not(input):not(:has([data-testid="model-selector-trigger"])):not(:has([data-testid="side-question-toolbar-button"]))) [role="combobox"][contenteditable],
 [data-testid="agent-input-box"]:has([data-beautiful-mention]) [role="combobox"][contenteditable],
 [data-testid="agent-input-box"]:has([data-mention]) [role="combobox"][contenteditable],
 [data-testid="agent-input-box"][data-expanded="true"] [role="combobox"][contenteditable] ~ *,
 [data-testid="agent-input-box"]:has([data-gemini-tool-chip]) [role="combobox"][contenteditable] ~ *,
 [data-testid="agent-input-box"]:has([data-testid="input-attachment"]) [role="combobox"][contenteditable] ~ *,
-[data-testid="agent-input-box"]:has(button[aria-label="Add context"] ~ *:not(.gemini-composer-meta)) [role="combobox"][contenteditable] ~ *,
+[data-testid="agent-input-box"]:has(button[aria-label="Add context"] ~ *:not(.gemini-composer-meta):not(input):not(:has([data-testid="model-selector-trigger"])):not(:has([data-testid="side-question-toolbar-button"]))) [role="combobox"][contenteditable] ~ *,
 [data-testid="agent-input-box"]:has([data-beautiful-mention]) [role="combobox"][contenteditable] ~ *,
 [data-testid="agent-input-box"]:has([data-mention]) [role="combobox"][contenteditable] ~ * {
   padding: 0 9px 0 6px !important;
@@ -656,9 +631,9 @@
  * holds while a reply streams: this slot becomes the stop control then, and it
  * must keep its column whether Antigravity restyles the same button or mounts
  * a different one. The cancel tooltip is what says so in either case. */
-[data-testid="agent-input-box"]:not(:has([data-testid="send-button"]:not(:disabled))):not(:has([data-tooltip-id="input-send-button-cancel-tooltip"])):not([data-expanded="true"]):not(:has([data-gemini-tool-chip])):not(:has([data-testid="input-attachment"])):not(:has(button[aria-label="Add context"] ~ *:not(.gemini-composer-meta))):not(:has([data-beautiful-mention])):not(:has([data-mention])) > .rounded-2xl.bg-card-border > .bg-card:not([data-mention-menu]) {
-  grid-template-columns: auto minmax(0, 1fr) auto 32px;
-  grid-template-areas: "plus text pill mic";
+[data-testid="agent-input-box"]:not(:has([data-testid="send-button"]:not(:disabled))):not(:has([data-tooltip-id="input-send-button-cancel-tooltip"])):not([data-expanded="true"]):not(:has([data-gemini-tool-chip])):not(:has([data-testid="input-attachment"])):not(:has(button[aria-label="Add context"] ~ *:not(.gemini-composer-meta):not(input):not(:has([data-testid="model-selector-trigger"])):not(:has([data-testid="side-question-toolbar-button"])))):not(:has([data-beautiful-mention])):not(:has([data-mention])) > .rounded-2xl.bg-card-border > .bg-card:not([data-mention-menu]) {
+  grid-template-columns: 32px auto minmax(0, 1fr) auto 32px;
+  grid-template-areas: "plus meta text pill mic";
 }
 
 /* Two rows with send disabled: expanded, attachments, border-b, tool-chip, or context chips */
@@ -666,13 +641,13 @@
 [data-testid="agent-input-box"]:not(:has([data-testid="send-button"]:not(:disabled))):not(:has([data-tooltip-id="input-send-button-cancel-tooltip"])):has([data-testid="input-attachment"]) > .rounded-2xl.bg-card-border > .bg-card:not([data-mention-menu]),
 [data-testid="agent-input-box"]:not(:has([data-testid="send-button"]:not(:disabled))):not(:has([data-tooltip-id="input-send-button-cancel-tooltip"])):has(.border-b) > .rounded-2xl.bg-card-border > .bg-card:not([data-mention-menu]),
 [data-testid="agent-input-box"]:not(:has([data-testid="send-button"]:not(:disabled))):not(:has([data-tooltip-id="input-send-button-cancel-tooltip"])):has([data-gemini-tool-chip]) > .rounded-2xl.bg-card-border > .bg-card:not([data-mention-menu]),
-[data-testid="agent-input-box"]:not(:has([data-testid="send-button"]:not(:disabled))):not(:has([data-tooltip-id="input-send-button-cancel-tooltip"])):has(button[aria-label="Add context"] ~ *:not(.gemini-composer-meta)) > .rounded-2xl.bg-card-border > .bg-card:not([data-mention-menu]),
+[data-testid="agent-input-box"]:not(:has([data-testid="send-button"]:not(:disabled))):not(:has([data-tooltip-id="input-send-button-cancel-tooltip"])):has(button[aria-label="Add context"] ~ *:not(.gemini-composer-meta):not(input):not(:has([data-testid="model-selector-trigger"])):not(:has([data-testid="side-question-toolbar-button"]))) > .rounded-2xl.bg-card-border > .bg-card:not([data-mention-menu]),
 [data-testid="agent-input-box"]:not(:has([data-testid="send-button"]:not(:disabled))):not(:has([data-tooltip-id="input-send-button-cancel-tooltip"])):has([data-beautiful-mention]) > .rounded-2xl.bg-card-border > .bg-card:not([data-mention-menu]),
 [data-testid="agent-input-box"]:not(:has([data-testid="send-button"]:not(:disabled))):not(:has([data-tooltip-id="input-send-button-cancel-tooltip"])):has([data-mention]) > .rounded-2xl.bg-card-border > .bg-card:not([data-mention-menu]) {
-  grid-template-columns: minmax(0, 1fr) auto 32px;
+  grid-template-columns: 32px auto minmax(0, 1fr) auto 32px;
   grid-template-areas:
-    "text text text"
-    "plus pill mic";
+    "text text text text text"
+    "plus meta . pill mic";
   row-gap: 10px;
   padding: 16px 15px 12px 18px !important;
   transition: none !important;
