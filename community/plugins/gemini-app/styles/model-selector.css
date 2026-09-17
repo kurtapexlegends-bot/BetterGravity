@@ -64,7 +64,11 @@
  * and the check on the right that swaps for a chevron on hover.
  */
 
-[role="menu"]:has(> [data-testid="model-selector-panel"]) {
+[role="menu"]:has(> [data-testid="model-selector-panel"]),
+[role="menu"]:has([data-testid="model-selector-effort-group"]),
+[role="menu"].gemini-model-selector-panel,
+[data-testid="model-selector-panel"],
+.gemini-model-selector-panel {
   width: 320px !important;
   min-width: 320px !important;
   max-width: 340px !important;
@@ -86,21 +90,29 @@
 
 /* Willow's model list is at most 208px tall and scrolls inside without a
  * scrollbar; the separator and the row beneath stay fixed under it. */
-[data-testid="model-selector-panel"] {
+[data-testid="model-selector-panel"],
+.gemini-model-selector-panel {
   max-height: none !important;
 }
 
-[data-testid="model-selector-panel"] .overflow-y-auto {
+[data-testid="model-selector-panel"] .overflow-y-auto,
+.gemini-model-selector-panel .overflow-y-auto,
+[role="menu"]:has([data-testid="model-selector-effort-group"]) .overflow-y-auto {
   max-height: 240px;
   scrollbar-width: none;
 }
 
-[data-testid="model-selector-panel"] .overflow-y-auto::-webkit-scrollbar {
+[data-testid="model-selector-panel"] .overflow-y-auto::-webkit-scrollbar,
+.gemini-model-selector-panel .overflow-y-auto::-webkit-scrollbar,
+[role="menu"]:has([data-testid="model-selector-effort-group"]) .overflow-y-auto::-webkit-scrollbar {
   display: none;
 }
 
 [data-testid="model-selector-panel"] .flex-col.gap-px,
-[data-testid="model-selector-panel"] .flex-col.gap-0\.5 {
+[data-testid="model-selector-panel"] .flex-col.gap-0\.5,
+.gemini-model-selector-panel .flex-col.gap-px,
+.gemini-model-selector-panel .flex-col.gap-0\.5,
+[role="menu"]:has([data-testid="model-selector-effort-group"]) .flex-col.gap-px {
   gap: 0 !important;
 }
 
@@ -109,7 +121,9 @@
 }
 
 /* Every row in the menu. */
-[data-testid="model-selector-panel"] [role="menuitem"] {
+[data-testid="model-selector-panel"] [role="menuitem"],
+.gemini-model-selector-panel [role="menuitem"],
+[role="menu"]:has([data-testid="model-selector-effort-group"]) [role="menuitem"] {
   position: relative;
   min-height: 52px;
   padding: 0 10px 0 36px !important;
@@ -127,14 +141,24 @@
 [data-testid="model-selector-panel"] [role="menuitem"]:hover,
 [data-testid="model-selector-panel"] [role="menuitem"]:focus,
 [data-testid="model-selector-panel"] [role="menuitem"][data-highlighted],
-[data-testid="model-selector-panel"] [role="menuitem"][data-popup-open] {
+[data-testid="model-selector-panel"] [role="menuitem"][data-popup-open],
+.gemini-model-selector-panel [role="menuitem"]:hover,
+.gemini-model-selector-panel [role="menuitem"]:focus,
+.gemini-model-selector-panel [role="menuitem"][data-highlighted],
+.gemini-model-selector-panel [role="menuitem"][data-popup-open],
+[role="menu"]:has([data-testid="model-selector-effort-group"]) [role="menuitem"]:hover,
+[role="menu"]:has([data-testid="model-selector-effort-group"]) [role="menuitem"]:focus,
+[role="menu"]:has([data-testid="model-selector-effort-group"]) [role="menuitem"][data-highlighted],
+[role="menu"]:has([data-testid="model-selector-effort-group"]) [role="menuitem"][data-popup-open] {
   background: var(--gemini-surface-hover) !important;
   color: var(--gemini-text) !important;
 }
 
 /* A model row's label block: name on the first line, effort (and any badge)
  * dimmed on the second, which is Willow's two-line row. */
-[data-testid="model-selector-panel"] [role="menuitem"] > span:first-child {
+[data-testid="model-selector-panel"] [role="menuitem"] > span:first-child,
+.gemini-model-selector-panel [role="menuitem"] > span:first-child,
+[role="menu"]:has([data-testid="model-selector-effort-group"]) [role="menuitem"] > span:first-child {
   display: flex !important;
   flex-wrap: wrap;
   align-items: center;
@@ -149,32 +173,40 @@
 
 /* Single-line utility rows like View Usage must NEVER wrap */
 [data-testid="model-selector-panel"] [role="separator"] ~ * [role="menuitem"] > span:first-child,
-[data-testid="model-selector-panel"] [role="menuitem"]:has(svg:first-child) > span:first-child {
+[data-testid="model-selector-panel"] [role="menuitem"]:has(svg:first-child) > span:first-child,
+.gemini-model-selector-panel [role="separator"] ~ * [role="menuitem"] > span:first-child,
+.gemini-model-selector-panel [role="menuitem"]:has(svg:first-child) > span:first-child {
   flex-wrap: nowrap !important;
   white-space: nowrap !important;
 }
 
-[data-testid="model-selector-panel"] [role="menuitem"] > span:first-child > [data-testid="model-selector-effort-group"] {
+[data-testid="model-selector-panel"] [role="menuitem"] > span:first-child > [data-testid="model-selector-effort-group"],
+.gemini-model-selector-panel [role="menuitem"] > span:first-child > [data-testid="model-selector-effort-group"] {
   flex: 0 0 100%;
   white-space: nowrap;
 }
 
 [data-testid="model-selector-panel"] [role="menuitem"] [data-testid="model-selector-effort-group"],
 [data-testid="model-selector-panel"] [role="menuitem"] > span:first-child > span,
-[data-testid="model-selector-panel"] [role="menuitem"] [data-model-label] {
+[data-testid="model-selector-panel"] [role="menuitem"] [data-model-label],
+.gemini-model-selector-panel [role="menuitem"] [data-testid="model-selector-effort-group"],
+.gemini-model-selector-panel [role="menuitem"] > span:first-child > span,
+.gemini-model-selector-panel [role="menuitem"] [data-model-label] {
   font-size: 13px !important;
   line-height: 17px !important;
   color: var(--gemini-text);
 }
 
 /* The effort level under the name. */
-[data-testid="model-selector-panel"] [role="menuitem"] > span:first-child > span.opacity-70 {
+[data-testid="model-selector-panel"] [role="menuitem"] > span:first-child > span.opacity-70,
+.gemini-model-selector-panel [role="menuitem"] > span:first-child > span.opacity-70 {
   opacity: 1 !important;
   color: var(--gemini-text-dim) !important;
 }
 
 /* The "Fast" tag, restyled as Willow's small badge. */
-[data-testid="model-selector-panel"] [role="menuitem"] > span:first-child > div.rounded-full {
+[data-testid="model-selector-panel"] [role="menuitem"] > span:first-child > div.rounded-full,
+.gemini-model-selector-panel [role="menuitem"] > span:first-child > div.rounded-full {
   opacity: 1 !important;
   padding: 1px 6px !important;
   border-radius: 4px !important;
@@ -191,7 +223,8 @@
 
 /* The check for the current model sits in Willow's 36px column on the left, and
  * stays put on hover rather than swapping for the chevron. */
-[data-testid="model-selector-panel"] [role="menuitem"] > span.ml-auto {
+[data-testid="model-selector-panel"] [role="menuitem"] > span.ml-auto,
+.gemini-model-selector-panel [role="menuitem"] > span.ml-auto {
   display: flex !important;
   position: absolute;
   top: 0;
@@ -205,13 +238,14 @@
   color: var(--gemini-text);
 }
 
-[data-testid="model-selector-panel"] [role="menuitem"] > span.ml-auto > svg {
+[data-testid="model-selector-panel"] [role="menuitem"] > span.ml-auto > svg,
+.gemini-model-selector-panel [role="menuitem"] > span.ml-auto > svg {
   width: 20px !important;
   height: 20px !important;
 }
 
 /* Context limit tag (e.g. 1M, 2M) aligned on the right, before the chevron */
-[data-testid="model-selector-panel"] [role="menuitem"] .gemini-model-limit-tag {
+[role="menuitem"] .gemini-model-limit-tag {
   order: 2 !important;
   margin-left: auto !important;
   margin-right: 4px !important;
@@ -227,7 +261,7 @@
 }
 
 /* View Usage stats pill aligned on the right, before the chevron */
-[data-testid="model-selector-panel"] [role="menuitem"] .gemini-usage-stats {
+[role="menuitem"] .gemini-usage-stats {
   order: 2 !important;
   margin-left: auto !important;
   margin-right: 4px !important;
@@ -239,7 +273,9 @@
 }
 
 /* The submenu chevron on the right, placed after the tag */
-[data-testid="model-selector-panel"] [role="menuitem"] > span.opacity-50 {
+[data-testid="model-selector-panel"] [role="menuitem"] > span.opacity-50,
+.gemini-model-selector-panel [role="menuitem"] > span.opacity-50,
+[role="menu"]:has([data-testid="model-selector-effort-group"]) [role="menuitem"] > span.opacity-50 {
   order: 3 !important;
   display: flex !important;
   opacity: 1 !important;
@@ -249,7 +285,9 @@
   flex-shrink: 0 !important;
 }
 
-[data-testid="model-selector-panel"] [role="menuitem"] > span.opacity-50 > svg {
+[data-testid="model-selector-panel"] [role="menuitem"] > span.opacity-50 > svg,
+.gemini-model-selector-panel [role="menuitem"] > span.opacity-50 > svg,
+[role="menu"]:has([data-testid="model-selector-effort-group"]) [role="menuitem"] > span.opacity-50 > svg {
   width: 20px !important;
   height: 20px !important;
 }
@@ -380,13 +418,14 @@
 
 /* Willow's submenu appears in place; a short fade keeps it from popping on close. */
 [role="menu"][data-nested]:has([data-testid="model-selector-effort-option"]),
-[role="menu"].gemini-effort-submenu-host {
+[role="menu"].gemini-effort-submenu-host,
+[role="menu"][data-nested] {
   opacity: 1 !important;
   visibility: visible !important;
   pointer-events: auto !important;
 }
 
-[role="menu"][data-nested]:has([data-testid="model-selector-effort-option"])[data-open],
+[role="menu"][data-nested][data-open],
 [role="menu"].gemini-effort-submenu-host[data-open] {
   opacity: 1 !important;
   visibility: visible !important;
@@ -394,18 +433,26 @@
 
 /* Base UI mounts submenus with data-starting-style and style="transition: none;".
  * Never hide them with opacity: 0 on starting-style, or they stay permanently invisible. */
-[role="menu"][data-nested]:has([data-testid="model-selector-effort-option"])[data-starting-style],
+[role="menu"][data-nested][data-starting-style],
 [role="menu"].gemini-effort-submenu-host[data-starting-style] {
   opacity: 1 !important;
   visibility: visible !important;
   transform: none !important;
 }
 
-[role="menu"][data-nested]:has([data-testid="model-selector-effort-option"])[data-ending-style],
+[role="menu"][data-nested][data-ending-style],
 [role="menu"].gemini-effort-submenu-host[data-ending-style] {
   opacity: 0 !important;
   transition: opacity 120ms ease !important;
   transform: none !important;
+}
+
+/* Positioner presentation wrapper */
+[role="presentation"][data-nested],
+[role="presentation"]:has([role="menu"][data-nested]),
+[role="presentation"]:has(.gemini-effort-submenu-host) {
+  visibility: visible !important;
+  pointer-events: auto !important;
 }
 
 /* --- 1e. Context Progressive Pill Badge & Breakdown Popover -----------------

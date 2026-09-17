@@ -989,9 +989,60 @@ function handleRemoteAction(action) {
         flash.focus();
         flash.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', code: 'ArrowRight', keyCode: 39, which: 39, bubbles: true, cancelable: true }));
       }
+    } else if (action === "diagnoseModelSelector") {
+      const trigger = document.querySelector('[data-testid="model-selector-trigger"]');
+      if (trigger && !trigger.hasAttribute('data-popup-open')) {
+        trigger.click();
+      }
+      setTimeout(() => {
+        const rows = Array.from(document.querySelectorAll('[role="menuitem"]'));
+        const flashRow = rows.find(r => r.textContent.includes('3.8 Flash')) || rows[0];
+        const info = {
+          rowTag: flashRow?.tagName,
+          rowAttrs: flashRow ? Array.from(flashRow.attributes).map(a => `${a.name}="${a.value}"`) : [],
+          rowChildren: flashRow ? Array.from(flashRow.children).map(c => ({ tag: c.tagName, class: c.className, text: c.textContent, html: c.outerHTML })) : [],
+          parentMenu: flashRow?.closest('[role="menu"]')?.outerHTML?.slice(0, 300)
+        };
+        if (flashRow) {
+          flashRow.focus();
+          flashRow.dispatchEvent(new PointerEvent('pointerenter', { bubbles: true }));
+          flashRow.dispatchEvent(new MouseEvent('mouseenter', { bubbles: true }));
+          flashRow.dispatchEvent(new MouseEvent('mouseover', { bubbles: true }));
+          flashRow.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', code: 'ArrowRight', keyCode: 39, bubbles: true }));
+        }
+        setTimeout(() => {
+          const allMenus = Array.from(document.querySelectorAll('[role="menu"], [data-nested], .gemini-effort-submenu-host, [data-base-ui-menu-popup]')).map(m => ({
+            id: m.id,
+            className: m.className,
+            style: m.getAttribute('style'),
+            computedStyle: {
+              display: window.getComputedStyle(m).display,
+              visibility: window.getComputedStyle(m).visibility,
+              opacity: window.getComputedStyle(m).opacity,
+              position: window.getComputedStyle(m).position,
+              left: window.getComputedStyle(m).left,
+              top: window.getComputedStyle(m).top,
+              width: window.getComputedStyle(m).width,
+              height: window.getComputedStyle(m).height,
+              zIndex: window.getComputedStyle(m).zIndex,
+              pointerEvents: window.getComputedStyle(m).pointerEvents
+            },
+            attrs: Array.from(m.attributes).map(a => `${a.name}="${a.value}"`),
+            hasSlider: !!m.querySelector('.gemini-effort-slider-card'),
+            innerHTML: m.innerHTML.slice(0, 500)
+          }));
+          fetch("http://127.0.0.1:41421/log", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ type: "diagnoseResult", info, allMenus })
+          }).catch(() => {});
+        }, 400);
+      }, 500);
     } else if (action === "closePopovers") {
       closeAccountPopover();
       document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
+    } else if (action === "reloadWindow") {
+      window.location.reload();
     } else if (action === "inspectDOM") {
       const box = document.querySelector('[data-testid="agent-input-box"]');
       const card = box?.querySelector('.bg-card');
@@ -1202,16 +1253,28 @@ function enhanceModelSelectorPanel(panel) {
   isEnhancingModelPanel = true;
 
   try {
+    panel.setAttribute('data-testid', 'model-selector-panel');
+    panel.classList.add('gemini-model-selector-panel');
+    const menuEl = panel.closest('[role="menu"]') || panel;
+    if (menuEl) {
+      menuEl.setAttribute('data-testid', 'model-selector-panel');
+      menuEl.classList.add('gemini-model-selector-panel');
+    }
+
     const rows = panel.querySelectorAll('[role="menuitem"], [role="menuitemradio"]');
     for (const row of rows) {
       // Submenu trigger handling: attach hover and click listeners to open effort submenu reliably
       if (row.getAttribute('aria-haspopup') === 'menu') {
         const chevron = row.querySelector('span.opacity-50') || row.querySelector('svg[data-icon="chevron-right"]')?.closest('span');
         
-        const openEffort = () => {
+        const openEffort = (e) => {
           if (row.getAttribute('aria-expanded') !== 'true') {
             row.focus();
             row.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', code: 'ArrowRight', keyCode: 39, which: 39, bubbles: true, cancelable: true }));
+            setTimeout(() => {
+              const sub = document.querySelector('[role="menu"][data-nested], [role="menu"]:has([data-testid="model-selector-effort-option"]), [role="menu"]:has([data-effort])');
+              if (sub) enhanceEffortSubmenu(sub);
+            }, 30);
           }
         };
 
@@ -1220,21 +1283,24 @@ function enhanceModelSelectorPanel(panel) {
           chevron.style.cursor = "pointer";
           chevron.style.pointerEvents = "auto";
           chevron.addEventListener('pointerenter', openEffort);
+          chevron.addEventListener('mouseenter', openEffort);
           chevron.addEventListener('click', (e) => {
             e.preventDefault();
             e.stopPropagation();
-            openEffort();
+            openEffort(e);
           });
         }
 
         if (!row.dataset.geminiRowTrigger) {
           row.dataset.geminiRowTrigger = "true";
-          row.addEventListener('pointerenter', () => {
-            setTimeout(() => {
-              if (row.matches(':hover') && row.getAttribute('aria-expanded') !== 'true') {
-                openEffort();
-              }
-            }, 60);
+          row.addEventListener('pointerenter', openEffort);
+          row.addEventListener('mouseenter', openEffort);
+          row.addEventListener('click', (e) => {
+            if (row.getAttribute('aria-expanded') !== 'true') {
+              e.preventDefault();
+              e.stopPropagation();
+              openEffort(e);
+            }
           });
         }
       }
@@ -1537,6 +1603,19 @@ function enhanceEffortSubmenu(submenu) {
 plugin.dom.observe(PILL_SELECTOR, (pill) => {
   apply(pill);
   ensureComposerMeta(pill);
+  if (!pill.dataset.geminiClickAttached) {
+    pill.dataset.geminiClickAttached = 'true';
+    pill.addEventListener('click', () => {
+      setTimeout(() => {
+        const menu = document.querySelector('[role="menu"]:not([data-nested])');
+        if (menu) {
+          menu.setAttribute('data-testid', 'model-selector-panel');
+          menu.classList.add('gemini-model-selector-panel');
+          enhanceModelSelectorPanel(menu);
+        }
+      }, 30);
+    });
+  }
   const observer = new MutationObserver(() => {
     apply(pill);
     ensureComposerMeta(pill);
@@ -1550,7 +1629,9 @@ plugin.dom.observe(INPUT_BOX, (box) => {
   ensureComposerMeta(box);
 });
 
-plugin.dom.observe('[data-testid="model-selector-panel"]', (panel) => {
+plugin.dom.observe('[role="menu"]:has([data-testid="model-selector-effort-group"]), [role="menu"]:has([data-model-base]), [data-testid="model-selector-panel"]', (panel) => {
+  panel.setAttribute('data-testid', 'model-selector-panel');
+  panel.classList.add('gemini-model-selector-panel');
   enhanceModelSelectorPanel(panel);
   const observer = new MutationObserver((mutations) => {
     if (isEnhancingModelPanel) return;
@@ -1565,7 +1646,7 @@ plugin.dom.observe('[data-testid="model-selector-panel"]', (panel) => {
   remember(panel, observer);
 });
 
-plugin.dom.observe('[role="menu"][data-nested]', (submenu) => {
+plugin.dom.observe('[role="menu"][data-nested], [role="menu"]:has([data-testid="model-selector-effort-option"]), [role="menu"]:has([data-effort])', (submenu) => {
   enhanceEffortSubmenu(submenu);
   const observer = new MutationObserver((mutations) => {
     if (isEnhancingEffort) return;
