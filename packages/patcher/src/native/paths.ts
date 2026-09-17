@@ -18,6 +18,30 @@ export interface InstallationPaths {
 export const RUNTIME_DIRECTORY_NAME = ".bettergravity";
 export const MARKER_NAME = ".bettergravity.json";
 
+export function isAntigravityIde(targetRoot: string): boolean {
+  if (!targetRoot) return false;
+  const normalized = targetRoot.replace(/\\/g, "/").trim().replace(/\/+$/, "");
+  const baseLower = path.basename(normalized).toLowerCase();
+  if (baseLower === "antigravity ide.exe" || baseLower === "antigravity ide") return true;
+
+  if (
+    fs.existsSync(path.join(normalized, "Antigravity IDE.exe")) ||
+    fs.existsSync(path.join(normalized, "antigravity ide.exe"))
+  ) {
+    return true;
+  }
+
+  const sub = path.join(normalized, "Antigravity IDE");
+  if (
+    fs.existsSync(path.join(sub, "Antigravity IDE.exe")) ||
+    fs.existsSync(path.join(sub, "antigravity ide.exe"))
+  ) {
+    return true;
+  }
+
+  return false;
+}
+
 function normalizeRoot(root: string): string {
   let normalized = path.normalize(root);
   try {
@@ -55,6 +79,15 @@ function normalizeRoot(root: string): string {
   if (base === "Contents") {
     return path.dirname(normalized);
   }
+
+  // If the user selected a directory that contains an "Antigravity" folder
+  if (!fs.existsSync(path.join(normalized, "Antigravity.exe")) && !fs.existsSync(path.join(normalized, "antigravity.exe"))) {
+    const subFolder = path.join(normalized, "Antigravity");
+    if (fs.existsSync(path.join(subFolder, "Antigravity.exe")) || fs.existsSync(path.join(subFolder, "antigravity.exe"))) {
+      return subFolder;
+    }
+  }
+
   return normalized;
 }
 
@@ -67,9 +100,14 @@ function resolveExecutable(root: string, isMac: boolean): string {
     return path.join(root, "Contents", "MacOS", "Antigravity");
   }
 
-  if (process.platform === "win32") {
+  const isWindows = process.platform === "win32" || /^[a-zA-Z]:[\\/]/.test(root);
+
+  if (isWindows) {
     if (fs.existsSync(path.join(root, "Antigravity.exe"))) {
       return path.join(root, "Antigravity.exe");
+    }
+    if (fs.existsSync(path.join(root, "antigravity.exe"))) {
+      return path.join(root, "antigravity.exe");
     }
     if (fs.existsSync(path.join(root, "antigravity"))) {
       return path.join(root, "antigravity");
@@ -137,12 +175,16 @@ function candidateRoots(): readonly string[] {
     ].filter((candidate): candidate is string => typeof candidate === "string");
   }
 
-  const { LOCALAPPDATA, ProgramFiles } = process.env;
+  const { LOCALAPPDATA, ProgramFiles, APPDATA, USERPROFILE } = process.env;
   const programFilesX86 = process.env["ProgramFiles(x86)"];
   return [
     LOCALAPPDATA && path.join(LOCALAPPDATA, "Programs", "Antigravity"),
+    LOCALAPPDATA && path.join(LOCALAPPDATA, "Antigravity"),
     ProgramFiles && path.join(ProgramFiles, "Antigravity"),
-    programFilesX86 && path.join(programFilesX86, "Antigravity")
+    programFilesX86 && path.join(programFilesX86, "Antigravity"),
+    APPDATA && path.join(APPDATA, "Programs", "Antigravity"),
+    USERPROFILE && path.join(USERPROFILE, "AppData", "Local", "Programs", "Antigravity"),
+    USERPROFILE && path.join(USERPROFILE, "AppData", "Local", "Antigravity")
   ].filter((candidate): candidate is string => typeof candidate === "string");
 }
 

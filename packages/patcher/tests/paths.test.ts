@@ -1,6 +1,6 @@
 import path from "node:path";
 import { describe, expect, it } from "vitest";
-import { installationPaths, unpackedPath } from "../src/native/paths.js";
+import { installationPaths, isAntigravityIde, unpackedPath } from "../src/native/paths.js";
 
 describe("installationPaths", () => {
   const paths = installationPaths(path.join("C:", "Apps", "Antigravity"));
@@ -63,6 +63,14 @@ describe("installationPaths", () => {
     expect(fromResources.root).toBe(root);
     expect(fromResources.resources).toBe(path.join(root, "resources"));
   });
+
+  it("normalizes user selections pointing directly to Antigravity.exe on Windows including non-ASCII paths", () => {
+    const root = path.join("C:", "Users", "Hernán", "AppData", "Local", "Programs", "Antigravity");
+    const fromExe = installationPaths(path.join(root, "Antigravity.exe"));
+    expect(fromExe.root).toBe(root);
+    expect(fromExe.resources).toBe(path.join(root, "resources"));
+    expect(fromExe.executable).toBe(path.join(root, "Antigravity.exe"));
+  });
 });
 
 // Regression: the patcher reads through original-fs, which cannot see inside an
@@ -86,5 +94,20 @@ describe("unpackedPath", () => {
   it("is idempotent", () => {
     const packaged = path.join("C:", "app", "resources", "app.asar", "dist-electron");
     expect(unpackedPath(unpackedPath(packaged))).toBe(unpackedPath(packaged));
+  });
+});
+
+describe("isAntigravityIde", () => {
+  it("identifies Antigravity IDE directory and executable names", () => {
+    expect(isAntigravityIde("C:/Users/Lenovo/AppData/Local/Programs/Antigravity IDE")).toBe(true);
+    expect(isAntigravityIde("C:/Users/Lenovo/AppData/Local/Programs/Antigravity IDE/Antigravity IDE.exe")).toBe(true);
+    expect(isAntigravityIde("C:\\Users\\Lenovo\\AppData\\Local\\Programs\\Antigravity IDE\\Antigravity IDE.exe")).toBe(true);
+  });
+
+  it("does not flag standard Antigravity installations as IDE", () => {
+    expect(isAntigravityIde("C:/Users/Hernán/AppData/Local/Programs/Antigravity")).toBe(false);
+    expect(isAntigravityIde("C:/Users/Hernán/AppData/Local/Programs/Antigravity/Antigravity.exe")).toBe(false);
+    expect(isAntigravityIde("/Applications/Antigravity.app")).toBe(false);
+    expect(isAntigravityIde("/opt/Antigravity")).toBe(false);
   });
 });

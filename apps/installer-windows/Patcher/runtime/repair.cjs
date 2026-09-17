@@ -3682,7 +3682,7 @@ var fs = resolveFileSystem();
 var import_node_path3 = __toESM(require("node:path"), 1);
 
 // ../../packages/shared/src/index.ts
-var BETTERGRAVITY_VERSION = "0.1.5";
+var BETTERGRAVITY_VERSION = "2.0.2";
 var SUPPORTED_HOST_MAJOR = 2;
 function isSupportedHostVersion(version) {
   if (typeof version !== "string") return false;
@@ -3702,6 +3702,20 @@ var import_asar = __toESM(require_asar(), 1);
 var import_node_path = __toESM(require("node:path"), 1);
 var RUNTIME_DIRECTORY_NAME = ".bettergravity";
 var MARKER_NAME = ".bettergravity.json";
+function isAntigravityIde(targetRoot) {
+  if (!targetRoot) return false;
+  const normalized = targetRoot.replace(/\\/g, "/").trim().replace(/\/+$/, "");
+  const baseLower = import_node_path.default.basename(normalized).toLowerCase();
+  if (baseLower === "antigravity ide.exe" || baseLower === "antigravity ide") return true;
+  if (fs.existsSync(import_node_path.default.join(normalized, "Antigravity IDE.exe")) || fs.existsSync(import_node_path.default.join(normalized, "antigravity ide.exe"))) {
+    return true;
+  }
+  const sub = import_node_path.default.join(normalized, "Antigravity IDE");
+  if (fs.existsSync(import_node_path.default.join(sub, "Antigravity IDE.exe")) || fs.existsSync(import_node_path.default.join(sub, "antigravity ide.exe"))) {
+    return true;
+  }
+  return false;
+}
 function normalizeRoot(root) {
   let normalized = import_node_path.default.normalize(root);
   try {
@@ -3734,6 +3748,12 @@ function normalizeRoot(root) {
   if (base === "Contents") {
     return import_node_path.default.dirname(normalized);
   }
+  if (!fs.existsSync(import_node_path.default.join(normalized, "Antigravity.exe")) && !fs.existsSync(import_node_path.default.join(normalized, "antigravity.exe"))) {
+    const subFolder = import_node_path.default.join(normalized, "Antigravity");
+    if (fs.existsSync(import_node_path.default.join(subFolder, "Antigravity.exe")) || fs.existsSync(import_node_path.default.join(subFolder, "antigravity.exe"))) {
+      return subFolder;
+    }
+  }
   return normalized;
 }
 function isMacAppBundle(root) {
@@ -3743,9 +3763,13 @@ function resolveExecutable(root, isMac) {
   if (isMac) {
     return import_node_path.default.join(root, "Contents", "MacOS", "Antigravity");
   }
-  if (process.platform === "win32") {
+  const isWindows = process.platform === "win32" || /^[a-zA-Z]:[\\/]/.test(root);
+  if (isWindows) {
     if (fs.existsSync(import_node_path.default.join(root, "Antigravity.exe"))) {
       return import_node_path.default.join(root, "Antigravity.exe");
+    }
+    if (fs.existsSync(import_node_path.default.join(root, "antigravity.exe"))) {
+      return import_node_path.default.join(root, "antigravity.exe");
     }
     if (fs.existsSync(import_node_path.default.join(root, "antigravity"))) {
       return import_node_path.default.join(root, "antigravity");
@@ -3970,6 +3994,15 @@ async function closeAntigravity(installationPath, onProgress) {
 var RUNTIME_FILES = ["main.cjs", "preload.cjs", "repair.cjs"];
 var MAX_RETAINED_BACKUPS = 5;
 function inspectInstallation(installationPath) {
+  if (isAntigravityIde(installationPath)) {
+    return {
+      kind: "unsupported-ide",
+      patchState: "unknown",
+      path: installationPath,
+      nativePatchAvailable: false,
+      error: "Antigravity IDE (VS Code editor) is not supported yet. BetterGravity currently targets the standalone Antigravity 2.0 desktop application."
+    };
+  }
   const paths = installationPaths(installationPath);
   if (!fs.existsSync(paths.executable) || !fs.existsSync(paths.currentAsar)) {
     return { kind: "not-found", patchState: "unknown", nativePatchAvailable: false };
@@ -4048,6 +4081,7 @@ function deployRuntime(paths, runtimeSource) {
 async function runOperation(operation, installationPath, options, onProgress = () => void 0) {
   const paths = installationPaths(installationPath);
   const before = inspectInstallation(installationPath);
+  if (before.kind === "unsupported-ide") throw new Error(before.error ?? "Antigravity IDE (VS Code editor) is not supported yet.");
   if (before.kind === "not-found") throw new Error("Antigravity could not be found at the selected location.");
   if (!before.nativePatchAvailable) {
     throw new Error(`Antigravity ${before.antigravityVersion ?? "unknown"} has not been marked compatible yet.`);
