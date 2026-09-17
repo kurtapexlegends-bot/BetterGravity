@@ -850,43 +850,22 @@ function applyPromptBoxPatch() {
       [data-testid="agent-input-box"] > .rounded-2xl.bg-card-border > .bg-card:not([data-mention-menu]) {
         display: grid !important;
         grid-template-columns: 32px auto minmax(0, 1fr) auto 32px 32px !important;
-        grid-template-areas: "plus meta text pill mic send" !important;
-        column-gap: 6px !important;
-        row-gap: 0 !important;
-        align-items: end !important;
-      }
-
-      [data-testid="agent-input-box"]:not(:has([data-testid="send-button"]:not(:disabled))):not(:has([data-tooltip-id="input-send-button-cancel-tooltip"])):not([data-expanded="true"]):not(:has([data-gemini-tool-chip])):not(:has([data-testid="input-attachment"])):not(:has(button[aria-label="Add context"] ~ *:not(.gemini-composer-meta):not(input):not(:has([data-testid="model-selector-trigger"])):not(:has([data-testid="side-question-toolbar-button"])))):not(:has([data-beautiful-mention])):not(:has([data-mention])) > .rounded-2xl.bg-card-border > .bg-card:not([data-mention-menu]) {
-        grid-template-columns: 32px auto minmax(0, 1fr) auto 32px !important;
-        grid-template-areas: "plus meta text pill mic" !important;
-      }
-
-      /* 2-row layout */
-      [data-testid="agent-input-box"][data-expanded="true"] > .rounded-2xl.bg-card-border > .bg-card:not([data-mention-menu]),
-      [data-testid="agent-input-box"]:has([data-testid="input-attachment"]) > .rounded-2xl.bg-card-border > .bg-card:not([data-mention-menu]),
-      [data-testid="agent-input-box"]:has(.border-b) > .rounded-2xl.bg-card-border > .bg-card:not([data-mention-menu]),
-      [data-testid="agent-input-box"]:has([data-gemini-tool-chip]) > .rounded-2xl.bg-card-border > .bg-card:not([data-mention-menu]),
-      [data-testid="agent-input-box"]:has(button[aria-label="Add context"] ~ *:not(.gemini-composer-meta):not(input):not(:has([data-testid="model-selector-trigger"])):not(:has([data-testid="side-question-toolbar-button"]))) > .rounded-2xl.bg-card-border > .bg-card:not([data-mention-menu]),
-      [data-testid="agent-input-box"]:has([data-beautiful-mention]) > .rounded-2xl.bg-card-border > .bg-card:not([data-mention-menu]),
-      [data-testid="agent-input-box"]:has([data-mention]) > .rounded-2xl.bg-card-border > .bg-card:not([data-mention-menu]) {
-        grid-template-columns: 32px auto minmax(0, 1fr) auto 32px 32px !important;
         grid-template-areas:
           "text text text text text text"
           "plus meta . pill mic send" !important;
-        row-gap: 10px !important;
+        column-gap: 6px !important;
+        row-gap: 8px !important;
+        align-items: center !important;
+        min-height: 84px !important;
+        padding: 14px 16px 12px 18px !important;
+        border-radius: 28px !important;
       }
 
-      [data-testid="agent-input-box"]:not(:has([data-testid="send-button"]:not(:disabled))):not(:has([data-tooltip-id="input-send-button-cancel-tooltip"])):has([data-testid="input-attachment"]) > .rounded-2xl.bg-card-border > .bg-card:not([data-mention-menu]),
-      [data-testid="agent-input-box"]:not(:has([data-testid="send-button"]:not(:disabled))):not(:has([data-tooltip-id="input-send-button-cancel-tooltip"])):has(.border-b) > .rounded-2xl.bg-card-border > .bg-card:not([data-mention-menu]),
-      [data-testid="agent-input-box"]:not(:has([data-testid="send-button"]:not(:disabled))):not(:has([data-tooltip-id="input-send-button-cancel-tooltip"])):has([data-gemini-tool-chip]) > .rounded-2xl.bg-card-border > .bg-card:not([data-mention-menu]),
-      [data-testid="agent-input-box"]:not(:has([data-testid="send-button"]:not(:disabled))):not(:has([data-tooltip-id="input-send-button-cancel-tooltip"])):has(button[aria-label="Add context"] ~ *:not(.gemini-composer-meta):not(input):not(:has([data-testid="model-selector-trigger"])):not(:has([data-testid="side-question-toolbar-button"]))) > .rounded-2xl.bg-card-border > .bg-card:not([data-mention-menu]),
-      [data-testid="agent-input-box"]:not(:has([data-testid="send-button"]:not(:disabled))):not(:has([data-tooltip-id="input-send-button-cancel-tooltip"])):has([data-beautiful-mention]) > .rounded-2xl.bg-card-border > .bg-card:not([data-mention-menu]),
-      [data-testid="agent-input-box"]:not(:has([data-testid="send-button"]:not(:disabled))):not(:has([data-tooltip-id="input-send-button-cancel-tooltip"])):has([data-mention]) > .rounded-2xl.bg-card-border > .bg-card:not([data-mention-menu]) {
+      [data-testid="agent-input-box"]:not(:has([data-testid="send-button"]:not(:disabled))):not(:has([data-tooltip-id="input-send-button-cancel-tooltip"])) > .rounded-2xl.bg-card-border > .bg-card:not([data-mention-menu]) {
         grid-template-columns: 32px auto minmax(0, 1fr) auto 32px !important;
         grid-template-areas:
           "text text text text text"
           "plus meta . pill mic" !important;
-        row-gap: 10px !important;
       }
 
       /* Flatten wrappers */
@@ -913,7 +892,10 @@ function applyPromptBoxPatch() {
       /* Pin text input */
       [data-testid="agent-input-box"] > .rounded-2xl.bg-card-border > .bg-card:not([data-mention-menu]) > .relative.w-full {
         grid-area: text !important;
+        width: 100% !important;
+        min-width: 0 !important;
         align-self: center !important;
+        padding: 0 4px !important;
       }
 
       /* Right cluster container (model selector & side question) */
