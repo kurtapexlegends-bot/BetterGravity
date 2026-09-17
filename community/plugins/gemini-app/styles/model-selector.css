@@ -66,12 +66,12 @@
 
 [role="menu"]:has(> [data-testid="model-selector-panel"]),
 [role="menu"]:has([data-testid="model-selector-effort-group"]),
-[role="menu"].gemini-model-selector-panel,
-[data-testid="model-selector-panel"],
-.gemini-model-selector-panel {
+[role="menu"].gemini-model-selector-panel {
   width: 320px !important;
   min-width: 320px !important;
   max-width: 340px !important;
+  height: auto !important;
+  max-height: 480px !important;
   padding: 8px !important;
   border: 0 !important;
   border-radius: 20px !important;
@@ -81,6 +81,38 @@
   font-family: var(--gemini-font) !important;
   font-variation-settings: var(--gemini-font-axes);
   gap: 0 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  overflow: visible !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+/* Inner panel inside role="menu" must NOT duplicate card styles or collapse */
+[role="menu"] > [data-testid="model-selector-panel"],
+[role="menu"] > .gemini-model-selector-panel,
+[role="menu"]:has([data-testid="model-selector-effort-group"]) > div {
+  width: 100% !important;
+  min-width: 100% !important;
+  max-width: 100% !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  height: auto !important;
+  min-height: min-content !important;
+  max-height: none !important;
+  display: flex !important;
+  flex-direction: column !important;
+  overflow: visible !important;
+}
+
+/* Prevent Flexbox from collapsing min-h-0 containers inside the model panel */
+[role="menu"]:has([data-testid="model-selector-effort-group"]) .min-h-0,
+[role="menu"].gemini-model-selector-panel .min-h-0,
+[data-testid="model-selector-panel"] .min-h-0 {
+  min-height: auto !important;
 }
 
 /* Willow's picker has no heading above the list. */
@@ -88,7 +120,7 @@
   display: none !important;
 }
 
-/* Willow's model list is at most 208px tall and scrolls inside without a
+/* Willow's model list is at most 280px tall and scrolls inside without a
  * scrollbar; the separator and the row beneath stay fixed under it. */
 [data-testid="model-selector-panel"],
 .gemini-model-selector-panel {
@@ -98,7 +130,10 @@
 [data-testid="model-selector-panel"] .overflow-y-auto,
 .gemini-model-selector-panel .overflow-y-auto,
 [role="menu"]:has([data-testid="model-selector-effort-group"]) .overflow-y-auto {
-  max-height: 240px;
+  min-height: min-content !important;
+  max-height: 280px !important;
+  flex-shrink: 0 !important;
+  overflow-y: auto !important;
   scrollbar-width: none;
 }
 
@@ -126,6 +161,7 @@
 [role="menu"]:has([data-testid="model-selector-effort-group"]) [role="menuitem"] {
   position: relative;
   min-height: 52px;
+  height: 52px;
   padding: 0 10px 0 36px !important;
   gap: 0 !important;
   border-radius: 12px !important;
@@ -136,6 +172,7 @@
   transition: background-color 150ms ease !important;
   display: flex !important;
   align-items: center !important;
+  flex-shrink: 0 !important;
 }
 
 [data-testid="model-selector-panel"] [role="menuitem"]:hover,
@@ -340,11 +377,12 @@
   gap: 0 !important;
 }
 
-[role="menu"]:has(.gemini-effort-slider-card) > *:not(.gemini-effort-slider-card),
-[role="menu"]:has(.gemini-effort-slider-card) [role="group"],
-[role="menu"]:has(.gemini-effort-slider-card) [role="menuitemradio"],
-[role="menu"]:has(.gemini-effort-slider-card) [role="menuitem"],
-[role="menu"]:has(.gemini-effort-slider-card) [data-testid="model-selector-effort-option"] {
+/* In the effort submenu, hide the native radio items so only the slider card displays.
+ * MUST be scoped to data-nested so it never hides items in the parent model selector menu! */
+[role="menu"][data-nested] > *:not(.gemini-effort-slider-card):not([role="presentation"]),
+[role="menu"][data-nested] [role="group"],
+[role="menu"][data-nested] [role="menuitemradio"],
+[role="menu"][data-nested] [data-testid="model-selector-effort-option"] {
   display: none !important;
   visibility: hidden !important;
   height: 0 !important;
@@ -397,21 +435,29 @@
  * data-ending-style, so only the values change.
  */
 
-[role="menu"]:has(> [data-testid="model-selector-panel"]) {
-  transition: opacity 200ms var(--gemini-ease), transform 200ms var(--gemini-ease) !important;
-}
-
-[role="menu"]:has(> [data-testid="model-selector-panel"])[data-ending-style] {
-  transition-duration: 150ms !important;
+[role="menu"]:has(> [data-testid="model-selector-panel"]),
+[role="menu"]:has([data-testid="model-selector-effort-group"]),
+[role="menu"].gemini-model-selector-panel {
+  opacity: 1 !important;
+  visibility: visible !important;
+  transition: opacity 150ms var(--gemini-ease), transform 150ms var(--gemini-ease) !important;
 }
 
 [role="menu"]:has(> [data-testid="model-selector-panel"])[data-starting-style],
-[role="menu"]:has(> [data-testid="model-selector-panel"])[data-ending-style] {
-  opacity: 0 !important;
-  transform: scale(0.95) translateY(6px) !important;
+[role="menu"]:has([data-testid="model-selector-effort-group"])[data-starting-style],
+[role="menu"].gemini-model-selector-panel[data-starting-style] {
+  opacity: 1 !important;
+  visibility: visible !important;
+  transform: none !important;
 }
 
-[role="menu"][data-side="bottom"]:has(> [data-testid="model-selector-panel"])[data-starting-style],
+[role="menu"]:has(> [data-testid="model-selector-panel"])[data-ending-style],
+[role="menu"]:has([data-testid="model-selector-effort-group"])[data-ending-style],
+[role="menu"].gemini-model-selector-panel[data-ending-style] {
+  opacity: 0 !important;
+  transition-duration: 120ms !important;
+}
+
 [role="menu"][data-side="bottom"]:has(> [data-testid="model-selector-panel"])[data-ending-style] {
   transform: scale(0.95) translateY(-6px) !important;
 }
@@ -447,11 +493,25 @@
   transform: none !important;
 }
 
-/* Positioner presentation wrapper */
+/* Positioner presentation wrapper for submenus */
 [role="presentation"][data-nested],
 [role="presentation"]:has([role="menu"][data-nested]),
-[role="presentation"]:has(.gemini-effort-submenu-host) {
+[role="presentation"]:has(.gemini-effort-submenu-host),
+.z-\[6000\]:has([role="menu"][data-nested]),
+.z-\[6000\]:has(.gemini-effort-submenu-host) {
   visibility: visible !important;
+  opacity: 1 !important;
+  pointer-events: auto !important;
+}
+
+/* Base UI data-anchor-hidden override */
+[role="presentation"][data-nested][data-anchor-hidden],
+[role="presentation"]:has([role="menu"][data-nested])[data-anchor-hidden],
+[role="presentation"]:has(.gemini-effort-submenu-host)[data-anchor-hidden],
+.z-\[6000\]:has([role="menu"][data-nested])[data-anchor-hidden],
+.z-\[6000\]:has(.gemini-effort-submenu-host)[data-anchor-hidden] {
+  visibility: visible !important;
+  opacity: 1 !important;
   pointer-events: auto !important;
 }
 

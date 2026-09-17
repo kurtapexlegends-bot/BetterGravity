@@ -989,55 +989,6 @@ function handleRemoteAction(action) {
         flash.focus();
         flash.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', code: 'ArrowRight', keyCode: 39, which: 39, bubbles: true, cancelable: true }));
       }
-    } else if (action === "diagnoseModelSelector") {
-      const trigger = document.querySelector('[data-testid="model-selector-trigger"]');
-      if (trigger && !trigger.hasAttribute('data-popup-open')) {
-        trigger.click();
-      }
-      setTimeout(() => {
-        const rows = Array.from(document.querySelectorAll('[role="menuitem"]'));
-        const flashRow = rows.find(r => r.textContent.includes('3.8 Flash')) || rows[0];
-        const info = {
-          rowTag: flashRow?.tagName,
-          rowAttrs: flashRow ? Array.from(flashRow.attributes).map(a => `${a.name}="${a.value}"`) : [],
-          rowChildren: flashRow ? Array.from(flashRow.children).map(c => ({ tag: c.tagName, class: c.className, text: c.textContent, html: c.outerHTML })) : [],
-          parentMenu: flashRow?.closest('[role="menu"]')?.outerHTML?.slice(0, 300)
-        };
-        if (flashRow) {
-          flashRow.focus();
-          flashRow.dispatchEvent(new PointerEvent('pointerenter', { bubbles: true }));
-          flashRow.dispatchEvent(new MouseEvent('mouseenter', { bubbles: true }));
-          flashRow.dispatchEvent(new MouseEvent('mouseover', { bubbles: true }));
-          flashRow.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', code: 'ArrowRight', keyCode: 39, bubbles: true }));
-        }
-        setTimeout(() => {
-          const allMenus = Array.from(document.querySelectorAll('[role="menu"], [data-nested], .gemini-effort-submenu-host, [data-base-ui-menu-popup]')).map(m => ({
-            id: m.id,
-            className: m.className,
-            style: m.getAttribute('style'),
-            computedStyle: {
-              display: window.getComputedStyle(m).display,
-              visibility: window.getComputedStyle(m).visibility,
-              opacity: window.getComputedStyle(m).opacity,
-              position: window.getComputedStyle(m).position,
-              left: window.getComputedStyle(m).left,
-              top: window.getComputedStyle(m).top,
-              width: window.getComputedStyle(m).width,
-              height: window.getComputedStyle(m).height,
-              zIndex: window.getComputedStyle(m).zIndex,
-              pointerEvents: window.getComputedStyle(m).pointerEvents
-            },
-            attrs: Array.from(m.attributes).map(a => `${a.name}="${a.value}"`),
-            hasSlider: !!m.querySelector('.gemini-effort-slider-card'),
-            innerHTML: m.innerHTML.slice(0, 500)
-          }));
-          fetch("http://127.0.0.1:41421/log", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ type: "diagnoseResult", info, allMenus })
-          }).catch(() => {});
-        }, 400);
-      }, 500);
     } else if (action === "closePopovers") {
       closeAccountPopover();
       document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
@@ -1255,10 +1206,14 @@ function enhanceModelSelectorPanel(panel) {
   try {
     panel.setAttribute('data-testid', 'model-selector-panel');
     panel.classList.add('gemini-model-selector-panel');
+    panel.classList.remove('gemini-effort-submenu-host');
     const menuEl = panel.closest('[role="menu"]') || panel;
     if (menuEl) {
       menuEl.setAttribute('data-testid', 'model-selector-panel');
       menuEl.classList.add('gemini-model-selector-panel');
+      menuEl.classList.remove('gemini-effort-submenu-host');
+      const straySlider = menuEl.querySelector('.gemini-effort-slider-card');
+      if (straySlider) straySlider.remove();
     }
 
     const rows = panel.querySelectorAll('[role="menuitem"], [role="menuitemradio"]');
@@ -1273,22 +1228,30 @@ function enhanceModelSelectorPanel(panel) {
             row.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', code: 'ArrowRight', keyCode: 39, which: 39, bubbles: true, cancelable: true }));
             setTimeout(() => {
               const sub = document.querySelector('[role="menu"][data-nested], [role="menu"]:has([data-testid="model-selector-effort-option"]), [role="menu"]:has([data-effort])');
-              if (sub) enhanceEffortSubmenu(sub);
+              if (sub) {
+                enhanceEffortSubmenu(sub);
+                repositionEffortSubmenu(sub);
+              }
             }, 30);
           }
         };
 
-        if (chevron && !chevron.dataset.geminiEffortTrigger) {
-          chevron.dataset.geminiEffortTrigger = "true";
-          chevron.style.cursor = "pointer";
-          chevron.style.pointerEvents = "auto";
-          chevron.addEventListener('pointerenter', openEffort);
-          chevron.addEventListener('mouseenter', openEffort);
-          chevron.addEventListener('click', (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            openEffort(e);
-          });
+        if (chevron) {
+          chevron.classList.remove('hidden');
+          chevron.style.display = "flex";
+          chevron.style.opacity = "1";
+          if (!chevron.dataset.geminiEffortTrigger) {
+            chevron.dataset.geminiEffortTrigger = "true";
+            chevron.style.cursor = "pointer";
+            chevron.style.pointerEvents = "auto";
+            chevron.addEventListener('pointerenter', openEffort);
+            chevron.addEventListener('mouseenter', openEffort);
+            chevron.addEventListener('click', (e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              openEffort(e);
+            });
+          }
         }
 
         if (!row.dataset.geminiRowTrigger) {
@@ -1352,10 +1315,50 @@ const EFFORT_DESCRIPTIONS = {
   high: "Deeper multi-step reasoning and thorough verification for complex problems."
 };
 
+function repositionEffortSubmenu(submenu) {
+  if (!submenu || !submenu.isConnected) return;
+  const wrapper = submenu.closest('[role="presentation"].z-\\[6000\\]') || submenu.closest('[role="presentation"]') || submenu.parentElement;
+  if (!wrapper) return;
+
+  wrapper.removeAttribute('data-anchor-hidden');
+  wrapper.style.visibility = 'visible';
+  wrapper.style.opacity = '1';
+  wrapper.style.pointerEvents = 'auto';
+  submenu.style.visibility = 'visible';
+  submenu.style.opacity = '1';
+
+  const subRect = submenu.getBoundingClientRect();
+  const isOffscreen = subRect.width === 0 || subRect.height === 0 || subRect.right <= 10 || subRect.left >= (window.innerWidth - 10);
+  if (isOffscreen) {
+    const triggerId = submenu.getAttribute('aria-labelledby');
+    const trigger = triggerId ? document.getElementById(triggerId) : null;
+    const anchor = trigger || document.querySelector('[role="menuitem"][aria-haspopup="menu"][aria-expanded="true"]') || document.querySelector('[role="menuitem"][aria-haspopup="menu"]');
+    if (anchor) {
+      const anchorRect = anchor.getBoundingClientRect();
+      if (anchorRect.width > 0 && anchorRect.height > 0) {
+        const offsetParent = wrapper.offsetParent || document.body;
+        const parentRect = offsetParent.getBoundingClientRect();
+        const placeLeft = anchorRect.right + 280 > window.innerWidth;
+        const leftRel = placeLeft ? (anchorRect.left - parentRect.left - 272) : (anchorRect.right - parentRect.left + 4);
+        const topRel = anchorRect.top - parentRect.top - 8;
+        wrapper.style.position = 'fixed';
+        wrapper.style.left = '0px';
+        wrapper.style.top = '0px';
+        wrapper.style.transform = `translate(${Math.round(leftRel)}px, ${Math.round(topRel)}px)`;
+      }
+    }
+  }
+}
+
 let isEnhancingEffort = false;
 
 function enhanceEffortSubmenu(submenu) {
   if (!submenu || !submenu.isConnected || isEnhancingEffort) return;
+
+  // STRICT GUARD: Must be a nested submenu, NEVER the main model selector menu
+  const isNested = submenu.hasAttribute('data-nested') || !!submenu.closest('[data-nested]') || !!submenu.closest('[role="presentation"].z-\\[6000\\]');
+  if (!isNested) return;
+  if (submenu.querySelector('[data-testid="model-selector-panel"]') || submenu.classList.contains('gemini-model-selector-panel')) return;
 
   if (submenu.querySelector('.gemini-effort-slider-card')) return;
   isEnhancingEffort = true;
@@ -1592,6 +1595,11 @@ function enhanceEffortSubmenu(submenu) {
         }
       });
       submenu.prepend(card);
+      repositionEffortSubmenu(submenu);
+      requestAnimationFrame(() => repositionEffortSubmenu(submenu));
+      setTimeout(() => repositionEffortSubmenu(submenu), 60);
+    } else {
+      repositionEffortSubmenu(submenu);
     }
   } catch (err) {
     console.debug("[BetterGravity] Error enhancing effort submenu:", err);
@@ -1646,12 +1654,19 @@ plugin.dom.observe('[role="menu"]:has([data-testid="model-selector-effort-group"
   remember(panel, observer);
 });
 
-plugin.dom.observe('[role="menu"][data-nested], [role="menu"]:has([data-testid="model-selector-effort-option"]), [role="menu"]:has([data-effort])', (submenu) => {
+plugin.dom.observe('[role="menu"][data-nested], [role="presentation"][data-nested] [role="menu"], [role="presentation"].z-\\[6000\\] [role="menu"]', (submenu) => {
+  if (!submenu.hasAttribute('data-nested') && !submenu.closest('[data-nested]')) return;
+  if (submenu.classList.contains('gemini-model-selector-panel')) return;
   enhanceEffortSubmenu(submenu);
+  repositionEffortSubmenu(submenu);
   const observer = new MutationObserver((mutations) => {
     if (isEnhancingEffort) return;
-    if (submenu.querySelector('.gemini-effort-slider-card')) return;
+    if (submenu.querySelector('.gemini-effort-slider-card')) {
+      repositionEffortSubmenu(submenu);
+      return;
+    }
     enhanceEffortSubmenu(submenu);
+    repositionEffortSubmenu(submenu);
     observer.takeRecords();
   });
   observer.observe(submenu, { childList: true });
