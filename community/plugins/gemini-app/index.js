@@ -9372,15 +9372,8 @@ function ensureSidebarUserCard(footer) {
       emailSpan.style.display = "none";
     }
 
-    const quotaDiv = document.createElement("div");
-    quotaDiv.className = "gemini-sidebar-quota-pill";
-    const limits = getAccountLimits(email);
-    quotaDiv.textContent = `5h: ${limits.fiveHour}% · 1w: ${limits.weekly}%`;
-    quotaDiv.title = `5-Hour Rate Limit: ${limits.fiveHour}% | Weekly Quota: ${limits.weekly}%`;
-
     textDiv.appendChild(nameSpan);
     textDiv.appendChild(emailSpan);
-    textDiv.appendChild(quotaDiv);
 
     pill.appendChild(avatarWrap);
     pill.appendChild(textDiv);
