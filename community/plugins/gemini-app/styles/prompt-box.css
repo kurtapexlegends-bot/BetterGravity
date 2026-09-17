@@ -186,14 +186,12 @@
   font-weight: 500 !important;
 }
 
-.gemini-meta-sep {
-  opacity: 0.35 !important;
-}
-
-.gemini-meta-quotas {
-  color: #8ab4f8 !important;
-  font-weight: 500 !important;
-  font-size: 10.5px !important;
+.gemini-meta-sep,
+.gemini-meta-quotas,
+.gemini-sidebar-quota-pill,
+.gemini-popover-active-limits,
+.gemini-popover-limits-col {
+  display: none !important;
 }
 
 /* Trailing control order: chips/side questions sit before the model selector */

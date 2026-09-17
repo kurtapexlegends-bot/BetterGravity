@@ -941,10 +941,19 @@ function applyPromptBoxPatch() {
         grid-area: send !important;
         align-self: center !important;
       }
+
+      .gemini-meta-sep,
+      .gemini-meta-quotas,
+      .gemini-sidebar-quota-pill,
+      .gemini-popover-active-limits,
+      .gemini-popover-limits-col {
+        display: none !important;
+      }
     `;
     if (styleEl.textContent !== css) {
       styleEl.textContent = css;
     }
+    document.querySelectorAll('.gemini-meta-quotas, .gemini-meta-sep, .gemini-sidebar-quota-pill, .gemini-popover-active-limits, .gemini-popover-limits-col').forEach(el => el.remove());
   } catch (e) {
     console.debug("[BetterGravity] Prompt patch error:", e);
   }
@@ -1159,15 +1168,8 @@ function updateComposerMeta(meta) {
     const limit = metrics?.limit || 1048576;
     const tokenStr = `${formatTokensCompact(used)} / ${formatTokensCompact(limit)}`;
 
-    const activeEmail = (typeof userAccountProfile !== "undefined" && userAccountProfile?.email) ? userAccountProfile.email : "kurtstanleytalastas@gmail.com";
-    const limits = typeof getAccountLimits === "function" ? getAccountLimits(activeEmail) : { fiveHour: 88, weekly: 90 };
-    const quotaStr = `5h: ${limits.fiveHour}% · 1w: ${limits.weekly}%`;
-
-    meta.innerHTML = `
-      <span class="gemini-meta-tokens">${tokenStr}</span>
-      <span class="gemini-meta-sep">·</span>
-      <span class="gemini-meta-quotas" title="5-Hour Rate Limit: ${limits.fiveHour}% | Weekly Quota: ${limits.weekly}%">${quotaStr}</span>
-    `;
+    meta.innerHTML = `<span class="gemini-meta-tokens">${tokenStr}</span>`;
+    meta.title = `Context Window: ${used.toLocaleString()} / ${limit.toLocaleString()} tokens (${metrics?.percentage || 0}% used)`;
   } catch (err) {
     console.debug("[BetterGravity] Error updating composer meta:", err);
   }
@@ -1274,9 +1276,16 @@ function enhanceEffortSubmenu(submenu) {
       const currentName = stepItems[activeIdx]?.name || "High";
       const currentDesc = EFFORT_DESCRIPTIONS[currentName.toLowerCase()] || `Reasoning effort set to ${currentName}.`;
 
+      card.setAttribute('data-level', currentName.toLowerCase());
       card.innerHTML = `
         <div class="gemini-effort-slider-header">
-          <span class="gemini-effort-slider-title">Thinking Effort</span>
+          <div class="gemini-effort-slider-title-wrap">
+            <span class="gemini-thinking-beacon">
+              <span class="gemini-thinking-beacon-ring"></span>
+              <span class="gemini-thinking-beacon-dot"></span>
+            </span>
+            <span class="gemini-effort-slider-title">Thinking Effort</span>
+          </div>
           <span class="gemini-effort-current-badge">${currentName}</span>
         </div>
         <div class="gemini-effort-track" data-active-index="${activeIdx}">
@@ -1314,6 +1323,7 @@ function enhanceEffortSubmenu(submenu) {
         const chosenName = stepItems[idx].name;
         badge.textContent = chosenName;
         desc.textContent = EFFORT_DESCRIPTIONS[chosenName.toLowerCase()] || `Reasoning effort set to ${chosenName}.`;
+        card.setAttribute('data-level', chosenName.toLowerCase());
       }
 
       function commitIndex(newIdx, skipAnimation = false) {
@@ -1333,7 +1343,7 @@ function enhanceEffortSubmenu(submenu) {
             glider.style.transition = 'none';
             glider.style.transform = `translateX(${targetX}px) scale(1)`;
           } else {
-            glider.style.transition = 'transform 0.42s cubic-bezier(0.34, 1.56, 0.64, 1)';
+            glider.style.transition = 'transform 0.38s cubic-bezier(0.34, 1.56, 0.64, 1)';
             glider.style.transform = `translateX(${targetX}px) scale(1)`;
           }
         }
@@ -1343,7 +1353,7 @@ function enhanceEffortSubmenu(submenu) {
           if (radio && typeof radio.click === 'function') {
             radio.click();
           }
-        }, 320);
+        }, 300);
       }
 
       let isDragging = false;
@@ -1438,9 +1448,22 @@ function enhanceEffortSubmenu(submenu) {
 
       radioItems.forEach((item) => {
         item.style.setProperty('display', 'none', 'important');
+        item.setAttribute('aria-hidden', 'true');
+        item.tabIndex = -1;
         const group = item.closest('[role="group"]');
         if (group && group !== submenu) {
           group.style.setProperty('display', 'none', 'important');
+          group.setAttribute('aria-hidden', 'true');
+        }
+      });
+      // Remove any stale duplicate cards
+      submenu.querySelectorAll('.gemini-effort-slider-card').forEach((c) => {
+        if (c !== card) c.remove();
+      });
+      Array.from(submenu.children).forEach((ch) => {
+        if (ch !== card) {
+          ch.style.setProperty('display', 'none', 'important');
+          ch.setAttribute('aria-hidden', 'true');
         }
       });
       submenu.prepend(card);
@@ -8199,19 +8222,8 @@ function updateAllUserCards(profile) {
       emailEl.style.display = activeEmail ? "" : "none";
     }
 
-    let quotaEl = pill.querySelector(".gemini-sidebar-quota-pill");
-    const limits = getAccountLimits(activeEmail);
-    const quotaText = `5h: ${limits.fiveHour}% · 1w: ${limits.weekly}%`;
-    if (!quotaEl) {
-      quotaEl = document.createElement("div");
-      quotaEl.className = "gemini-sidebar-quota-pill";
-      const textDiv = pill.querySelector(".gemini-user-text");
-      if (textDiv) textDiv.appendChild(quotaEl);
-    }
-    if (quotaEl) {
-      quotaEl.textContent = quotaText;
-      quotaEl.title = `5-Hour Rate Limit: ${limits.fiveHour}% | Weekly Quota: ${limits.weekly}%`;
-    }
+    const quotaEl = pill.querySelector(".gemini-sidebar-quota-pill");
+    if (quotaEl) quotaEl.remove();
     if (imgEl) {
       if (profile.pictureUrl) {
         imgEl.src = profile.pictureUrl;
@@ -9119,10 +9131,6 @@ async function toggleAccountPopover(pill, settingsBtn) {
                   </div>
                   <span class="gemini-popover-account-email">${acc}</span>
                 </div>
-                <div class="gemini-popover-limits-col">
-                  <span class="gemini-limit-chip chip-5h" title="5-Hour Rate Limit: ${limits.fiveHour}%">5h: ${limits.fiveHour}%</span>
-                  <span class="gemini-limit-chip chip-weekly" title="Weekly Limit: ${limits.weekly}%">1w: ${limits.weekly}%</span>
-                </div>
                 <div class="gemini-popover-chevron" title="Switch to this account">
                   <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
                     <polyline points="9 18 15 12 9 6"></polyline>
@@ -9161,27 +9169,6 @@ async function toggleAccountPopover(pill, settingsBtn) {
           <span class="gemini-popover-badge">Active</span>
         </div>
         <span class="gemini-popover-active-email">${activeEmail}</span>
-      </div>
-    </div>
-
-    <div class="gemini-popover-active-limits">
-      <div class="gemini-limit-row">
-        <div class="gemini-limit-label-col">
-          <span class="gemini-limit-name">5-Hour Rate Limit</span>
-          <span class="gemini-limit-val">${activeLimits.fiveHour}%</span>
-        </div>
-        <div class="gemini-limit-track">
-          <div class="gemini-limit-fill fill-5h" style="width: ${activeLimits.fiveHour}%;"></div>
-        </div>
-      </div>
-      <div class="gemini-limit-row">
-        <div class="gemini-limit-label-col">
-          <span class="gemini-limit-name">Weekly Quota Limit</span>
-          <span class="gemini-limit-val">${activeLimits.weekly}%</span>
-        </div>
-        <div class="gemini-limit-track">
-          <div class="gemini-limit-fill fill-weekly" style="width: ${activeLimits.weekly}%;"></div>
-        </div>
       </div>
     </div>
 

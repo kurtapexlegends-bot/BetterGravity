@@ -257,13 +257,18 @@
   gap: 0 !important;
 }
 
-[role="menu"][data-nested]:has([data-testid="model-selector-effort-option"]):has(.gemini-effort-slider-card) [role="group"],
-[role="menu"].gemini-effort-submenu-host:has(.gemini-effort-slider-card) [role="group"],
-[role="menu"].gemini-effort-submenu-host:has(.gemini-effort-slider-card) [role="menuitemradio"],
-[role="menu"].gemini-effort-submenu-host:has(.gemini-effort-slider-card) [data-testid="model-selector-effort-option"],
-[role="menu"][data-nested]:has(.gemini-effort-slider-card) [role="menuitemradio"],
-[role="menu"][data-nested]:has(.gemini-effort-slider-card) [data-testid="model-selector-effort-option"] {
+[role="menu"]:has(.gemini-effort-slider-card) > *:not(.gemini-effort-slider-card),
+[role="menu"]:has(.gemini-effort-slider-card) [role="group"],
+[role="menu"]:has(.gemini-effort-slider-card) [role="menuitemradio"],
+[role="menu"]:has(.gemini-effort-slider-card) [role="menuitem"],
+[role="menu"]:has(.gemini-effort-slider-card) [data-testid="model-selector-effort-option"] {
   display: none !important;
+  visibility: hidden !important;
+  height: 0 !important;
+  width: 0 !important;
+  overflow: hidden !important;
+  position: absolute !important;
+  pointer-events: none !important;
 }
 
 [role="menu"][data-nested] [role="menuitemradio"]:has([data-testid="model-selector-effort-option"]) {
@@ -572,15 +577,15 @@
   border: 1px solid rgba(255, 255, 255, 0.06) !important;
 }
 
-/* --- 1f. Animated Thinking Effort Slider (Codex & Claude Code style) ---------
- */
+/* --- 1f. Codex & Claude Code Animated Thinking Effort Slider ---------------- */
 .gemini-effort-slider-card {
   display: flex !important;
   flex-direction: column !important;
-  gap: 10px !important;
+  gap: 12px !important;
   width: 100% !important;
   box-sizing: border-box !important;
   user-select: none !important;
+  padding: 4px 2px !important;
 }
 
 .gemini-effort-slider-header {
@@ -590,22 +595,72 @@
   padding: 0 4px !important;
 }
 
+.gemini-effort-slider-title-wrap {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+}
+
 .gemini-effort-slider-title {
   font-size: 13px !important;
-  font-weight: 500 !important;
+  font-weight: 600 !important;
   color: var(--gemini-text, #ffffff) !important;
   letter-spacing: 0.01em !important;
 }
 
+/* Pulsing thinking beacon next to title that reacts to thinking level */
+.gemini-thinking-beacon {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 14px !important;
+  height: 14px !important;
+  position: relative !important;
+}
+
+.gemini-thinking-beacon-dot {
+  width: 6px !important;
+  height: 6px !important;
+  border-radius: 9999px !important;
+  background: var(--gemini-effort-accent, #38bdf8) !important;
+  transition: background 300ms ease, box-shadow 300ms ease !important;
+  box-shadow: 0 0 8px var(--gemini-effort-accent, #38bdf8) !important;
+}
+
+.gemini-thinking-beacon-ring {
+  position: absolute !important;
+  inset: 0 !important;
+  border-radius: 9999px !important;
+  border: 1.5px solid var(--gemini-effort-accent, #38bdf8) !important;
+  opacity: 0 !important;
+  animation: gemini-beacon-pulse var(--gemini-beacon-speed, 2.5s) cubic-bezier(0.2, 0.8, 0.2, 1) infinite !important;
+}
+
+@keyframes gemini-beacon-pulse {
+  0% {
+    transform: scale(0.6);
+    opacity: 0.8;
+  }
+  100% {
+    transform: scale(1.8);
+    opacity: 0;
+  }
+}
+
 .gemini-effort-current-badge {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 5px !important;
   font-size: 11px !important;
   font-weight: 600 !important;
-  padding: 2px 8px !important;
+  padding: 2.5px 10px !important;
   border-radius: 9999px !important;
-  background: rgba(255, 255, 255, 0.12) !important;
-  color: #e3e3e3 !important;
+  background: var(--gemini-effort-badge-bg, rgba(255, 255, 255, 0.1)) !important;
+  color: var(--gemini-effort-badge-color, #e3e3e3) !important;
+  border: 1px solid var(--gemini-effort-badge-border, rgba(255, 255, 255, 0.12)) !important;
+  box-shadow: 0 2px 8px var(--gemini-effort-badge-shadow, rgba(0, 0, 0, 0.25)) !important;
   text-transform: capitalize !important;
-  transition: all 200ms ease !important;
+  transition: all 300ms cubic-bezier(0.34, 1.56, 0.64, 1) !important;
 }
 
 /* The Segmented Slider Track */
@@ -613,8 +668,8 @@
   position: relative !important;
   display: flex !important;
   align-items: center !important;
-  height: 38px !important;
-  background: rgba(0, 0, 0, 0.32) !important;
+  height: 40px !important;
+  background: rgba(15, 16, 19, 0.85) !important;
   border: 1px solid rgba(255, 255, 255, 0.08) !important;
   border-radius: 9999px !important;
   padding: 3px !important;
@@ -622,20 +677,22 @@
   cursor: pointer !important;
   touch-action: none !important;
   user-select: none !important;
-  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.35) !important;
+  box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.5), 0 1px 1px rgba(255, 255, 255, 0.04) !important;
+  backdrop-filter: blur(12px) !important;
 }
 
-/* The Sliding Glider Thumb with spring transition */
+/* The Spring Glider Thumb */
 .gemini-effort-glider {
   position: absolute !important;
   top: 3px !important;
   bottom: 3px !important;
   left: 3px !important;
   width: calc((100% - 6px) / 3) !important;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.24) 0%, rgba(255, 255, 255, 0.13) 100%) !important;
   border-radius: 9999px !important;
-  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.25) inset, 0 1px 2px rgba(255, 255, 255, 0.4) inset !important;
-  transition: transform 0.45s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
+  background: var(--gemini-glider-bg, linear-gradient(180deg, rgba(255, 255, 255, 0.22) 0%, rgba(255, 255, 255, 0.1) 100%)) !important;
+  border: 1px solid var(--gemini-glider-border, rgba(255, 255, 255, 0.25)) !important;
+  box-shadow: var(--gemini-glider-shadow, 0 4px 14px rgba(0, 0, 0, 0.45)) !important;
+  transition: transform 0.38s cubic-bezier(0.34, 1.56, 0.64, 1), background 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease !important;
   cursor: grab !important;
   pointer-events: auto !important;
   z-index: 3 !important;
@@ -645,20 +702,7 @@
 .gemini-effort-track.is-dragging .gemini-effort-glider {
   cursor: grabbing !important;
   transition: none !important;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.32) 0%, rgba(255, 255, 255, 0.20) 100%) !important;
-  box-shadow: 0 5px 18px rgba(0, 0, 0, 0.65), 0 0 0 1px rgba(255, 255, 255, 0.38) inset !important;
-}
-
-.gemini-effort-track:not(.is-dragging)[data-active-index="0"] .gemini-effort-glider {
-  transform: translateX(0%);
-}
-
-.gemini-effort-track:not(.is-dragging)[data-active-index="1"] .gemini-effort-glider {
-  transform: translateX(100%);
-}
-
-.gemini-effort-track:not(.is-dragging)[data-active-index="2"] .gemini-effort-glider {
-  transform: translateX(200%);
+  transform: scale(1.05) !important;
 }
 
 /* Step Labels inside track */
@@ -666,53 +710,119 @@
   flex: 1 !important;
   height: 100% !important;
   position: relative !important;
-  z-index: 2 !important;
+  z-index: 4 !important;
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
   background: transparent !important;
   border: none !important;
-  color: rgba(255, 255, 255, 0.55) !important;
+  color: rgba(255, 255, 255, 0.52) !important;
   font-family: inherit !important;
   font-size: 12px !important;
   font-weight: 500 !important;
   cursor: pointer !important;
-  pointer-events: none !important;
+  pointer-events: auto !important;
   padding: 0 !important;
   margin: 0 !important;
-  transition: color 200ms ease, font-weight 200ms ease, transform 240ms cubic-bezier(0.34, 1.56, 0.64, 1) !important;
+  transition: color 240ms ease, font-weight 240ms ease, transform 240ms cubic-bezier(0.34, 1.56, 0.64, 1) !important;
   border-radius: 9999px !important;
 }
 
 .gemini-effort-step:hover {
-  color: #ffffff !important;
+  color: rgba(255, 255, 255, 0.88) !important;
 }
 
 .gemini-effort-step.is-active {
   color: #ffffff !important;
   font-weight: 600 !important;
-  transform: scale(1.05);
-  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5) !important;
+  transform: scale(1.04) !important;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.6) !important;
 }
 
-/* Explanatory description card */
+/* Explanatory description card with soft glass */
 .gemini-effort-desc {
   font-size: 11.5px !important;
   line-height: 16px !important;
-  color: rgba(255, 255, 255, 0.55) !important;
-  padding: 4px 6px 2px !important;
-  min-height: 32px !important;
+  color: rgba(255, 255, 255, 0.62) !important;
+  padding: 6px 8px !important;
+  min-height: 34px !important;
+  border-radius: 8px !important;
+  background: rgba(255, 255, 255, 0.03) !important;
+  border: 1px solid rgba(255, 255, 255, 0.05) !important;
   transition: opacity 150ms ease !important;
 }
 
-/* Quick Effort Slider inside Main Model Panel */
-.gemini-quick-effort-panel {
-  padding: 10px 8px 6px !important;
-  margin-top: 4px !important;
-  border-top: 1px solid var(--gemini-separator, rgba(255, 255, 255, 0.08)) !important;
+/* --- Dynamic Thinking Level Aesthetics (Codex & Claude Code) ---------------- */
+
+/* LEVEL: LOW */
+.gemini-effort-slider-card[data-level="low"] {
+  --gemini-effort-accent: #38bdf8;
+  --gemini-beacon-speed: 3.2s;
+  --gemini-effort-badge-bg: rgba(56, 189, 248, 0.12);
+  --gemini-effort-badge-color: #7dd3fc;
+  --gemini-effort-badge-border: rgba(56, 189, 248, 0.3);
+  --gemini-effort-badge-shadow: 0 0 12px rgba(56, 189, 248, 0.2);
+  --gemini-glider-bg: linear-gradient(180deg, rgba(56, 189, 248, 0.25) 0%, rgba(56, 189, 248, 0.10) 100%);
+  --gemini-glider-border: rgba(56, 189, 248, 0.45);
+  --gemini-glider-shadow: 0 4px 14px rgba(0, 0, 0, 0.45), 0 0 16px rgba(56, 189, 248, 0.25), inset 0 1px 2px rgba(255, 255, 255, 0.4);
 }
 
-.gemini-quick-effort-panel .gemini-effort-slider-header {
-  margin-bottom: 6px !important;
+/* LEVEL: MEDIUM */
+.gemini-effort-slider-card[data-level="medium"] {
+  --gemini-effort-accent: #a855f7;
+  --gemini-beacon-speed: 2s;
+  --gemini-effort-badge-bg: rgba(168, 85, 247, 0.14);
+  --gemini-effort-badge-color: #d8b4fe;
+  --gemini-effort-badge-border: rgba(168, 85, 247, 0.35);
+  --gemini-effort-badge-shadow: 0 0 16px rgba(168, 85, 247, 0.28);
+  --gemini-glider-bg: linear-gradient(180deg, rgba(168, 85, 247, 0.28) 0%, rgba(168, 85, 247, 0.12) 100%);
+  --gemini-glider-border: rgba(168, 85, 247, 0.55);
+  --gemini-glider-shadow: 0 4px 16px rgba(0, 0, 0, 0.5), 0 0 20px rgba(168, 85, 247, 0.35), inset 0 1px 2px rgba(255, 255, 255, 0.45);
+}
+
+/* LEVEL: HIGH (Deep thinking mode - radiant cosmic plasma & shimmer) */
+.gemini-effort-slider-card[data-level="high"] {
+  --gemini-effort-accent: #f43f5e;
+  --gemini-beacon-speed: 1.2s;
+  --gemini-effort-badge-bg: linear-gradient(135deg, rgba(244, 63, 94, 0.18) 0%, rgba(168, 85, 247, 0.18) 100%);
+  --gemini-effort-badge-color: #fda4af;
+  --gemini-effort-badge-border: rgba(244, 63, 94, 0.45);
+  --gemini-effort-badge-shadow: 0 0 20px rgba(244, 63, 94, 0.38);
+  --gemini-glider-bg: linear-gradient(135deg, rgba(244, 63, 94, 0.32) 0%, rgba(168, 85, 247, 0.24) 50%, rgba(251, 191, 36, 0.18) 100%);
+  --gemini-glider-border: rgba(244, 63, 94, 0.65);
+  --gemini-glider-shadow: 0 4px 18px rgba(0, 0, 0, 0.6), 0 0 24px rgba(244, 63, 94, 0.42), 0 0 12px rgba(168, 85, 247, 0.3), inset 0 1px 3px rgba(255, 255, 255, 0.55);
+}
+
+/* Ambient Thinking Shimmer on High Glider */
+.gemini-effort-slider-card[data-level="high"] .gemini-effort-glider {
+  animation: gemini-high-shimmer 2.5s ease-in-out infinite alternate !important;
+}
+
+@keyframes gemini-high-shimmer {
+  0% {
+    box-shadow: 0 4px 18px rgba(0, 0, 0, 0.6), 0 0 18px rgba(244, 63, 94, 0.35), inset 0 1px 2px rgba(255, 255, 255, 0.5);
+  }
+  100% {
+    box-shadow: 0 4px 22px rgba(0, 0, 0, 0.65), 0 0 28px rgba(168, 85, 247, 0.55), 0 0 12px rgba(251, 191, 36, 0.4), inset 0 1px 3px rgba(255, 255, 255, 0.7);
+  }
+}
+
+/* --- 1g. Clean Model Items & Tooltip Fix ------------------------------------ */
+/* Suppress awkward floating tooltips popping up over model row titles */
+[data-testid="model-selector-panel"] [role="tooltip"],
+[data-testid="model-selector-panel"] [data-base-ui-tooltip-popup],
+[data-testid="model-selector-panel"] [data-radix-tooltip-content],
+[data-testid="model-selector-panel"] .react-tooltip,
+[role="menu"]:has([data-testid="model-selector-panel"]) ~ [role="tooltip"],
+[role="menu"]:has([data-testid="model-selector-panel"]) ~ [data-base-ui-tooltip-popup] {
+  display: none !important;
+  pointer-events: none !important;
+}
+
+/* Hide the tiny redundant (i) info button that triggers the 'Limited time' tooltip */
+[data-testid="model-selector-panel"] [role="menuitem"] button:has(svg),
+[data-testid="model-selector-panel"] [role="menuitem"] [aria-label*="Fast"],
+[data-testid="model-selector-panel"] [role="menuitem"] [data-tooltip-id*="fast"] {
+  display: none !important;
 }
 
