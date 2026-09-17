@@ -351,6 +351,18 @@
   background: var(--gemini-separator) !important;
 }
 
+/* Remove Claude and GPT rows from the model selector */
+[role="menuitem"]:has([data-model-base*="Claude"]),
+[role="menuitem"]:has([data-model-base*="GPT"]),
+[role="menuitem"]:has([data-testid*="claude"]),
+[role="menuitem"]:has([data-testid*="gpt"]),
+[role="menuitem"]:has(span:first-child > [data-testid="model-selector-effort-group"][data-model-base*="Claude"]),
+[role="menuitem"]:has(span:first-child > [data-testid="model-selector-effort-group"][data-model-base*="GPT"]),
+[role="menu"]:has([data-testid="model-selector-effort-group"]) [role="menuitem"]:has([data-model-base*="Claude"]),
+[role="menu"]:has([data-testid="model-selector-effort-group"]) [role="menuitem"]:has([data-model-base*="GPT"]) {
+  display: none !important;
+}
+
 /* --- 1c. The effort submenu -------------------------------------------------
  * Willow: a 220px card in the same surface, 48px rows, check column on the left.
  * Antigravity: the same menu component as above, nested, with menuitemradio rows.
@@ -754,6 +766,7 @@
   box-sizing: border-box !important;
   user-select: none !important;
   padding: 4px 2px !important;
+  transition: all 300ms ease !important;
 }
 
 .gemini-effort-slider-header {
@@ -793,6 +806,7 @@
   background: var(--gemini-effort-accent, #38bdf8) !important;
   transition: background 300ms ease, box-shadow 300ms ease !important;
   box-shadow: 0 0 8px var(--gemini-effort-accent, #38bdf8) !important;
+  z-index: 2 !important;
 }
 
 .gemini-thinking-beacon-ring {
@@ -804,13 +818,30 @@
   animation: gemini-beacon-pulse var(--gemini-beacon-speed, 2.5s) cubic-bezier(0.2, 0.8, 0.2, 1) infinite !important;
 }
 
+.gemini-thinking-beacon-ring.gemini-beacon-ring-outer {
+  animation: gemini-beacon-pulse-outer var(--gemini-beacon-speed, 2.5s) cubic-bezier(0.2, 0.8, 0.2, 1) infinite !important;
+  animation-delay: calc(var(--gemini-beacon-speed, 2.5s) * 0.35) !important;
+  display: var(--gemini-outer-ring-display, none) !important;
+}
+
 @keyframes gemini-beacon-pulse {
   0% {
     transform: scale(0.6);
-    opacity: 0.8;
+    opacity: 0.85;
   }
   100% {
-    transform: scale(1.8);
+    transform: scale(1.9);
+    opacity: 0;
+  }
+}
+
+@keyframes gemini-beacon-pulse-outer {
+  0% {
+    transform: scale(0.7);
+    opacity: 0.7;
+  }
+  100% {
+    transform: scale(2.4);
     opacity: 0;
   }
 }
@@ -831,8 +862,29 @@
   transition: all 300ms cubic-bezier(0.34, 1.56, 0.64, 1) !important;
 }
 
+/* Badge Sparkle Dot */
+.gemini-effort-badge-spark {
+  display: none !important;
+  width: 6px !important;
+  height: 6px !important;
+  border-radius: 9999px !important;
+  background: #fbbf24 !important;
+  box-shadow: 0 0 6px #fbbf24, 0 0 10px #f43f5e !important;
+}
+
+.gemini-effort-slider-card[data-level="high"] .gemini-effort-badge-spark {
+  display: inline-block !important;
+  animation: gemini-spark-twinkle 1.4s ease-in-out infinite alternate !important;
+}
+
+@keyframes gemini-spark-twinkle {
+  0% { transform: scale(0.8); opacity: 0.6; }
+  100% { transform: scale(1.3); opacity: 1; filter: drop-shadow(0 0 4px #fbbf24); }
+}
+
 /* The Segmented Slider Track */
 .gemini-effort-track {
+  --active-step: 0;
   position: relative !important;
   display: flex !important;
   align-items: center !important;
@@ -847,6 +899,24 @@
   user-select: none !important;
   box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.5), 0 1px 1px rgba(255, 255, 255, 0.04) !important;
   backdrop-filter: blur(12px) !important;
+  transition: border-color 300ms ease, box-shadow 300ms ease !important;
+}
+
+.gemini-effort-track[data-active-index="0"] { --active-step: 0; }
+.gemini-effort-track[data-active-index="1"] { --active-step: 1; }
+.gemini-effort-track[data-active-index="2"] { --active-step: 2; }
+.gemini-effort-track[data-active-index="3"] { --active-step: 3; }
+
+/* Interactive pop / burst feedback */
+.gemini-effort-track.gemini-effort-burst {
+  animation: gemini-effort-snap-pop 0.38s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
+}
+
+@keyframes gemini-effort-snap-pop {
+  0% { transform: scale(0.98); }
+  45% { transform: scale(1.02); }
+  75% { transform: scale(0.995); }
+  100% { transform: scale(1); }
 }
 
 /* The Spring Glider Thumb */
@@ -860,17 +930,40 @@
   background: var(--gemini-glider-bg, linear-gradient(180deg, rgba(255, 255, 255, 0.22) 0%, rgba(255, 255, 255, 0.1) 100%)) !important;
   border: 1px solid var(--gemini-glider-border, rgba(255, 255, 255, 0.25)) !important;
   box-shadow: var(--gemini-glider-shadow, 0 4px 14px rgba(0, 0, 0, 0.45)) !important;
-  transition: transform 0.38s cubic-bezier(0.34, 1.56, 0.64, 1), background 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease !important;
+  transform: translateX(calc(var(--active-step, 0) * 100%)) translateZ(0) !important;
+  transition: transform 0.38s cubic-bezier(0.34, 1.56, 0.64, 1),
+              background 0.32s ease,
+              border-color 0.32s ease,
+              box-shadow 0.32s ease !important;
   cursor: grab !important;
   pointer-events: auto !important;
   z-index: 3 !important;
   backdrop-filter: blur(8px) !important;
+  overflow: hidden !important;
 }
 
 .gemini-effort-track.is-dragging .gemini-effort-glider {
   cursor: grabbing !important;
   transition: none !important;
-  transform: scale(1.05) !important;
+  transform: translateX(var(--drag-offset, 0px)) scale(1.04) translateZ(0) !important;
+}
+
+/* Glider Inner Plasma Shine Sweep & Specular Aura */
+.gemini-effort-glider-shine {
+  position: absolute !important;
+  inset: 0 !important;
+  border-radius: 9999px !important;
+  pointer-events: none !important;
+  opacity: 0 !important;
+  transition: opacity 300ms ease !important;
+}
+
+.gemini-effort-glider-aura {
+  position: absolute !important;
+  inset: -1px !important;
+  border-radius: 9999px !important;
+  pointer-events: none !important;
+  box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.35) !important;
 }
 
 /* Step Labels inside track */
@@ -917,15 +1010,16 @@
   border-radius: 8px !important;
   background: rgba(255, 255, 255, 0.03) !important;
   border: 1px solid rgba(255, 255, 255, 0.05) !important;
-  transition: opacity 150ms ease !important;
+  transition: opacity 150ms ease, border-color 300ms ease !important;
 }
 
-/* --- Dynamic Thinking Level Aesthetics (Codex & Claude Code) ---------------- */
+/* --- Dynamic Thinking Level Aesthetics & Progressive Gratification ---------- */
 
-/* LEVEL: LOW */
+/* LEVEL: LOW - Calm celestial cyan, peaceful focus */
 .gemini-effort-slider-card[data-level="low"] {
   --gemini-effort-accent: #38bdf8;
   --gemini-beacon-speed: 3.2s;
+  --gemini-outer-ring-display: none;
   --gemini-effort-badge-bg: rgba(56, 189, 248, 0.12);
   --gemini-effort-badge-color: #7dd3fc;
   --gemini-effort-badge-border: rgba(56, 189, 248, 0.3);
@@ -935,47 +1029,90 @@
   --gemini-glider-shadow: 0 4px 14px rgba(0, 0, 0, 0.45), 0 0 16px rgba(56, 189, 248, 0.25), inset 0 1px 2px rgba(255, 255, 255, 0.4);
 }
 
-/* LEVEL: MEDIUM */
+/* LEVEL: MEDIUM - Radiant electric amethyst, elevated intelligence */
 .gemini-effort-slider-card[data-level="medium"] {
   --gemini-effort-accent: #a855f7;
-  --gemini-beacon-speed: 2s;
+  --gemini-beacon-speed: 1.8s;
+  --gemini-outer-ring-display: block;
   --gemini-effort-badge-bg: rgba(168, 85, 247, 0.14);
   --gemini-effort-badge-color: #d8b4fe;
-  --gemini-effort-badge-border: rgba(168, 85, 247, 0.35);
+  --gemini-effort-badge-border: rgba(168, 85, 247, 0.38);
   --gemini-effort-badge-shadow: 0 0 16px rgba(168, 85, 247, 0.28);
-  --gemini-glider-bg: linear-gradient(180deg, rgba(168, 85, 247, 0.28) 0%, rgba(168, 85, 247, 0.12) 100%);
-  --gemini-glider-border: rgba(168, 85, 247, 0.55);
-  --gemini-glider-shadow: 0 4px 16px rgba(0, 0, 0, 0.5), 0 0 20px rgba(168, 85, 247, 0.35), inset 0 1px 2px rgba(255, 255, 255, 0.45);
+  --gemini-glider-bg: linear-gradient(180deg, rgba(168, 85, 247, 0.30) 0%, rgba(168, 85, 247, 0.12) 100%);
+  --gemini-glider-border: rgba(168, 85, 247, 0.58);
+  --gemini-glider-shadow: 0 4px 16px rgba(0, 0, 0, 0.5), 0 0 20px rgba(168, 85, 247, 0.38), inset 0 1px 2px rgba(255, 255, 255, 0.5);
 }
 
-/* LEVEL: HIGH (Deep thinking mode - radiant cosmic plasma & shimmer) */
+/* LEVEL: HIGH (Max Gratification - Polychromatic Cosmic Aurora & Flowing Plasma) */
 .gemini-effort-slider-card[data-level="high"] {
   --gemini-effort-accent: #f43f5e;
-  --gemini-beacon-speed: 1.2s;
-  --gemini-effort-badge-bg: linear-gradient(135deg, rgba(244, 63, 94, 0.18) 0%, rgba(168, 85, 247, 0.18) 100%);
+  --gemini-beacon-speed: 1.05s;
+  --gemini-outer-ring-display: block;
+  --gemini-effort-badge-bg: linear-gradient(135deg, rgba(244, 63, 94, 0.22) 0%, rgba(168, 85, 247, 0.22) 100%);
   --gemini-effort-badge-color: #fda4af;
-  --gemini-effort-badge-border: rgba(244, 63, 94, 0.45);
-  --gemini-effort-badge-shadow: 0 0 20px rgba(244, 63, 94, 0.38);
-  --gemini-glider-bg: linear-gradient(135deg, rgba(244, 63, 94, 0.32) 0%, rgba(168, 85, 247, 0.24) 50%, rgba(251, 191, 36, 0.18) 100%);
-  --gemini-glider-border: rgba(244, 63, 94, 0.65);
-  --gemini-glider-shadow: 0 4px 18px rgba(0, 0, 0, 0.6), 0 0 24px rgba(244, 63, 94, 0.42), 0 0 12px rgba(168, 85, 247, 0.3), inset 0 1px 3px rgba(255, 255, 255, 0.55);
+  --gemini-effort-badge-border: rgba(244, 63, 94, 0.55);
+  --gemini-effort-badge-shadow: 0 0 20px rgba(244, 63, 94, 0.45);
+  --gemini-glider-bg: linear-gradient(135deg, rgba(244, 63, 94, 0.40) 0%, rgba(168, 85, 247, 0.32) 50%, rgba(251, 191, 36, 0.22) 100%);
+  --gemini-glider-border: rgba(244, 63, 94, 0.75);
+  --gemini-glider-shadow: 0 4px 18px rgba(0, 0, 0, 0.6), 0 0 26px rgba(244, 63, 94, 0.48), 0 0 14px rgba(168, 85, 247, 0.35), inset 0 1px 3px rgba(255, 255, 255, 0.65);
 }
 
-/* Ambient Thinking Shimmer on High Glider */
+.gemini-effort-slider-card[data-level="high"] .gemini-effort-track {
+  border-color: rgba(244, 63, 94, 0.35) !important;
+  box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.5), 0 0 18px rgba(244, 63, 94, 0.22), 0 1px 1px rgba(255, 255, 255, 0.08) !important;
+}
+
+/* Flowing Liquid Plasma Shimmer across Glider on High */
+.gemini-effort-slider-card[data-level="high"] .gemini-effort-glider-shine {
+  opacity: 1 !important;
+  position: absolute !important;
+  inset: -50% -30% !important;
+  background: linear-gradient(
+    115deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.03) 30%,
+    rgba(255, 255, 255, 0.5) 50%,
+    rgba(251, 191, 36, 0.4) 62%,
+    transparent 78%
+  ) !important;
+  animation: gemini-plasma-sweep 2.4s cubic-bezier(0.4, 0, 0.2, 1) infinite !important;
+}
+
+@keyframes gemini-plasma-sweep {
+  0% {
+    transform: translateX(-110%) rotate(25deg);
+  }
+  100% {
+    transform: translateX(130%) rotate(25deg);
+  }
+}
+
+/* Ambient Pulsing Aura on High Glider */
 .gemini-effort-slider-card[data-level="high"] .gemini-effort-glider {
-  animation: gemini-high-shimmer 2.5s ease-in-out infinite alternate !important;
+  animation: gemini-high-shimmer 2.2s ease-in-out infinite alternate !important;
 }
 
 @keyframes gemini-high-shimmer {
   0% {
-    box-shadow: 0 4px 18px rgba(0, 0, 0, 0.6), 0 0 18px rgba(244, 63, 94, 0.35), inset 0 1px 2px rgba(255, 255, 255, 0.5);
+    box-shadow: 0 4px 18px rgba(0, 0, 0, 0.6), 0 0 20px rgba(244, 63, 94, 0.4), 0 0 10px rgba(168, 85, 247, 0.3), inset 0 1px 2px rgba(255, 255, 255, 0.55);
   }
   100% {
-    box-shadow: 0 4px 22px rgba(0, 0, 0, 0.65), 0 0 28px rgba(168, 85, 247, 0.55), 0 0 12px rgba(251, 191, 36, 0.4), inset 0 1px 3px rgba(255, 255, 255, 0.7);
+    box-shadow: 0 4px 22px rgba(0, 0, 0, 0.65), 0 0 30px rgba(168, 85, 247, 0.58), 0 0 16px rgba(251, 191, 36, 0.45), inset 0 1px 3px rgba(255, 255, 255, 0.75);
   }
 }
 
 /* --- 1g. Clean Model Items & Tooltip Fix ------------------------------------ */
+/* Hide Non-Gemini models (Claude, GPT, Anthropic, OpenAI) */
+[data-testid="model-selector-panel"] [role="menuitem"]:has([data-model-base*="claude" i]),
+[data-testid="model-selector-panel"] [role="menuitem"]:has([data-model-base*="gpt" i]),
+[data-testid="model-selector-panel"] [role="menuitem"]:has([data-model-id*="claude" i]),
+[data-testid="model-selector-panel"] [role="menuitem"]:has([data-model-id*="gpt" i]),
+.gemini-model-selector-panel [role="menuitem"]:has([data-model-base*="claude" i]),
+.gemini-model-selector-panel [role="menuitem"]:has([data-model-base*="gpt" i]),
+[role="menu"]:has([data-testid="model-selector-effort-group"]) [role="menuitem"]:has([data-model-base*="claude" i]),
+[role="menu"]:has([data-testid="model-selector-effort-group"]) [role="menuitem"]:has([data-model-base*="gpt" i]) {
+  display: none !important;
+}
 /* Suppress awkward floating tooltips popping up over model row titles */
 [data-testid="model-selector-panel"] [role="tooltip"],
 [data-testid="model-selector-panel"] [data-base-ui-tooltip-popup],

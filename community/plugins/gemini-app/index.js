@@ -1218,6 +1218,18 @@ function enhanceModelSelectorPanel(panel) {
 
     const rows = panel.querySelectorAll('[role="menuitem"], [role="menuitemradio"]');
     for (const row of rows) {
+      const rowText = (row.textContent || "").trim();
+      const modelBase = row.getAttribute('data-model-base') || "";
+      const modelId = row.getAttribute('data-model-id') || "";
+
+      // Strictly remove non-Gemini models (Claude, GPT, OpenAI, Anthropic)
+      if (/claude|gpt|anthropic|openai/i.test(rowText) || /claude|gpt/i.test(modelBase) || /claude|gpt/i.test(modelId)) {
+        row.style.setProperty('display', 'none', 'important');
+        row.setAttribute('aria-hidden', 'true');
+        row.tabIndex = -1;
+        continue;
+      }
+
       // Submenu trigger handling: attach hover and click listeners to open effort submenu reliably
       if (row.getAttribute('aria-haspopup') === 'menu') {
         const chevron = row.querySelector('span.opacity-50') || row.querySelector('svg[data-icon="chevron-right"]')?.closest('span');
@@ -1410,14 +1422,21 @@ function enhanceEffortSubmenu(submenu) {
           <div class="gemini-effort-slider-title-wrap">
             <span class="gemini-thinking-beacon">
               <span class="gemini-thinking-beacon-ring"></span>
+              <span class="gemini-thinking-beacon-ring gemini-beacon-ring-outer"></span>
               <span class="gemini-thinking-beacon-dot"></span>
             </span>
             <span class="gemini-effort-slider-title">Thinking Effort</span>
           </div>
-          <span class="gemini-effort-current-badge">${currentName}</span>
+          <span class="gemini-effort-current-badge">
+            <span class="gemini-effort-badge-spark"></span>
+            <span class="gemini-effort-badge-text">${currentName}</span>
+          </span>
         </div>
         <div class="gemini-effort-track" data-active-index="${activeIdx}">
-          <div class="gemini-effort-glider"></div>
+          <div class="gemini-effort-glider">
+            <span class="gemini-effort-glider-shine"></span>
+            <span class="gemini-effort-glider-aura"></span>
+          </div>
         </div>
         <div class="gemini-effort-desc">${currentDesc}</div>
       `;
@@ -1449,7 +1468,8 @@ function enhanceEffortSubmenu(submenu) {
         if (idx < 0 || idx >= stepItems.length) return;
         stepButtons.forEach((b, i) => b.classList.toggle('is-active', i === idx));
         const chosenName = stepItems[idx].name;
-        badge.textContent = chosenName;
+        const badgeText = badge.querySelector('.gemini-effort-badge-text') || badge;
+        badgeText.textContent = chosenName;
         desc.textContent = EFFORT_DESCRIPTIONS[chosenName.toLowerCase()] || `Reasoning effort set to ${chosenName}.`;
         card.setAttribute('data-level', chosenName.toLowerCase());
       }
@@ -1460,29 +1480,26 @@ function enhanceEffortSubmenu(submenu) {
         track.setAttribute('data-active-index', String(newIdx));
         setVisualPreview(newIdx);
 
-        const rect = track.getBoundingClientRect();
-        const padding = 3;
-        const trackW = rect.width - padding * 2;
-        const gliderW = trackW / stepItems.length;
-        const targetX = newIdx * gliderW;
+        // Reset drag override so CSS step placement governs cleanly
+        track.style.removeProperty('--drag-offset');
+        if (glider) glider.style.transform = '';
 
-        if (glider) {
-          if (skipAnimation) {
-            glider.style.transition = 'none';
-            glider.style.transform = `translateX(${targetX}px) scale(1)`;
-          } else {
-            glider.style.transition = 'transform 0.38s cubic-bezier(0.34, 1.56, 0.64, 1)';
-            glider.style.transform = `translateX(${targetX}px) scale(1)`;
-          }
-        }
+        // Tactile snap burst
+        track.classList.remove('gemini-effort-burst');
+        void track.offsetWidth;
+        track.classList.add('gemini-effort-burst');
 
         setTimeout(() => {
           const radio = stepItems[newIdx]?.element;
           if (radio && typeof radio.click === 'function') {
             radio.click();
           }
-        }, 300);
+        }, 120);
       }
+
+      // Initialize visual preview and active index on mount
+      setVisualPreview(activeIdx);
+      track.setAttribute('data-active-index', String(activeIdx));
 
       let isDragging = false;
       let targetIdx = activeIdx;
@@ -1509,10 +1526,7 @@ function enhanceEffortSubmenu(submenu) {
         const clickOffset = e.clientX - rect.left - padding;
         const currentPos = Math.max(0, Math.min(maxOffset, clickOffset - gliderW / 2));
 
-        if (glider) {
-          glider.style.transition = 'none';
-          glider.style.transform = `translateX(${currentPos}px) scale(1.05)`;
-        }
+        track.style.setProperty('--drag-offset', `${currentPos}px`);
       });
 
       track.addEventListener('pointermove', (e) => {
@@ -1532,10 +1546,7 @@ function enhanceEffortSubmenu(submenu) {
         const clickOffset = e.clientX - rect.left - padding;
         const currentPos = Math.max(0, Math.min(maxOffset, clickOffset - gliderW / 2));
 
-        if (glider) {
-          glider.style.transition = 'none';
-          glider.style.transform = `translateX(${currentPos}px) scale(1.05)`;
-        }
+        track.style.setProperty('--drag-offset', `${currentPos}px`);
 
         const fraction = currentPos / (maxOffset || 1);
         const newTarget = Math.max(0, Math.min(stepItems.length - 1, Math.round(fraction * (stepItems.length - 1))));
@@ -1557,17 +1568,15 @@ function enhanceEffortSubmenu(submenu) {
         const padding = 3;
         const trackW = rect.width - padding * 2;
         const gliderW = trackW / stepItems.length;
-        const maxOffset = trackW - gliderW;
+
+        track.style.removeProperty('--drag-offset');
 
         if (!moved) {
           const clickOffset = e.clientX - rect.left - padding;
           const clickedIdx = Math.max(0, Math.min(stepItems.length - 1, Math.floor(clickOffset / gliderW)));
           commitIndex(clickedIdx);
         } else {
-          const clickOffset = e.clientX - rect.left - padding;
-          const currentPos = Math.max(0, Math.min(maxOffset, clickOffset - gliderW / 2));
-          const finalIdx = Math.max(0, Math.min(stepItems.length - 1, Math.round(currentPos / gliderW)));
-          commitIndex(finalIdx);
+          commitIndex(targetIdx);
         }
       };
 
