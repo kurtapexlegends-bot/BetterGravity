@@ -974,13 +974,20 @@ function handleRemoteAction(action) {
     } else if (action === "openModelSelector") {
       const trigger = document.querySelector('[data-testid="model-selector-trigger"]');
       trigger?.click();
+    } else if (action === "openModelAndInspect") {
+      const trigger = document.querySelector('[data-testid="model-selector-trigger"]');
+      if (trigger && !trigger.hasAttribute('data-popup-open')) {
+        trigger.click();
+      }
+      setTimeout(() => {
+        handleRemoteAction("inspectDOM");
+      }, 600);
     } else if (action === "openEffortSubmenu") {
-      const items = Array.from(document.querySelectorAll('[role="menuitem"], [role="menuitemradio"], [data-testid="model-item"]'));
-      const flash = items.find(i => /flash/i.test(i.textContent || ""));
+      const items = Array.from(document.querySelectorAll('[role="menuitem"][aria-haspopup="menu"]'));
+      const flash = items.find(i => /flash/i.test(i.textContent || "")) || items[0];
       if (flash) {
-        flash.dispatchEvent(new MouseEvent("mouseenter", { bubbles: true, cancelable: true }));
-        flash.dispatchEvent(new MouseEvent("pointerover", { bubbles: true, cancelable: true }));
-        flash.focus?.();
+        flash.focus();
+        flash.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', code: 'ArrowRight', keyCode: 39, which: 39, bubbles: true, cancelable: true }));
       }
     } else if (action === "closePopovers") {
       closeAccountPopover();
@@ -1014,7 +1021,19 @@ function handleRemoteAction(action) {
             cancel: r(cancel)
           },
           boxHtml: box?.innerHTML || "",
-          pillHtml: pill?.outerHTML || ""
+          pillHtml: pill?.outerHTML || "",
+          menus: Array.from(document.querySelectorAll('[role="menu"], [data-base-ui-menu-popup], [role="dialog"], [data-radix-popper-content-wrapper], div:has(> [role="menuitem"])')).map(m => ({
+            id: m.id,
+            className: m.className,
+            role: m.getAttribute('role'),
+            attrs: Array.from(m.attributes).map(a => `${a.name}="${a.value}"`),
+            html: m.outerHTML
+          })),
+          menuitems: Array.from(document.querySelectorAll('[role="menuitem"], [role="menuitemradio"]')).map(el => ({
+            text: el.textContent?.trim(),
+            html: el.outerHTML,
+            parentClass: el.parentElement?.className || ""
+          }))
         })
       }).catch(() => {});
     }
@@ -1185,6 +1204,41 @@ function enhanceModelSelectorPanel(panel) {
   try {
     const rows = panel.querySelectorAll('[role="menuitem"], [role="menuitemradio"]');
     for (const row of rows) {
+      // Submenu trigger handling: attach hover and click listeners to open effort submenu reliably
+      if (row.getAttribute('aria-haspopup') === 'menu') {
+        const chevron = row.querySelector('span.opacity-50') || row.querySelector('svg[data-icon="chevron-right"]')?.closest('span');
+        
+        const openEffort = () => {
+          if (row.getAttribute('aria-expanded') !== 'true') {
+            row.focus();
+            row.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', code: 'ArrowRight', keyCode: 39, which: 39, bubbles: true, cancelable: true }));
+          }
+        };
+
+        if (chevron && !chevron.dataset.geminiEffortTrigger) {
+          chevron.dataset.geminiEffortTrigger = "true";
+          chevron.style.cursor = "pointer";
+          chevron.style.pointerEvents = "auto";
+          chevron.addEventListener('pointerenter', openEffort);
+          chevron.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            openEffort();
+          });
+        }
+
+        if (!row.dataset.geminiRowTrigger) {
+          row.dataset.geminiRowTrigger = "true";
+          row.addEventListener('pointerenter', () => {
+            setTimeout(() => {
+              if (row.matches(':hover') && row.getAttribute('aria-expanded') !== 'true') {
+                openEffort();
+              }
+            }, 60);
+          });
+        }
+      }
+
       if (row.querySelector('.gemini-model-limit-tag') || row.querySelector('.gemini-usage-stats')) continue;
 
       const text = (row.textContent || "").trim();
@@ -1193,8 +1247,9 @@ function enhanceModelSelectorPanel(panel) {
         if (!stats) {
           stats = document.createElement('span');
           stats.className = 'gemini-usage-stats';
-          stats.style.cssText = 'margin-left: auto; font-size: 11px; color: var(--gemini-text-dim, rgba(255,255,255,0.5)); padding-right: 8px; font-variant-numeric: tabular-nums; pointer-events: none;';
-          row.appendChild(stats);
+          stats.style.pointerEvents = 'none';
+          const chevron = row.querySelector('span.opacity-50') || row.querySelector('span.ml-auto');
+          row.insertBefore(stats, chevron || null);
         }
         const metrics = getConversationContextMetrics();
         const statsStr = `${formatTokenCount(metrics.used)} / ${formatTokenLimit(metrics.limit)}`;
@@ -1206,13 +1261,16 @@ function enhanceModelSelectorPanel(panel) {
 
       const limit = getModelContextLimit(text);
       if (limit) {
-        const tag = document.createElement('span');
-        tag.className = 'gemini-model-limit-tag';
-        tag.textContent = formatTokenLimit(limit);
-        tag.title = `Context Window Limit: ${limit.toLocaleString()} tokens`;
-        tag.style.pointerEvents = 'none';
-        tag.style.marginLeft = 'auto';
-        row.appendChild(tag);
+        let tag = row.querySelector('.gemini-model-limit-tag');
+        if (!tag) {
+          tag = document.createElement('span');
+          tag.className = 'gemini-model-limit-tag';
+          tag.textContent = formatTokenLimit(limit);
+          tag.title = `Context Window Limit: ${limit.toLocaleString()} tokens`;
+          tag.style.pointerEvents = 'none';
+          const chevron = row.querySelector('span.opacity-50');
+          row.insertBefore(tag, chevron || null);
+        }
       }
     }
   } catch (err) {
@@ -1232,6 +1290,7 @@ let isEnhancingEffort = false;
 
 function enhanceEffortSubmenu(submenu) {
   if (!submenu || !submenu.isConnected || isEnhancingEffort) return;
+
   if (submenu.querySelector('.gemini-effort-slider-card')) return;
   isEnhancingEffort = true;
 

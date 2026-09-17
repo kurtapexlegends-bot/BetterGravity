@@ -65,9 +65,9 @@
  */
 
 [role="menu"]:has(> [data-testid="model-selector-panel"]) {
-  width: 241px !important;
-  min-width: 241px !important;
-  max-width: 241px !important;
+  width: 320px !important;
+  min-width: 320px !important;
+  max-width: 340px !important;
   padding: 8px !important;
   border: 0 !important;
   border-radius: 20px !important;
@@ -91,7 +91,7 @@
 }
 
 [data-testid="model-selector-panel"] .overflow-y-auto {
-  max-height: 208px;
+  max-height: 240px;
   scrollbar-width: none;
 }
 
@@ -112,7 +112,7 @@
 [data-testid="model-selector-panel"] [role="menuitem"] {
   position: relative;
   min-height: 52px;
-  padding: 0 8px 0 36px !important;
+  padding: 0 10px 0 36px !important;
   gap: 0 !important;
   border-radius: 12px !important;
   background: transparent !important;
@@ -120,6 +120,8 @@
   font-size: 13px !important;
   line-height: 17px !important;
   transition: background-color 150ms ease !important;
+  display: flex !important;
+  align-items: center !important;
 }
 
 [data-testid="model-selector-panel"] [role="menuitem"]:hover,
@@ -138,8 +140,18 @@
   align-items: center;
   column-gap: 6px;
   row-gap: 0;
-  padding: 8px 8px 8px 0;
+  padding: 8px 4px 8px 0;
   white-space: normal;
+  order: 1 !important;
+  flex: 1 1 auto !important;
+  min-width: 0 !important;
+}
+
+/* Single-line utility rows like View Usage must NEVER wrap */
+[data-testid="model-selector-panel"] [role="separator"] ~ * [role="menuitem"] > span:first-child,
+[data-testid="model-selector-panel"] [role="menuitem"]:has(svg:first-child) > span:first-child {
+  flex-wrap: nowrap !important;
+  white-space: nowrap !important;
 }
 
 [data-testid="model-selector-panel"] [role="menuitem"] > span:first-child > [data-testid="model-selector-effort-group"] {
@@ -173,6 +185,8 @@
   font-weight: 500 !important;
   letter-spacing: 0.025em;
   text-transform: uppercase;
+  display: inline-flex !important;
+  align-items: center !important;
 }
 
 /* The check for the current model sits in Willow's 36px column on the left, and
@@ -196,12 +210,43 @@
   height: 20px !important;
 }
 
-/* The submenu chevron on the right, always visible as on Willow's effort row. */
+/* Context limit tag (e.g. 1M, 2M) aligned on the right, before the chevron */
+[data-testid="model-selector-panel"] [role="menuitem"] .gemini-model-limit-tag {
+  order: 2 !important;
+  margin-left: auto !important;
+  margin-right: 4px !important;
+  font-size: 11px !important;
+  font-weight: 500 !important;
+  padding: 2px 7px !important;
+  border-radius: 9999px !important;
+  background: rgba(56, 189, 248, 0.12) !important;
+  color: #7dd3fc !important;
+  border: 1px solid rgba(56, 189, 248, 0.25) !important;
+  letter-spacing: 0.02em !important;
+  flex-shrink: 0 !important;
+}
+
+/* View Usage stats pill aligned on the right, before the chevron */
+[data-testid="model-selector-panel"] [role="menuitem"] .gemini-usage-stats {
+  order: 2 !important;
+  margin-left: auto !important;
+  margin-right: 4px !important;
+  font-size: 11.5px !important;
+  color: var(--gemini-text-dim, rgba(255,255,255,0.6)) !important;
+  white-space: nowrap !important;
+  font-variant-numeric: tabular-nums !important;
+  flex-shrink: 0 !important;
+}
+
+/* The submenu chevron on the right, placed after the tag */
 [data-testid="model-selector-panel"] [role="menuitem"] > span.opacity-50 {
+  order: 3 !important;
   display: flex !important;
   opacity: 1 !important;
-  padding-left: 8px !important;
+  padding-left: 4px !important;
   color: var(--gemini-text-dim);
+  cursor: pointer !important;
+  flex-shrink: 0 !important;
 }
 
 [data-testid="model-selector-panel"] [role="menuitem"] > span.opacity-50 > svg {
@@ -333,17 +378,33 @@
   transform: scale(0.95) translateY(-6px) !important;
 }
 
-/* Willow's submenu appears in place; a short fade keeps it from popping. */
+/* Willow's submenu appears in place; a short fade keeps it from popping on close. */
 [role="menu"][data-nested]:has([data-testid="model-selector-effort-option"]),
 [role="menu"].gemini-effort-submenu-host {
-  transition: opacity 120ms ease !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  pointer-events: auto !important;
 }
 
+[role="menu"][data-nested]:has([data-testid="model-selector-effort-option"])[data-open],
+[role="menu"].gemini-effort-submenu-host[data-open] {
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+/* Base UI mounts submenus with data-starting-style and style="transition: none;".
+ * Never hide them with opacity: 0 on starting-style, or they stay permanently invisible. */
 [role="menu"][data-nested]:has([data-testid="model-selector-effort-option"])[data-starting-style],
+[role="menu"].gemini-effort-submenu-host[data-starting-style] {
+  opacity: 1 !important;
+  visibility: visible !important;
+  transform: none !important;
+}
+
 [role="menu"][data-nested]:has([data-testid="model-selector-effort-option"])[data-ending-style],
-[role="menu"].gemini-effort-submenu-host[data-starting-style],
 [role="menu"].gemini-effort-submenu-host[data-ending-style] {
   opacity: 0 !important;
+  transition: opacity 120ms ease !important;
   transform: none !important;
 }
 
@@ -814,15 +875,26 @@
 [data-testid="model-selector-panel"] [data-radix-tooltip-content],
 [data-testid="model-selector-panel"] .react-tooltip,
 [role="menu"]:has([data-testid="model-selector-panel"]) ~ [role="tooltip"],
-[role="menu"]:has([data-testid="model-selector-panel"]) ~ [data-base-ui-tooltip-popup] {
+[role="menu"]:has([data-testid="model-selector-panel"]) ~ [data-base-ui-tooltip-popup],
+[data-base-ui-tooltip-popup],
+body > [role="tooltip"] {
   display: none !important;
   pointer-events: none !important;
 }
 
-/* Hide the tiny redundant (i) info button that triggers the 'Limited time' tooltip */
-[data-testid="model-selector-panel"] [role="menuitem"] button:has(svg),
-[data-testid="model-selector-panel"] [role="menuitem"] [aria-label*="Fast"],
-[data-testid="model-selector-panel"] [role="menuitem"] [data-tooltip-id*="fast"] {
+/* Hide the tiny redundant (i) info icon inside the Fast badge */
+[data-testid="model-selector-panel"] [role="menuitem"] div.rounded-full svg,
+[data-testid="model-selector-panel"] [role="menuitem"] div[data-tooltip-id] svg,
+[data-testid="model-selector-panel"] [data-tooltip-id] svg,
+[data-testid="model-selector-panel"] [role="menuitem"] button:has(svg) {
   display: none !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
 }
+
+[data-testid="model-selector-panel"] [data-tooltip-id],
+[data-testid="model-selector-panel"] div[data-tooltip-id] {
+  pointer-events: none !important;
+}
+
 
