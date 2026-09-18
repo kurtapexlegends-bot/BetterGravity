@@ -8778,62 +8778,8 @@ const SLIDE_WINDOW_MS = 1500;
  * Willow's answer to it: signed out short-circuits the wait, because the nameless
  * greeting is the final text then rather than a placeholder for one.
 function updateAllUserCards(profile) {
-  if (!profile) return;
-  for (const pill of document.querySelectorAll("#gemini-sidebar-user-pill")) {
-    const nameEl = pill.querySelector(".gemini-user-name");
-    const emailEl = pill.querySelector(".gemini-user-email");
-    const imgEl = pill.querySelector(".gemini-user-avatar");
-    const fallbackEl = pill.querySelector(".gemini-user-avatar-fallback");
-
-    const activeEmail = profile.email || DEFAULT_ACCOUNT.email || "acostayashica@gmail.com";
-    const displayName = profile?.accountNames?.[activeEmail.toLowerCase()] ||
-                        REAL_ACCOUNT_DATA.names[activeEmail.toLowerCase()] ||
-                        profile.fullName ||
-                        profile.firstName ||
-                        (activeEmail ? activeEmail.split("@")[0] : "Yashica");
-    if (nameEl) nameEl.textContent = displayName;
-    if (emailEl) {
-      emailEl.textContent = activeEmail;
-      emailEl.style.display = activeEmail ? "" : "none";
-    }
-
-    const quotaEl = pill.querySelector(".gemini-sidebar-quota-pill");
-    if (quotaEl) quotaEl.remove();
-    if (imgEl) {
-      if (profile.pictureUrl) {
-        imgEl.src = profile.pictureUrl;
-        imgEl.style.display = "";
-        if (fallbackEl) fallbackEl.classList.add("hidden");
-      } else {
-        imgEl.removeAttribute("src");
-        imgEl.remove();
-        if (fallbackEl) fallbackEl.classList.remove("hidden");
-      }
-    } else if (profile.pictureUrl) {
-      const wrap = pill.querySelector(".gemini-user-avatar-wrap");
-      if (wrap) {
-        const newImg = document.createElement("img");
-        newImg.className = "gemini-user-avatar";
-        newImg.src = profile.pictureUrl;
-        newImg.alt = "";
-        if (fallbackEl) fallbackEl.classList.add("hidden");
-        newImg.addEventListener("error", () => {
-          newImg.remove();
-          if (fallbackEl) fallbackEl.classList.remove("hidden");
-        });
-        wrap.appendChild(newImg);
-      }
-    }
-    if (fallbackEl) {
-      const initial = (profile.fullName || profile.firstName || profile.email || "K").charAt(0).toUpperCase();
-      fallbackEl.textContent = initial;
-      if (!profile.pictureUrl) fallbackEl.classList.remove("hidden");
-    }
-    if (profile.fullName || profile.email) {
-      pill.title = profile.email
-        ? (profile.fullName ? `${profile.fullName} (${profile.email})` : profile.email)
-        : profile.fullName || "Kurt";
-    }
+  for (const pill of document.querySelectorAll("#gemini-sidebar-user-pill, #gemini-account-popover")) {
+    pill.remove();
   }
 }
 
@@ -9866,101 +9812,15 @@ async function toggleAccountPopover(pill, settingsBtn) {
 }
 
 function ensureSidebarUserCard(footer) {
-  if (!footer || !footer.isConnected) return;
-  const settingsBtn = footer.querySelector('[data-testid="settings-button"]');
-  if (!settingsBtn) return;
-
-  let pill = footer.querySelector("#gemini-sidebar-user-pill");
-  if (!pill) {
-    pill = document.createElement("button");
-    pill.id = "gemini-sidebar-user-pill";
-    pill.className = "gemini-sidebar-user";
-    pill.type = "button";
-    pill.setAttribute("aria-label", "User profile and settings");
-
-    const avatarUrl = userAccountProfile.pictureUrl || "";
-    const email = userAccountProfile.email || DEFAULT_ACCOUNT.email || "acostayashica@gmail.com";
-    const displayName = userAccountProfile?.accountNames?.[email.toLowerCase()] ||
-                        REAL_ACCOUNT_DATA.names[email.toLowerCase()] ||
-                        userAccountProfile.fullName ||
-                        userAccountProfile.firstName ||
-                        (email ? email.split("@")[0] : "Yashica");
-    const initial = (displayName || email || "Y").charAt(0).toUpperCase();
-
-    pill.title = email ? (displayName ? `${displayName} (${email})` : email) : displayName;
-    if (isSidebarCollapsed()) {
-      pill.setAttribute("data-tooltip-position", "right");
-    }
-
-    const avatarWrap = document.createElement("div");
-    avatarWrap.className = "gemini-user-avatar-wrap";
-
-    const fallback = document.createElement("div");
-    fallback.className = "gemini-user-avatar-fallback";
-    fallback.textContent = initial;
-    avatarWrap.appendChild(fallback);
-
-    if (avatarUrl) {
-      const img = document.createElement("img");
-      img.className = "gemini-user-avatar";
-      img.src = avatarUrl;
-      img.alt = "";
-      fallback.classList.add("hidden");
-      img.addEventListener("error", () => {
-        img.remove();
-        fallback.classList.remove("hidden");
-      });
-      avatarWrap.appendChild(img);
-    }
-
-    const textDiv = document.createElement("div");
-    textDiv.className = "gemini-user-text";
-
-    const nameSpan = document.createElement("span");
-    nameSpan.className = "gemini-user-name";
-    nameSpan.textContent = displayName;
-
-    const emailSpan = document.createElement("span");
-    emailSpan.className = "gemini-user-email";
-    emailSpan.textContent = email;
-    if (!email) {
-      emailSpan.style.display = "none";
-    }
-
-    textDiv.appendChild(nameSpan);
-    textDiv.appendChild(emailSpan);
-
-    pill.appendChild(avatarWrap);
-    pill.appendChild(textDiv);
-
-    pill.addEventListener("click", (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      toggleAccountPopover(pill, settingsBtn);
-    });
-
-    footer.insertBefore(pill, settingsBtn);
-  } else if (pill.nextElementSibling !== settingsBtn) {
-    footer.insertBefore(pill, settingsBtn);
-  }
-  if (isSidebarCollapsed()) {
-    if (pill.getAttribute("data-tooltip-position") !== "right") {
-      pill.setAttribute("data-tooltip-position", "right");
-    }
-  } else {
-    if (pill.hasAttribute("data-tooltip-position")) {
-      pill.removeAttribute("data-tooltip-position");
-    }
-  }
+  if (!footer) return;
+  for (const pill of footer.querySelectorAll("#gemini-sidebar-user-pill")) pill.remove();
+  for (const popover of document.querySelectorAll("#gemini-account-popover")) popover.remove();
 }
 
 plugin.dom.observe(SETTINGS_BTN_SELECTOR, (btn) => {
   const footer = btn.parentElement;
   if (!footer) return;
   ensureSidebarUserCard(footer);
-  const obs = new MutationObserver(() => ensureSidebarUserCard(footer));
-  obs.observe(footer, { childList: true });
-  remember(footer, obs);
 });
 
 /* ---------------------------------------------------------------------------
@@ -12139,18 +11999,14 @@ function reconcileBetterGravityUI() {
     console.debug("[BetterGravity] Scroll nav reconcile error:", err);
   }
 
-  // 4. Sidebar User Profile Card
+  // 4. Sidebar User Profile Card (disabled - cleanly ensure removed)
   try {
-    const settingsBtn = document.querySelector(SETTINGS_BTN_SELECTOR);
-    if (settingsBtn && settingsBtn.parentElement && settingsBtn.parentElement.isConnected) {
-      const footer = settingsBtn.parentElement;
-      const pill = footer.querySelector("#gemini-sidebar-user-pill");
-      if (!pill || pill.nextElementSibling !== settingsBtn) {
-        ensureSidebarUserCard(footer);
-      }
-    }
+    const pill = document.querySelector("#gemini-sidebar-user-pill");
+    if (pill) pill.remove();
+    const pop = document.querySelector("#gemini-account-popover");
+    if (pop) pop.remove();
   } catch (err) {
-    console.debug("[BetterGravity] User card reconcile error:", err);
+    console.debug("[BetterGravity] User card cleanup error:", err);
   }
 
   // 5. Title Bar Gemini Web Header Button, Top Chips & History Arrows
@@ -12254,7 +12110,6 @@ function startAutoHealing() {
       !document.getElementById("gemini-theme-dynamic-styles")?.isConnected ||
       (document.querySelector(SIDEBAR_SELECTOR) && !document.getElementById("gemini-experience-switch")?.isConnected) ||
       ((document.querySelector(LIST_SELECTOR) || document.querySelector('[role="navigation"][aria-label="Sidebar"]')) && !document.getElementById("gemini-scroll-nav")?.isConnected) ||
-      (document.querySelector(SETTINGS_BTN_SELECTOR) && !document.getElementById("gemini-sidebar-user-pill")?.isConnected) ||
       (document.querySelector(TOP_BAR_MORE) && !document.getElementById("gemini-web-header-btn")?.isConnected);
 
     if (needsHeal) {
