@@ -292,7 +292,7 @@ export function readAccountProfile(homeDirectory: string): AccountProfile {
     }
   }
 
-  const accounts = accountsSet.size > 0 ? Array.from(accountsSet) : undefined;
+  const accounts = accountsSet.size > 1 ? Array.from(accountsSet) : undefined;
   const hasPlans = Object.keys(accountPlans).length > 0;
   const hasLimits = Object.keys(accountLimits).length > 0;
   const hasNames = Object.keys(accountNames).length > 0;

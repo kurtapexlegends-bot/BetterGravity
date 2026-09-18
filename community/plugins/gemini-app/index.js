@@ -1401,7 +1401,7 @@ function openContextUsageModal(target = null) {
     ? "Context is near capacity. Earlier conversation history may be compacted or truncated."
     : (pct > 60
       ? "Context utilization is elevated. Inference latency may increase slightly."
-      : "Context window is optimal. Fast response generation and high attention fidelity.");
+      : "Context window is optimal. Peak attention fidelity and minimum inference latency.");
 
   const backdrop = document.createElement('div');
   backdrop.className = 'gemini-context-backdrop';
@@ -1467,25 +1467,38 @@ function openContextUsageModal(target = null) {
     }
   }
 
+  const popWidth = 340;
+  const popHeight = 310;
+
   if (anchorRect && anchorRect.width > 0) {
-    const popWidth = 330;
-    const popHeight = 310;
-    let right = Math.max(16, window.innerWidth - anchorRect.right);
-    let bottom = Math.max(16, window.innerHeight - anchorRect.top + 10);
-
-    if (window.innerWidth - right < popWidth) right = 16;
-    if (window.innerHeight - bottom < popHeight) bottom = 84;
-
-    popover.style.right = `${Math.round(right)}px`;
-    popover.style.bottom = `${Math.round(bottom)}px`;
-    popover.style.left = 'auto';
-    popover.style.top = 'auto';
+    // 1. Try side flyout (to the right of the menu) if space is available
+    if (anchorRect.right + popWidth + 16 <= window.innerWidth) {
+      let left = anchorRect.right + 10;
+      let top = Math.max(16, Math.min(window.innerHeight - popHeight - 16, anchorRect.top - 80));
+      popover.style.left = `${Math.round(left)}px`;
+      popover.style.top = `${Math.round(top)}px`;
+    } else {
+      // 2. Dock above or below the anchor
+      let left = Math.max(16, Math.min(window.innerWidth - popWidth - 16, anchorRect.left));
+      let top;
+      if (anchorRect.top >= popHeight + 16) {
+        top = anchorRect.top - popHeight - 10;
+      } else {
+        top = Math.min(window.innerHeight - popHeight - 16, anchorRect.bottom + 10);
+      }
+      popover.style.left = `${Math.round(left)}px`;
+      popover.style.top = `${Math.round(top)}px`;
+    }
+    popover.style.right = 'auto';
+    popover.style.bottom = 'auto';
   } else {
     popover.style.right = '24px';
     popover.style.bottom = '84px';
     popover.style.left = 'auto';
     popover.style.top = 'auto';
   }
+
+  const openedAt = performance.now();
 
   const closeModal = () => {
     backdrop.remove();
@@ -1495,6 +1508,7 @@ function openContextUsageModal(target = null) {
 
   const onKeyDown = (e) => {
     if (e.key === 'Escape') {
+      if (performance.now() - openedAt < 200) return;
       e.preventDefault();
       e.stopPropagation();
       closeModal();
@@ -1502,6 +1516,8 @@ function openContextUsageModal(target = null) {
   };
 
   backdrop.addEventListener('click', (e) => {
+    // Ignore click events that fired in the same gesture as opening
+    if (performance.now() - openedAt < 250) return;
     e.preventDefault();
     e.stopPropagation();
     closeModal();
@@ -1517,10 +1533,12 @@ function openContextUsageModal(target = null) {
     e.stopPropagation();
   });
 
-  document.addEventListener('keydown', onKeyDown);
-
   document.body.appendChild(backdrop);
   document.body.appendChild(popover);
+
+  setTimeout(() => {
+    document.addEventListener('keydown', onKeyDown);
+  }, 100);
 }
 
 let isEnhancingModelPanel = false;
@@ -1583,23 +1601,18 @@ function enhanceModelSelectorPanel(panel) {
             if (e) {
               e.preventDefault();
               e.stopPropagation();
+              e.stopImmediatePropagation?.();
             }
             const rect = row.getBoundingClientRect();
-            const trigger = document.querySelector(PILL_SELECTOR);
-            if (trigger) {
-              trigger.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', code: 'Escape', keyCode: 27, which: 27, bubbles: true, cancelable: true }));
-            }
             openContextUsageModal({ rect });
           };
 
           row.addEventListener('click', triggerUsageModal, true);
-          row.addEventListener('pointerup', triggerUsageModal, true);
 
           const chevron = row.querySelector('span.opacity-50') || row.querySelector('span.ml-auto') || row.querySelector('svg[data-icon="chevron-right"]')?.closest('span');
           if (chevron) {
             chevron.style.cursor = 'pointer';
             chevron.addEventListener('click', triggerUsageModal, true);
-            chevron.addEventListener('pointerup', triggerUsageModal, true);
           }
         }
         continue;

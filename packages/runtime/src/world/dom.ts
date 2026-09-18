@@ -114,8 +114,15 @@ function attributesFor(selector: string, into: Set<string>): void {
 /** Re-registering the same node replaces its options, per the spec. */
 function reobserve(): void {
   if (!observer) return;
+  const root = document.documentElement || document.body || document;
+  if (!root) {
+    if (typeof window !== "undefined" && typeof document !== "undefined") {
+      document.addEventListener("DOMContentLoaded", () => reobserve(), { once: true });
+    }
+    return;
+  }
   observer.observe(
-    document.documentElement,
+    root,
     watched.length > 0
       ? { childList: true, subtree: true, attributes: true, attributeFilter: watched }
       : { childList: true, subtree: true }
