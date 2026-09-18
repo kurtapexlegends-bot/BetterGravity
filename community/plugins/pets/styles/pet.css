@@ -74,8 +74,9 @@
   --pet-launch-shift: 0px;
 
   transform: translateY(var(--pet-launch-shift))
-    scale(var(--pet-sprite-scale));
+    scale(var(--pet-sprite-scale)) translateZ(0);
   transform-origin: 50% 50%;
+  will-change: background-position, transform;
 
   /* Dropping is instant; the spring below only applies when picked up. */
   transition: transform 0s;
@@ -95,6 +96,122 @@
    is what the desktop window is handed, it resolves there too. */
 .bettergravity-pet[data-pet="rocky"] {
   --pet-sheet: url("../assets/rocky.webp");
+}
+
+/* Floating heart & emote particles when petted */
+.bettergravity-pet-heart {
+  position: absolute;
+  pointer-events: none;
+  z-index: 2147483010;
+  font-size: 18px;
+  line-height: 1;
+  user-select: none;
+  animation: petHeartFloat 900ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  filter: drop-shadow(0 2px 8px rgba(244, 63, 94, 0.45));
+}
+
+@keyframes petHeartFloat {
+  0% {
+    opacity: 0;
+    transform: translate(0, 0) scale(0.6) rotate(-10deg);
+  }
+  20% {
+    opacity: 1;
+    transform: translate(calc(var(--tx, 0px) * 0.3), -18px) scale(1.2) rotate(10deg);
+  }
+  70% {
+    opacity: 0.9;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(var(--tx, 0px), calc(var(--ty, -50px) - 25px)) scale(0.8) rotate(var(--rot, 20deg));
+  }
+}
+
+/* Pet Snooze / Sleeping low-power state */
+.bettergravity-pet[data-pet-sleeping="true"] .bettergravity-pet__body {
+  filter: saturate(0.85) brightness(0.9);
+  opacity: 0.88;
+}
+
+.bettergravity-pet[data-pet-sleeping="true"]::after {
+  content: "💤";
+  position: absolute;
+  top: -12px;
+  right: -4px;
+  font-size: 15px;
+  animation: petSnoreFloat 2.4s ease-in-out infinite;
+  pointer-events: none;
+}
+
+@keyframes petSnoreFloat {
+  0%, 100% { transform: translate(0, 0) scale(0.8); opacity: 0.4; }
+  50% { transform: translate(6px, -12px) scale(1.1); opacity: 1; }
+}
+
+/* Pet Quick Action Context Menu */
+.bettergravity-pet-menu {
+  position: fixed;
+  z-index: 2147483050;
+  min-width: 165px;
+  padding: 6px;
+  border-radius: 14px;
+  background: rgba(18, 19, 24, 0.96);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.65), 0 0 20px rgba(56, 189, 248, 0.15);
+  backdrop-filter: blur(16px);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-size: 12px;
+  color: #e5e5e5;
+  animation: petMenuPop 140ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  user-select: none;
+}
+
+@keyframes petMenuPop {
+  from { opacity: 0; transform: scale(0.94) translateY(4px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+.bettergravity-pet-menu__item,
+.bettergravity-pet-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  cursor: pointer;
+  color: #e5e5e5;
+  background: transparent;
+  border: none;
+  font: inherit;
+  text-align: left;
+  width: 100%;
+  box-sizing: border-box;
+  transition: background 120ms ease, color 120ms ease;
+}
+
+.bettergravity-pet-menu__item:hover,
+.bettergravity-pet-menu-item:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #ffffff;
+}
+
+.bettergravity-pet-menu-icon {
+  font-size: 14px;
+  line-height: 1;
+  width: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.bettergravity-pet-menu-divider {
+  height: 1px;
+  background: rgba(255, 255, 255, 0.08);
+  margin: 3px 0;
 }
 
 @media (prefers-reduced-motion: reduce) {

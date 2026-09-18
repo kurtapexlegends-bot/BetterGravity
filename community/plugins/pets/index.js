@@ -955,12 +955,154 @@ function petSurface(host, data) {
     speechBubble.style.top = `${bubbleY}px`;
   }
 
+  /* ── Interactive Petting, Sound FX & Low-Power Snooze ──────────────────── */
+
+  let audioCtx = null;
+  function getAudioContext() {
+    if (!audioCtx) {
+      const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+      if (AudioContextClass) {
+        try { audioCtx = new AudioContextClass(); } catch {}
+      }
+    }
+    if (audioCtx && audioCtx.state === "suspended") {
+      audioCtx.resume().catch(() => {});
+    }
+    return audioCtx;
+  }
+
+  function playPetChirp(type = "purr") {
+    try {
+      const ctx = getAudioContext();
+      if (!ctx) return;
+      const now = ctx.currentTime;
+
+      if (type === "purr") {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = "sine";
+        osc.frequency.setValueAtTime(440, now);
+        osc.frequency.exponentialRampToValueAtTime(660, now + 0.08);
+        osc.frequency.exponentialRampToValueAtTime(550, now + 0.16);
+        gain.gain.setValueAtTime(0.04, now);
+        gain.gain.linearRampToValueAtTime(0.08, now + 0.06);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.22);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(now);
+        osc.stop(now + 0.23);
+      } else if (type === "celebrate") {
+        const notes = [523.25, 659.25, 783.99, 1046.50];
+        notes.forEach((freq, idx) => {
+          const o = ctx.createOscillator();
+          const g = ctx.createGain();
+          o.type = "triangle";
+          o.frequency.setValueAtTime(freq, now + idx * 0.07);
+          g.gain.setValueAtTime(0.001, now + idx * 0.07);
+          g.gain.linearRampToValueAtTime(0.06, now + idx * 0.07 + 0.02);
+          g.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.07 + 0.18);
+          o.connect(g);
+          g.connect(ctx.destination);
+          o.start(now + idx * 0.07);
+          o.stop(now + idx * 0.07 + 0.2);
+        });
+      } else if (type === "sleep") {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = "sine";
+        osc.frequency.setValueAtTime(380, now);
+        osc.frequency.exponentialRampToValueAtTime(220, now + 0.35);
+        gain.gain.setValueAtTime(0.05, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.38);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(now);
+        osc.stop(now + 0.4);
+      }
+    } catch {}
+  }
+
+  function emitPetEmotes(symbols = ["❤️", "✨", "⭐"]) {
+    if (disposed) return;
+    const petRect = pet.getBoundingClientRect();
+    const count = 3 + Math.floor(Math.random() * 3);
+    for (let i = 0; i < count; i++) {
+      const heart = make("span", "bettergravity-pet-heart", document.body);
+      const symbol = symbols[Math.floor(Math.random() * symbols.length)];
+      heart.textContent = symbol;
+
+      const startX = petRect.left + petRect.width * (0.3 + Math.random() * 0.4);
+      const startY = petRect.top + petRect.height * (0.2 + Math.random() * 0.4);
+
+      const spreadX = (Math.random() - 0.5) * 80;
+      const spreadY = -40 - Math.random() * 45;
+      const rot = (Math.random() - 0.5) * 40;
+
+      heart.style.left = `${startX}px`;
+      heart.style.top = `${startY}px`;
+      heart.style.setProperty("--tx", `${spreadX}px`);
+      heart.style.setProperty("--ty", `${spreadY}px`);
+      heart.style.setProperty("--rot", `${rot}deg`);
+
+      setTimeout(() => {
+        if (heart.parentNode) heart.parentNode.removeChild(heart);
+      }, 950);
+    }
+  }
+
+  let isSleeping = false;
+  function toggleSleep(force) {
+    isSleeping = typeof force === "boolean" ? force : !isSleeping;
+    if (isSleeping) {
+      pet.setAttribute("data-pet-sleeping", "true");
+      napPetItem.textContent = "Wake up ☀️";
+      clearTimeout(frameTimer);
+      frameTimer = undefined;
+      const restFrame = IDLE_FRAMES[5] || IDLE_FRAMES[0];
+      sprite.style.backgroundPosition = backgroundPositionFor(restFrame);
+      playPetChirp("sleep");
+      showBubble("Zzz... taking a nap (low power mode) 💤", 3000, "💤 Snooze");
+    } else {
+      pet.removeAttribute("data-pet-sleeping");
+      napPetItem.textContent = "Take a nap 💤";
+      playPetChirp("purr");
+      emitPetEmotes(["✨", "☀️"]);
+      rebuild();
+      showBubble("I'm awake and ready! ✨", 3000, "🐾 Companion");
+    }
+  }
+
+  function triggerTrick(forcedAnim) {
+    const TRICK_ANIMS = ["jumping", "waving", "review"];
+    const chosenAnim = forcedAnim || TRICK_ANIMS[Math.floor(Math.random() * TRICK_ANIMS.length)];
+    transient = chosenAnim;
+    paint();
+    refresh();
+    setTimeout(() => {
+      if (transient === chosenAnim) {
+        transient = null;
+        paint();
+        refresh();
+      }
+    }, 1500);
+  }
+
   // Pet right-click context menu
   const petMenu = make("div", "bettergravity-pet-menu");
   petMenu.setAttribute("role", "menu");
   petMenu.setAttribute("aria-label", "Pet");
   petMenu.dataset.petHit = "menu";
   petMenu.hidden = true;
+
+  const petCompanionItem = make("button", "bettergravity-pet-menu__item", petMenu);
+  petCompanionItem.type = "button";
+  petCompanionItem.setAttribute("role", "menuitem");
+  petCompanionItem.textContent = "Pet companion 💖";
+
+  const napPetItem = make("button", "bettergravity-pet-menu__item", petMenu);
+  napPetItem.type = "button";
+  napPetItem.setAttribute("role", "menuitem");
+  napPetItem.textContent = "Take a nap 💤";
 
   const trickPetItem = make("button", "bettergravity-pet-menu__item", petMenu);
   trickPetItem.type = "button";
@@ -1292,7 +1434,7 @@ function petSurface(host, data) {
    * keeps a cursor crossing the screen from forcing a layout on every event.
    */
   function currentLookFrame() {
-    if (drag !== null) return null; // A hand on the pet is not something to look at.
+    if (isSleeping || drag !== null) return null; // Sleeping or held pets do not track.
     if (!LOOKING_STATES.has(playing)) return null;
     const point = lookPoint();
     if (point === null) return null;
@@ -1300,6 +1442,15 @@ function petSurface(host, data) {
   }
 
   function paint() {
+    if (isSleeping) {
+      looking = false;
+      clearTimeout(frameTimer);
+      frameTimer = undefined;
+      const restFrame = IDLE_FRAMES[5] || IDLE_FRAMES[0];
+      sprite.style.backgroundPosition = backgroundPositionFor(restFrame);
+      return;
+    }
+
     const look = currentLookFrame();
 
     if (look !== null) {
@@ -1331,7 +1482,7 @@ function petSurface(host, data) {
   function schedule() {
     clearTimeout(frameTimer);
     frameTimer = undefined;
-    if (looking) return;
+    if (looking || isSleeping) return;
 
     const frame = sequence.frames[frameIndex];
     // One frame is a picture, which is what reduced motion asks for.
@@ -2073,7 +2224,7 @@ function petSurface(host, data) {
       host.setInteractive(true);
       host.setFocusable?.(true);
     }
-    closePetItem.focus({ preventScroll: true });
+    petCompanionItem.focus({ preventScroll: true });
   }
 
   on(pet, "contextmenu", event => {
@@ -2085,31 +2236,52 @@ function petSurface(host, data) {
     const point = event.clientX || event.clientY ? { x: event.clientX, y: event.clientY } : { x: x + width, y: y + height / 2 };
     if (desktop) {
       menuRequest = { id: `pet-menu-${++menuSequence}`, point };
-      host.send({ type: "bettergravity:overlay-context-menu", requestId: menuRequest.id,
-        items: [{ id: "close-pet", label: "Close pet" }] });
-    } else showPetMenu(point);
+      host.send({
+        type: "bettergravity:overlay-context-menu",
+        requestId: menuRequest.id,
+        items: [
+          { id: "pet", label: "Pet Companion 💖" },
+          { id: "nap", label: isSleeping ? "Wake Up ☀️" : "Take a Nap 💤" },
+          { id: "trick", label: "Do a Trick ✨" },
+          { id: "talk", label: "Say Something 💬" },
+          { id: "library", label: "Pet Library 🐾" },
+          { id: "close-pet", label: "Close Pet" }
+        ]
+      });
+    } else {
+      napPetItem.textContent = isSleeping ? "Wake up ☀️" : "Take a nap 💤";
+      showPetMenu(point);
+    }
+  });
+  on(petCompanionItem, "click", event => {
+    event.preventDefault();
+    event.stopPropagation();
+    closePetMenu();
+    if (isSleeping) toggleSleep(false);
+    playPetChirp("purr");
+    emitPetEmotes(["❤️", "💖", "✨"]);
+    triggerTrick();
+  });
+  on(napPetItem, "click", event => {
+    event.preventDefault();
+    event.stopPropagation();
+    closePetMenu();
+    toggleSleep();
   });
   on(trickPetItem, "click", event => {
     event.preventDefault();
     event.stopPropagation();
     closePetMenu();
-    const TRICK_ANIMS = ["jumping", "waving", "review"];
-    const chosenAnim = TRICK_ANIMS[Math.floor(Math.random() * TRICK_ANIMS.length)];
-    transient = chosenAnim;
-    paint();
-    refresh();
-    setTimeout(() => {
-      if (transient === chosenAnim) {
-        transient = null;
-        paint();
-        refresh();
-      }
-    }, 1500);
+    if (isSleeping) toggleSleep(false);
+    playPetChirp("purr");
+    triggerTrick();
   });
   on(talkPetItem, "click", event => {
     event.preventDefault();
     event.stopPropagation();
     closePetMenu();
+    if (isSleeping) toggleSleep(false);
+    playPetChirp("purr");
     const quote = PET_QUOTES[Math.floor(Math.random() * PET_QUOTES.length)];
     showBubble(quote, 5000);
   });
@@ -2503,19 +2675,15 @@ function petSurface(host, data) {
     if (released && !moved) {
       if (desktop) host.focusOwner?.();
 
-      // Playful reaction animation on click
-      const TRICK_ANIMS = ["jumping", "waving", "review"];
-      const chosenAnim = TRICK_ANIMS[Math.floor(Math.random() * TRICK_ANIMS.length)];
-      transient = chosenAnim;
-      paint();
-      refresh();
-      setTimeout(() => {
-        if (transient === chosenAnim) {
-          transient = null;
-          paint();
-          refresh();
-        }
-      }, 1500);
+      if (isSleeping) {
+        toggleSleep(false);
+        if (pointerAt !== null) updatePointer(pointerAt.x, pointerAt.y);
+        return;
+      }
+
+      playPetChirp("purr");
+      emitPetEmotes(["❤️", "💖", "✨"]);
+      triggerTrick();
 
       // Show friendly companion quote / tip
       const quote = PET_QUOTES[Math.floor(Math.random() * PET_QUOTES.length)];
@@ -3019,12 +3187,48 @@ function petSurface(host, data) {
         if (message.requestId !== menuRequest?.id) return;
         const request = menuRequest;
         menuRequest = null;
-        if (message.unsupported) showPetMenu(request.point);
-        else if (message.id === "close-pet") host.send({ t: "hide" });
+        if (message.unsupported) {
+          napPetItem.textContent = isSleeping ? "Wake up ☀️" : "Take a nap 💤";
+          showPetMenu(request.point);
+        } else if (message.id === "close-pet") {
+          host.send({ t: "hide" });
+        } else if (message.id === "pet") {
+          if (isSleeping) toggleSleep(false);
+          playPetChirp("purr");
+          emitPetEmotes(["❤️", "💖", "✨"]);
+          triggerTrick();
+        } else if (message.id === "nap") {
+          toggleSleep();
+        } else if (message.id === "trick") {
+          if (isSleeping) toggleSleep(false);
+          playPetChirp("purr");
+          triggerTrick();
+        } else if (message.id === "talk") {
+          if (isSleeping) toggleSleep(false);
+          playPetChirp("purr");
+          const quote = PET_QUOTES[Math.floor(Math.random() * PET_QUOTES.length)];
+          showBubble(quote, 5000);
+        } else if (message.id === "library") {
+          host.send({ t: "open-library" });
+        }
         return;
       }
 
       switch (message.t) {
+        case "celebrate": {
+          if (isSleeping) toggleSleep(false);
+          playPetChirp("celebrate");
+          emitPetEmotes(["🎉", "⭐", "✨", "❤️"]);
+          triggerTrick("jumping");
+          const cheers = [
+            "Great job! Task complete! 🎉",
+            "All done! You nailed it! ⭐",
+            "Woohoo! That was awesome! 🚀",
+            "Task finished! Taking five! ✨"
+          ];
+          showBubble(cheers[Math.floor(Math.random() * cheers.length)], 4500, "🎉 Celebration");
+          break;
+        }
         case "reply-result": {
           if (replyState === null || typeof message.requestId !== "string" ||
               replyState.key !== message.key || replyState.requestId !== message.requestId) break;
@@ -3256,7 +3460,7 @@ const STOPPING = '[data-tooltip-id="input-send-button-cancel-tooltip"]';
 
 /** Host events drive activity. The interval recovers replaced host providers. */
 const POLL_INTERVAL_MS = 2000;
-const ACTIVITY_COALESCE_MS = 50;
+const ACTIVITY_COALESCE_MS = 180;
 
 /**
  * How long a list the tray is handed.
@@ -5959,7 +6163,7 @@ function subscribeActivity(source, method, listener = scheduleActivity) {
 }
 
 function syncActivitySources() {
-  const store = findHostStore() ?? activityStore;
+  const store = (activityStore && typeof activityStore.getState === "function") ? activityStore : (findHostStore() ?? activityStore);
   if (store !== activityStore) {
     releaseActivitySubscription(storeSubscription);
     activityStore = store;
@@ -5973,7 +6177,7 @@ function syncActivitySources() {
       if (changed) scheduleActivity();
     });
   }
-  const manager = findAgentStatesManager() ?? activityManager;
+  const manager = (activityManager && typeof activityManager.getAgentStates === "function") ? activityManager : (findAgentStatesManager() ?? activityManager);
   // Manager.subscribe(id) acquires a conversation; it is not an event API.
   // Observe existing providers without keeping hidden conversations loaded.
   activityManager = manager;
@@ -6013,7 +6217,7 @@ function syncActivitySources() {
       // Stop controls, response text, and any other change in the same batch.
       if (changes.every(change => {
         const target = change.target.nodeType === 1 ? change.target : change.target.parentElement;
-        return target?.closest("[data-mention-menu]");
+        return target?.closest?.("[data-mention-menu]");
       })) return;
       if (changes.some(change => change.type === "attributes" && change.attributeName === "data-testid" && activityRoots.includes(change.target))) activityRootsDirty = true;
       scheduleActivity();
@@ -6025,14 +6229,21 @@ function syncActivitySources() {
     });
   }
   if (!activityMountObserver) {
+    const isNoisyNode = (node) => {
+      if (!node || node.nodeType !== 1) return false;
+      return !!(node.closest?.(".monaco-editor, .terminal, .prose, [role='article'], .gemini-context-popover, .monaco-hover, [role='tooltip']"));
+    };
+
     // Only discover mounted/replaced activity roots here. Text and sprite-frame
     // mutations elsewhere in the app never schedule a scan of conversation history.
     activityMountObserver = new MutationObserver(changes => {
       if (activityRoots.some(root => !root.isConnected) || changes.some(change => {
+        if (isNoisyNode(change.target)) return false;
         if (activityRoots.some(root => root.contains(change.target))) return false;
-        if (change.type === "attributes") return change.target.matches(`${ACTIVITY_ROOTS}, ${ROW}`);
+        if (change.type === "attributes") return change.target.matches?.(`${ACTIVITY_ROOTS}, ${ROW}`);
         return [...change.addedNodes, ...change.removedNodes].some(node => node instanceof Element &&
-          (node.matches(`${ACTIVITY_ROOTS}, ${ROW}`) || node.querySelector(`${ACTIVITY_ROOTS}, ${ROW}`)));
+          !isNoisyNode(node) &&
+          (node.matches?.(`${ACTIVITY_ROOTS}, ${ROW}`) || node.querySelector?.(`${ACTIVITY_ROOTS}, ${ROW}`)));
       })) {
         activityRootsDirty = true;
         scheduleActivity();
@@ -6130,10 +6341,15 @@ function poll() {
   const nextSignature = signatureOf(next.entries, next.working);
   if (nextSignature === signature) return;
 
+  const wasWorking = working;
   activity = next.entries;
   working = next.working;
   signature = nextSignature;
   surface.send({ t: "activity", entries: activity, working });
+
+  if (wasWorking && !working) {
+    surface.send({ t: "celebrate" });
+  }
 }
 
 /* ── The toggle ────────────────────────────────────────────────────────────
