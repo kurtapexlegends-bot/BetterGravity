@@ -1378,18 +1378,16 @@ function emitAntigravitySparks(track, index, level) {
 }
 
 function openContextUsageModal(target = null, options = {}) {
-  const { isHover = false, pinned = false } = options || {};
-
-  // If a pinned modal is already active and this is just a hover event, don't interrupt it
-  const activePinned = document.querySelector('.gemini-context-backdrop');
-  if (activePinned && isHover) return;
-
-  // Clean up any existing hover popovers or previous modals
-  if (!pinned) {
-    document.querySelectorAll('.gemini-context-popover[data-is-hover="true"]').forEach(p => p.remove());
-  } else {
-    document.querySelectorAll('.gemini-context-backdrop, .gemini-context-popover').forEach(p => p.remove());
+  // Toggle: If context popover is already open, clicking closes it
+  const existing = document.querySelector('.gemini-context-popover');
+  if (existing) {
+    existing.remove();
+    document.querySelector('.gemini-context-backdrop')?.remove();
+    return;
   }
+
+  // Clean up any lingering backdrops
+  document.querySelectorAll('.gemini-context-backdrop').forEach(p => p.remove());
 
   const metrics = getConversationContextMetrics(true);
   let used = metrics?.used || 0;
@@ -1407,86 +1405,29 @@ function openContextUsageModal(target = null, options = {}) {
 
   const riskClass = pct > 85 ? "risk-high" : (pct > 60 ? "risk-moderate" : "risk-low");
   const riskLabel = pct > 85 ? "High Risk" : (pct > 60 ? "Moderate" : "Optimal");
-  const riskMsg = pct > 85
-    ? "Context is near capacity. Earlier conversation history may be compacted or truncated."
-    : (pct > 60
-      ? "Context utilization is elevated. Inference latency may increase slightly."
-      : "Context window is optimal. Peak attention fidelity and minimum inference latency.");
-
-  const activeEmail = userAccountProfile?.email || "kurtstanleytalastas@gmail.com";
-  const plan = getAccountPlan(activeEmail);
-  const limits = getAccountLimits(activeEmail);
-  const fiveHourPct = limits?.fiveHour ?? 100;
-  const weeklyPct = limits?.weekly ?? 100;
-
-  const fiveHourClass = fiveHourPct < 25 ? "critical" : fiveHourPct < 60 ? "warning" : "optimal";
-  const weeklyClass = weeklyPct < 25 ? "critical" : weeklyPct < 60 ? "warning" : "optimal";
-
-  const backdrop = pinned ? document.createElement('div') : null;
-  if (backdrop) {
-    backdrop.className = 'gemini-context-backdrop';
-  }
 
   const popover = document.createElement('div');
   popover.className = 'gemini-context-popover';
   popover.setAttribute('role', 'dialog');
-  popover.setAttribute('aria-modal', pinned ? 'true' : 'false');
-  popover.setAttribute('aria-label', 'Account Quota & Context Usage');
-  popover.dataset.isHover = isHover ? 'true' : 'false';
+  popover.setAttribute('aria-modal', 'false');
+  popover.setAttribute('aria-label', 'Context Usage Breakdown');
 
   popover.innerHTML = `
-    <div class="gemini-quota-section">
-      <div class="gemini-quota-header">
-        <div class="gemini-quota-title-wrap">
-          <div class="gemini-quota-heading">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:-2px;margin-right:4px;">
-              <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
-            </svg>
-            Account Quota & Limits
-          </div>
-          <span class="gemini-quota-email">${activeEmail}</span>
-        </div>
-        <div style="display: flex; align-items: center; gap: 6px;">
-          <span class="gemini-quota-plan-badge ${plan.toLowerCase()}">${plan}</span>
-          ${pinned ? `<button class="gemini-context-popover-close" aria-label="Close" title="Close (Esc)">✕</button>` : ''}
-        </div>
-      </div>
-      <div class="gemini-quota-bars">
-        <div class="gemini-quota-bar-row">
-          <div class="gemini-quota-bar-meta">
-            <span>5-Hour Session Quota</span>
-            <span class="gemini-quota-bar-val ${fiveHourClass}">${fiveHourPct}% remaining</span>
-          </div>
-          <div class="gemini-quota-track">
-            <div class="gemini-quota-fill ${fiveHourClass}" style="width: ${fiveHourPct}%;"></div>
-          </div>
-        </div>
-        <div class="gemini-quota-bar-row">
-          <div class="gemini-quota-bar-meta">
-            <span>Weekly Allowance</span>
-            <span class="gemini-quota-bar-val ${weeklyClass}">${weeklyPct}% remaining</span>
-          </div>
-          <div class="gemini-quota-track">
-            <div class="gemini-quota-fill ${weeklyClass}" style="width: ${weeklyPct}%;"></div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <div class="gemini-context-popover-divider"></div>
-
     <div class="gemini-context-popover-header">
-      <div style="display: flex; align-items: center; gap: 8px;">
+      <div class="gemini-context-header-left">
         <span class="gemini-context-popover-model">${modelName}</span>
         <span class="gemini-context-risk-badge ${riskClass}">${riskLabel}</span>
       </div>
-      <span style="font-size: 11px; font-weight: 600; color: #ffffff; font-variant-numeric: tabular-nums;">
-        ${formatTokensCompact(used)} / ${formatTokensCompact(limit)}
-      </span>
+      <div class="gemini-context-header-right">
+        <span class="gemini-context-token-stat">
+          ${formatTokensCompact(used)} / ${formatTokensCompact(limit)}
+        </span>
+        <button class="gemini-context-popover-close" aria-label="Close" title="Close (Esc)">✕</button>
+      </div>
     </div>
 
     <div class="gemini-context-popover-bar-bg">
-      <div class="gemini-context-popover-bar-fill" style="width: ${pct}%;"></div>
+      <div class="gemini-context-popover-bar-fill ${riskClass}" style="width: ${pct}%;"></div>
     </div>
 
     <div class="gemini-context-breakdown-list">
@@ -1512,20 +1453,11 @@ function openContextUsageModal(target = null, options = {}) {
 
     <div class="gemini-context-popover-total-row">
       <span style="font-weight: 500;">Active Headroom</span>
-      <span style="font-weight: 600; color: #38bdf8;">~${formatTokensCompact(Math.max(0, limit - used))} tokens available</span>
-    </div>
-
-    <div class="gemini-context-popover-risk-msg">${riskMsg}</div>
-
-    <div class="gemini-context-popover-actions">
-      <span style="font-size: 9.5px; color: rgba(255, 255, 255, 0.45); margin-right: auto; line-height: 1.6;">Resets every 5h / weekly</span>
-      <a href="https://aistudio.google.com/plan_information" target="_blank" rel="noopener noreferrer" class="gemini-context-external-link">
-        View Quota & Cloud Plan <span style="font-size: 10px;">↗</span>
-      </a>
+      <span class="gemini-context-headroom-val">~${formatTokensCompact(Math.max(0, limit - used))} available</span>
     </div>
   `;
 
-  // Determine anchor coordinates
+  // Determine anchor coordinates (anchors right above the context pill)
   let anchorRect = null;
   if (target && target.rect) {
     anchorRect = target.rect;
@@ -1538,99 +1470,50 @@ function openContextUsageModal(target = null, options = {}) {
     }
   }
 
-  const popWidth = 340;
-  const popHeight = 410;
+  const popWidth = 280;
+  const popHeight = 175;
 
   if (anchorRect && anchorRect.width > 0) {
-    // 1. Try side flyout (to the right of the menu) if space is available
-    if (anchorRect.right + popWidth + 16 <= window.innerWidth) {
-      let left = anchorRect.right + 10;
-      let top = Math.max(16, Math.min(window.innerHeight - popHeight - 16, anchorRect.top - 120));
-      popover.style.left = `${Math.round(left)}px`;
-      popover.style.top = `${Math.round(top)}px`;
-    } else {
-      // 2. Dock above or below the anchor
-      let left = Math.max(16, Math.min(window.innerWidth - popWidth - 16, anchorRect.left));
-      let top;
-      if (anchorRect.top >= popHeight + 16) {
-        top = anchorRect.top - popHeight - 10;
-      } else {
-        top = Math.min(window.innerHeight - popHeight - 16, anchorRect.bottom + 10);
-      }
-      popover.style.left = `${Math.round(left)}px`;
-      popover.style.top = `${Math.round(top)}px`;
-    }
+    let left = Math.max(16, Math.min(window.innerWidth - popWidth - 16, anchorRect.left - 2));
+    let top = anchorRect.top >= popHeight + 12
+      ? (anchorRect.top - popHeight - 8)
+      : Math.min(window.innerHeight - popHeight - 16, anchorRect.bottom + 8);
+    popover.style.left = `${Math.round(left)}px`;
+    popover.style.top = `${Math.round(top)}px`;
     popover.style.right = 'auto';
     popover.style.bottom = 'auto';
   } else {
-    popover.style.right = '24px';
+    popover.style.left = '24px';
     popover.style.bottom = '84px';
-    popover.style.left = 'auto';
+    popover.style.right = 'auto';
     popover.style.top = 'auto';
   }
 
-  const openedAt = performance.now();
-
   const closeModal = () => {
-    if (backdrop) backdrop.remove();
     popover.remove();
-    document.removeEventListener('keydown', onKeyDown);
+    document.removeEventListener('keydown', onKeyDown, true);
+    document.removeEventListener('pointerdown', onDocPointerDown, true);
   };
 
   const onKeyDown = (e) => {
     if (e.key === 'Escape') {
-      if (performance.now() - openedAt < 200) return;
       e.preventDefault();
       e.stopPropagation();
       closeModal();
     }
   };
 
-  if (backdrop) {
-    backdrop.addEventListener('click', (e) => {
-      if (performance.now() - openedAt < 250) return;
-      e.preventDefault();
-      e.stopPropagation();
+  const onDocPointerDown = (e) => {
+    if (!popover.isConnected) {
+      document.removeEventListener('pointerdown', onDocPointerDown, true);
+      document.removeEventListener('keydown', onKeyDown, true);
+      return;
+    }
+    const targetEl = target && target.isConnected ? target : null;
+    if (!popover.contains(e.target) && (!targetEl || !targetEl.contains(e.target))) {
       closeModal();
-    });
-    document.body.appendChild(backdrop);
-  }
-
-  // Hover lifecycle persistence: keep open while cursor is inside popover
-  popover.addEventListener('pointerenter', () => {
-    window.__geminiUsageHoverActive = true;
-    if (window.__geminiUsageCloseTimeout) {
-      clearTimeout(window.__geminiUsageCloseTimeout);
-      window.__geminiUsageCloseTimeout = null;
     }
-  });
-  popover.addEventListener('mouseenter', () => {
-    window.__geminiUsageHoverActive = true;
-    if (window.__geminiUsageCloseTimeout) {
-      clearTimeout(window.__geminiUsageCloseTimeout);
-      window.__geminiUsageCloseTimeout = null;
-    }
-  });
-  popover.addEventListener('pointerleave', () => {
-    window.__geminiUsageHoverActive = false;
-    if (popover.dataset.isHover === 'true') {
-      window.__geminiUsageCloseTimeout = setTimeout(() => {
-        if (!window.__geminiUsageHoverActive && popover.dataset.isHover === 'true') {
-          popover.remove();
-        }
-      }, 200);
-    }
-  });
-  popover.addEventListener('mouseleave', () => {
-    window.__geminiUsageHoverActive = false;
-    if (popover.dataset.isHover === 'true') {
-      window.__geminiUsageCloseTimeout = setTimeout(() => {
-        if (!window.__geminiUsageHoverActive && popover.dataset.isHover === 'true') {
-          popover.remove();
-        }
-      }, 200);
-    }
-  });
+  };
 
   popover.querySelector('.gemini-context-popover-close')?.addEventListener('click', (e) => {
     e.preventDefault();
@@ -1644,11 +1527,11 @@ function openContextUsageModal(target = null, options = {}) {
 
   document.body.appendChild(popover);
 
-  if (pinned) {
-    setTimeout(() => {
-      document.addEventListener('keydown', onKeyDown);
-    }, 100);
-  }
+  // Attach global dismiss handlers on next tick so opening click doesn't immediately dismiss
+  setTimeout(() => {
+    document.addEventListener('keydown', onKeyDown, true);
+    document.addEventListener('pointerdown', onDocPointerDown, true);
+  }, 30);
 }
 
 let isEnhancingModelPanel = false;
