@@ -171,10 +171,10 @@ export class OverlayWindow {
       this.close();
     };
     if (page && !page.isDestroyed()) {
-      page.once("destroyed", onOwnerGone);
+      page.once?.("destroyed", onOwnerGone);
       const ownerWindow = BrowserWindow.fromWebContents(page);
       if (ownerWindow && !ownerWindow.isDestroyed()) {
-        ownerWindow.once("closed", onOwnerGone);
+        ownerWindow.once?.("closed", onOwnerGone);
       }
     }
 

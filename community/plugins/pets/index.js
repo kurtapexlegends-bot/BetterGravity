@@ -1055,7 +1055,6 @@ function petSurface(host, data) {
     isSleeping = typeof force === "boolean" ? force : !isSleeping;
     if (isSleeping) {
       pet.setAttribute("data-pet-sleeping", "true");
-      napPetItem.textContent = "Wake up ☀️";
       clearTimeout(frameTimer);
       frameTimer = undefined;
       const restFrame = IDLE_FRAMES[5] || IDLE_FRAMES[0];
@@ -1064,7 +1063,6 @@ function petSurface(host, data) {
       showBubble("Zzz... taking a nap (low power mode) 💤", 3000, "💤 Snooze");
     } else {
       pet.removeAttribute("data-pet-sleeping");
-      napPetItem.textContent = "Take a nap 💤";
       playPetChirp("purr");
       emitPetEmotes(["✨", "☀️"]);
       rebuild();
@@ -1093,36 +1091,6 @@ function petSurface(host, data) {
   petMenu.setAttribute("aria-label", "Pet");
   petMenu.dataset.petHit = "menu";
   petMenu.hidden = true;
-
-  const petCompanionItem = make("button", "bettergravity-pet-menu__item", petMenu);
-  petCompanionItem.type = "button";
-  petCompanionItem.setAttribute("role", "menuitem");
-  petCompanionItem.textContent = "Pet companion 💖";
-
-  const napPetItem = make("button", "bettergravity-pet-menu__item", petMenu);
-  napPetItem.type = "button";
-  napPetItem.setAttribute("role", "menuitem");
-  napPetItem.textContent = "Take a nap 💤";
-
-  const trickPetItem = make("button", "bettergravity-pet-menu__item", petMenu);
-  trickPetItem.type = "button";
-  trickPetItem.setAttribute("role", "menuitem");
-  trickPetItem.textContent = "Do a trick ✨";
-
-  const talkPetItem = make("button", "bettergravity-pet-menu__item", petMenu);
-  talkPetItem.type = "button";
-  talkPetItem.setAttribute("role", "menuitem");
-  talkPetItem.textContent = "Say something 💬";
-
-  const browserPetItem = make("button", "bettergravity-pet-menu__item", petMenu);
-  browserPetItem.type = "button";
-  browserPetItem.setAttribute("role", "menuitem");
-  browserPetItem.textContent = "Open browser 🌐";
-
-  const libraryPetItem = make("button", "bettergravity-pet-menu__item", petMenu);
-  libraryPetItem.type = "button";
-  libraryPetItem.setAttribute("role", "menuitem");
-  libraryPetItem.textContent = "Pet library 🐾";
 
   const closePetItem = make("button", "bettergravity-pet-menu__item", petMenu);
   closePetItem.type = "button";
@@ -2224,7 +2192,7 @@ function petSurface(host, data) {
       host.setInteractive(true);
       host.setFocusable?.(true);
     }
-    petCompanionItem.focus({ preventScroll: true });
+    closePetItem.focus({ preventScroll: true });
   }
 
   on(pet, "contextmenu", event => {
@@ -2236,66 +2204,14 @@ function petSurface(host, data) {
     const point = event.clientX || event.clientY ? { x: event.clientX, y: event.clientY } : { x: x + width, y: y + height / 2 };
     if (desktop) {
       menuRequest = { id: `pet-menu-${++menuSequence}`, point };
-      host.send({
-        type: "bettergravity:overlay-context-menu",
-        requestId: menuRequest.id,
-        items: [
-          { id: "pet", label: "Pet Companion 💖" },
-          { id: "nap", label: isSleeping ? "Wake Up ☀️" : "Take a Nap 💤" },
-          { id: "trick", label: "Do a Trick ✨" },
-          { id: "talk", label: "Say Something 💬" },
-          { id: "library", label: "Pet Library 🐾" },
-          { id: "close-pet", label: "Close Pet" }
-        ]
-      });
-    } else {
-      napPetItem.textContent = isSleeping ? "Wake up ☀️" : "Take a nap 💤";
-      showPetMenu(point);
-    }
+      host.send({ type: "bettergravity:overlay-context-menu", requestId: menuRequest.id,
+        items: [{ id: "close-pet", label: "Close pet" }] });
+    } else showPetMenu(point);
   });
-  on(petCompanionItem, "click", event => {
+  on(pet, "dblclick", event => {
     event.preventDefault();
     event.stopPropagation();
-    closePetMenu();
-    if (isSleeping) toggleSleep(false);
-    playPetChirp("purr");
-    emitPetEmotes(["❤️", "💖", "✨"]);
-    triggerTrick();
-  });
-  on(napPetItem, "click", event => {
-    event.preventDefault();
-    event.stopPropagation();
-    closePetMenu();
     toggleSleep();
-  });
-  on(trickPetItem, "click", event => {
-    event.preventDefault();
-    event.stopPropagation();
-    closePetMenu();
-    if (isSleeping) toggleSleep(false);
-    playPetChirp("purr");
-    triggerTrick();
-  });
-  on(talkPetItem, "click", event => {
-    event.preventDefault();
-    event.stopPropagation();
-    closePetMenu();
-    if (isSleeping) toggleSleep(false);
-    playPetChirp("purr");
-    const quote = PET_QUOTES[Math.floor(Math.random() * PET_QUOTES.length)];
-    showBubble(quote, 5000);
-  });
-  on(browserPetItem, "click", event => {
-    event.preventDefault();
-    event.stopPropagation();
-    closePetMenu();
-    host.send({ t: "open-browser" });
-  });
-  on(libraryPetItem, "click", event => {
-    event.preventDefault();
-    event.stopPropagation();
-    closePetMenu();
-    host.send({ t: "open-library" });
   });
   on(speechBubble, "click", event => {
     if (event.target.closest(".bettergravity-pet-bubble__close")) return;
@@ -3187,30 +3103,8 @@ function petSurface(host, data) {
         if (message.requestId !== menuRequest?.id) return;
         const request = menuRequest;
         menuRequest = null;
-        if (message.unsupported) {
-          napPetItem.textContent = isSleeping ? "Wake up ☀️" : "Take a nap 💤";
-          showPetMenu(request.point);
-        } else if (message.id === "close-pet") {
-          host.send({ t: "hide" });
-        } else if (message.id === "pet") {
-          if (isSleeping) toggleSleep(false);
-          playPetChirp("purr");
-          emitPetEmotes(["❤️", "💖", "✨"]);
-          triggerTrick();
-        } else if (message.id === "nap") {
-          toggleSleep();
-        } else if (message.id === "trick") {
-          if (isSleeping) toggleSleep(false);
-          playPetChirp("purr");
-          triggerTrick();
-        } else if (message.id === "talk") {
-          if (isSleeping) toggleSleep(false);
-          playPetChirp("purr");
-          const quote = PET_QUOTES[Math.floor(Math.random() * PET_QUOTES.length)];
-          showBubble(quote, 5000);
-        } else if (message.id === "library") {
-          host.send({ t: "open-library" });
-        }
+        if (message.unsupported) showPetMenu(request.point);
+        else if (message.id === "close-pet") host.send({ t: "hide" });
         return;
       }
 
@@ -3254,6 +3148,19 @@ function petSurface(host, data) {
           entries = Array.isArray(message.entries) ? message.entries : [];
           working = message.working === true || entries.some((entry) => entry.status === "running");
           renderActivity();
+          if (message.celebrate) {
+            if (isSleeping) toggleSleep(false);
+            playPetChirp("celebrate");
+            emitPetEmotes(["🎉", "⭐", "✨", "❤️"]);
+            triggerTrick("jumping");
+            const cheers = [
+              "Great job! Task complete! 🎉",
+              "All done! You nailed it! ⭐",
+              "Woohoo! That was awesome! 🚀",
+              "Task finished! Taking five! ✨"
+            ];
+            showBubble(cheers[Math.floor(Math.random() * cheers.length)], 4500, "🎉 Celebration");
+          }
           break;
         }
         case "at": {
@@ -3460,7 +3367,7 @@ const STOPPING = '[data-tooltip-id="input-send-button-cancel-tooltip"]';
 
 /** Host events drive activity. The interval recovers replaced host providers. */
 const POLL_INTERVAL_MS = 2000;
-const ACTIVITY_COALESCE_MS = 180;
+const ACTIVITY_COALESCE_MS = 50;
 
 /**
  * How long a list the tray is handed.
@@ -5895,7 +5802,7 @@ const refusing = (element) =>
   element.hasAttribute("disabled") || element.getAttribute("aria-disabled") === "true";
 
 /** How long to give the workbench to swap a view in, or to enable a button. */
-const HOST_WAIT_MS = 3000;
+const HOST_WAIT_MS = 1500;
 
 const projectlessHome = () => {
   const section = new URLSearchParams(location.search).get("section");
@@ -6163,7 +6070,7 @@ function subscribeActivity(source, method, listener = scheduleActivity) {
 }
 
 function syncActivitySources() {
-  const store = (activityStore && typeof activityStore.getState === "function") ? activityStore : (findHostStore() ?? activityStore);
+  const store = findHostStore() ?? activityStore;
   if (store !== activityStore) {
     releaseActivitySubscription(storeSubscription);
     activityStore = store;
@@ -6177,7 +6084,7 @@ function syncActivitySources() {
       if (changed) scheduleActivity();
     });
   }
-  const manager = (activityManager && typeof activityManager.getAgentStates === "function") ? activityManager : (findAgentStatesManager() ?? activityManager);
+  const manager = findAgentStatesManager() ?? activityManager;
   // Manager.subscribe(id) acquires a conversation; it is not an event API.
   // Observe existing providers without keeping hidden conversations loaded.
   activityManager = manager;
@@ -6229,20 +6136,13 @@ function syncActivitySources() {
     });
   }
   if (!activityMountObserver) {
-    const isNoisyNode = (node) => {
-      if (!node || node.nodeType !== 1) return false;
-      return !!(node.closest?.(".monaco-editor, .terminal, .prose, [role='article'], .gemini-context-popover, .monaco-hover, [role='tooltip']"));
-    };
-
     // Only discover mounted/replaced activity roots here. Text and sprite-frame
     // mutations elsewhere in the app never schedule a scan of conversation history.
     activityMountObserver = new MutationObserver(changes => {
       if (activityRoots.some(root => !root.isConnected) || changes.some(change => {
-        if (isNoisyNode(change.target)) return false;
         if (activityRoots.some(root => root.contains(change.target))) return false;
         if (change.type === "attributes") return change.target.matches?.(`${ACTIVITY_ROOTS}, ${ROW}`);
         return [...change.addedNodes, ...change.removedNodes].some(node => node instanceof Element &&
-          !isNoisyNode(node) &&
           (node.matches?.(`${ACTIVITY_ROOTS}, ${ROW}`) || node.querySelector?.(`${ACTIVITY_ROOTS}, ${ROW}`)));
       })) {
         activityRootsDirty = true;
@@ -6345,11 +6245,7 @@ function poll() {
   activity = next.entries;
   working = next.working;
   signature = nextSignature;
-  surface.send({ t: "activity", entries: activity, working });
-
-  if (wasWorking && !working) {
-    surface.send({ t: "celebrate" });
-  }
+  surface.send({ t: "activity", entries: activity, working, celebrate: wasWorking && !working });
 }
 
 /* ── The toggle ────────────────────────────────────────────────────────────
