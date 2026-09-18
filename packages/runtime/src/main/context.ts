@@ -19,33 +19,79 @@ export interface ContextMetrics {
   readonly riskMessage: string;
 }
 
+interface CacheRecord {
+  transcriptPath: string;
+  mtimeMs: number;
+  size: number;
+  metrics: ContextMetrics;
+}
+
+let cachedRecord: CacheRecord | null = null;
+let lastBrainScanTime = 0;
+let lastDiscoveredSessionId = "";
+let lastDiscoveredTranscriptPath = "";
+const BRAIN_SCAN_INTERVAL_MS = 15000;
+
 export function readContextMetrics(requestedSessionId?: string): ContextMetrics {
   const homedir = os.homedir();
   const brainDir = path.join(homedir, ".gemini", "antigravity", "brain");
   let targetSessionId = (requestedSessionId || "").trim();
   let transcriptPath = "";
 
-  if (targetSessionId && fs.existsSync(path.join(brainDir, targetSessionId, ".system_generated", "logs", "transcript.jsonl"))) {
-    transcriptPath = path.join(brainDir, targetSessionId, ".system_generated", "logs", "transcript.jsonl");
-  } else if (fs.existsSync(brainDir)) {
-    try {
-      const entries = fs.readdirSync(brainDir, { withFileTypes: true });
-      let newestTime = 0;
-      for (const entry of entries) {
-        if (entry.isDirectory() && entry.name !== "tempmediaStorage") {
-          const tPath = path.join(brainDir, entry.name, ".system_generated", "logs", "transcript.jsonl");
-          if (fs.existsSync(tPath)) {
-            try {
-              const stat = fs.statSync(tPath);
-              const mtime = stat.mtimeMs;
-              if (mtime > newestTime) {
-                newestTime = mtime;
-                targetSessionId = entry.name;
-                transcriptPath = tPath;
-              }
-            } catch {}
+  if (targetSessionId) {
+    const candidate = path.join(brainDir, targetSessionId, ".system_generated", "logs", "transcript.jsonl");
+    if (fs.existsSync(candidate)) {
+      transcriptPath = candidate;
+    }
+  }
+
+  if (!transcriptPath && fs.existsSync(brainDir)) {
+    const now = Date.now();
+    if (lastDiscoveredTranscriptPath && fs.existsSync(lastDiscoveredTranscriptPath)) {
+      transcriptPath = lastDiscoveredTranscriptPath;
+      targetSessionId = lastDiscoveredSessionId;
+    }
+
+    if (!transcriptPath || now - lastBrainScanTime > BRAIN_SCAN_INTERVAL_MS) {
+      lastBrainScanTime = now;
+      try {
+        const entries = fs.readdirSync(brainDir, { withFileTypes: true });
+        let newestTime = 0;
+        for (const entry of entries) {
+          if (entry.isDirectory() && entry.name !== "tempmediaStorage") {
+            const tPath = path.join(brainDir, entry.name, ".system_generated", "logs", "transcript.jsonl");
+            if (fs.existsSync(tPath)) {
+              try {
+                const stat = fs.statSync(tPath);
+                const mtime = stat.mtimeMs;
+                if (mtime > newestTime) {
+                  newestTime = mtime;
+                  targetSessionId = entry.name;
+                  transcriptPath = tPath;
+                }
+              } catch {}
+            }
           }
         }
+        if (transcriptPath) {
+          lastDiscoveredSessionId = targetSessionId;
+          lastDiscoveredTranscriptPath = transcriptPath;
+        }
+      } catch {}
+    }
+  }
+
+  // Fast-path: If the transcript file exists and mtime + size haven't changed, return cached metrics immediately
+  if (transcriptPath && fs.existsSync(transcriptPath)) {
+    try {
+      const stat = fs.statSync(transcriptPath);
+      if (
+        cachedRecord &&
+        cachedRecord.transcriptPath === transcriptPath &&
+        cachedRecord.mtimeMs === stat.mtimeMs &&
+        cachedRecord.size === stat.size
+      ) {
+        return cachedRecord.metrics;
       }
     } catch {}
   }
@@ -155,7 +201,7 @@ export function readContextMetrics(requestedSessionId?: string): ContextMetrics 
     riskMessage = `🟡 Moderate Risk (50-70% of ${formatLimit} tokens): Attention density dilutes beyond 50% capacity.`;
   }
 
-  return {
+  const metrics: ContextMetrics = {
     used,
     limit: limitTokens,
     ratio,
@@ -171,4 +217,19 @@ export function readContextMetrics(requestedSessionId?: string): ContextMetrics 
     riskLevel,
     riskMessage
   };
+
+  if (transcriptPath && fs.existsSync(transcriptPath)) {
+    try {
+      const stat = fs.statSync(transcriptPath);
+      cachedRecord = {
+        transcriptPath,
+        mtimeMs: stat.mtimeMs,
+        size: stat.size,
+        metrics
+      };
+    } catch {}
+  }
+
+  return metrics;
 }
+

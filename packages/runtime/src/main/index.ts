@@ -291,6 +291,11 @@ function registerChannels(
  * into a stock launch.
  */
 export function activate(context: RuntimeContext): void {
+  // Append Chromium performance & memory optimization switches
+  try {
+    app.commandLine.appendSwitch("enable-features", "ResourceSaver,CompressSystemMemory");
+  } catch {}
+
   // Deliberately not app.getPath("userData"): the bootstrap restores the host's
   // app name, so that path belongs to Antigravity. BetterGravity keeps its own.
   const paths = runtimePaths(path.join(app.getPath("appData"), "BetterGravity"));
@@ -376,11 +381,31 @@ export function activate(context: RuntimeContext): void {
     }
   };
 
+  let idleTrimTimer: NodeJS.Timeout | null = null;
+  const scheduleIdleTrim = () => {
+    if (idleTrimTimer) clearTimeout(idleTrimTimer);
+    idleTrimTimer = setTimeout(() => {
+      try {
+        const editors = BrowserWindow.getAllWindows().filter((w) => !isHelperWindow(w));
+        const allIdle = editors.every((w) => w.isMinimized() || !w.isVisible());
+        if (allIdle && editors.length > 0) {
+          for (const win of editors) {
+            if (!win.isDestroyed() && win.webContents?.session) {
+              win.webContents.session.clearCodeCaches({}).catch(() => {});
+            }
+          }
+        }
+      } catch {}
+    }, 60000);
+  };
+
   app.on("browser-window-created", (_event, win) => {
     if (!isHelperWindow(win)) {
       win.on("closed", () => {
         setTimeout(checkAppQuitOnLastEditorWindow, 150);
       });
+      win.on("minimize", scheduleIdleTrim);
+      win.on("hide", scheduleIdleTrim);
     }
   });
 

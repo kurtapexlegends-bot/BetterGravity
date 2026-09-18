@@ -1030,6 +1030,7 @@ function setupObservers() {
 
   // Periodic safety check to guarantee asynchronous past turns and scroller are decorated
   const periodicCheck = setInterval(() => {
+    if (typeof document !== "undefined" && document.hidden) return;
     bindScroller();
     const view = document.querySelector('[data-testid="conversation-view"]');
     if (!view) return;
@@ -1047,7 +1048,17 @@ function setupObservers() {
     if (needsScan) {
       scheduleScan();
     }
-  }, 600);
+  }, 2500);
+
+  const onVisibilityChange = () => {
+    if (typeof document !== "undefined" && !document.hidden) {
+      bindScroller();
+      scheduleScan();
+    }
+  };
+  if (typeof document !== "undefined") {
+    document.addEventListener("visibilitychange", onVisibilityChange);
+  }
 
   // Synchronous initial scan + retry schedule
   scanAll();
@@ -1069,6 +1080,7 @@ function setupObservers() {
     bodyObserver?.disconnect();
     clearInterval(periodicCheck);
     if (typeof document !== "undefined") {
+      document.removeEventListener("visibilitychange", onVisibilityChange);
       document.removeEventListener("DOMContentLoaded", attachObserver);
       document.removeEventListener("click", onTitlebarMoreClick, true);
       document.querySelectorAll("button[data-fork-chat-btn], button[data-fork-titlebar-btn]").forEach((b) => b.remove());

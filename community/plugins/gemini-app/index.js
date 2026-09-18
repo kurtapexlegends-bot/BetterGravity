@@ -1049,22 +1049,11 @@ async function refreshContextMetrics() {
   isFetchingContextMetrics = true;
   try {
     let metrics = null;
-    try {
-      const res = await fetch("http://127.0.0.1:41421/context", { signal: AbortSignal.timeout(1200) });
-      if (res.ok) {
-        metrics = await res.json();
-      }
-    } catch (e) {
-      console.debug("[BetterGravity] Context fetch 41421 error:", e?.message || e);
-    }
-
-    if (!metrics) {
-      const convId = getActiveConversationId();
-      if (typeof plugin?.account?.getContextMetrics === "function") {
-        try {
-          metrics = await plugin.account.getContextMetrics(convId);
-        } catch {}
-      }
+    const convId = getActiveConversationId();
+    if (typeof plugin?.account?.getContextMetrics === "function") {
+      try {
+        metrics = await plugin.account.getContextMetrics(convId);
+      } catch {}
     }
     if (!metrics && typeof plugin?.storage?.get === "function") {
       try {
@@ -1093,6 +1082,7 @@ async function refreshContextMetrics() {
 
 // Keep context metrics, prompt box layout, and account profile in sync automatically
 setInterval(() => {
+  if (document.hidden) return;
   applyPromptBoxPatch();
   ensureComposerMeta();
   refreshAccountProfile();
@@ -1100,6 +1090,19 @@ setInterval(() => {
     refreshContextMetrics();
   }
 }, 3000);
+
+if (typeof document !== "undefined") {
+  document.addEventListener("visibilitychange", () => {
+    if (!document.hidden) {
+      applyPromptBoxPatch();
+      ensureComposerMeta();
+      refreshAccountProfile();
+      if (document.querySelector('.gemini-composer-meta') || document.querySelector(INPUT_BOX)) {
+        refreshContextMetrics();
+      }
+    }
+  });
+}
 
 function getConversationContextMetrics(forceRefresh = false) {
   const now = Date.now();
@@ -5598,13 +5601,36 @@ listenToPage(window, 'keydown', (e) => {
 listenToPage(window, 'popstate', checkUrlForProjectSwitch);
 listenToPage(window, 'hashchange', checkUrlForProjectSwitch);
 
+// Intercept pushState & replaceState for 0ms instantaneous route tracking
+if (typeof history !== "undefined") {
+  try {
+    const origPushState = history.pushState;
+    if (typeof origPushState === "function") {
+      history.pushState = function(...args) {
+        const ret = origPushState.apply(this, args);
+        try { checkUrlForProjectSwitch(); } catch {}
+        return ret;
+      };
+    }
+    const origReplaceState = history.replaceState;
+    if (typeof origReplaceState === "function") {
+      history.replaceState = function(...args) {
+        const ret = origReplaceState.apply(this, args);
+        try { checkUrlForProjectSwitch(); } catch {}
+        return ret;
+      };
+    }
+  } catch {}
+}
+
 let lastCheckedUrl = '';
 const urlTicker = window.setInterval(() => {
+  if (document.hidden) return;
   if (window.location.href !== lastCheckedUrl) {
     lastCheckedUrl = window.location.href;
     checkUrlForProjectSwitch();
   }
-}, 300);
+}, 3000);
 
 function hideConversationTime(row) {
   if (!row) return;
@@ -10358,10 +10384,11 @@ plugin.dom.observe(TOP_BAR_MORE, () => {
 for (const spec of TOP_CHIPS) plugin.dom.observe(spec.trigger, () => reconcileTopChips());
 
 const topChipsTicker = window.setInterval(() => {
+  if (document.hidden) return;
   ensureGeminiWebHeaderButton();
   if (!document.querySelector(HOME_SCROLLER) && !topChipHostEl) return;
   reconcileTopChips();
-}, 1000);
+}, 4000);
 reconcileTopChips();
 ensureGeminiWebHeaderButton();
 
@@ -12226,6 +12253,7 @@ function startAutoHealing() {
 
   // Periodic heartbeat ensuring complete state integrity
   autoHealHeartbeat = window.setInterval(() => {
+    if (document.hidden) return;
     const needsHeal =
       !document.getElementById("gemini-theme-dynamic-styles")?.isConnected ||
       (document.querySelector(SIDEBAR_SELECTOR) && !document.getElementById("gemini-experience-switch")?.isConnected) ||
@@ -12236,7 +12264,7 @@ function startAutoHealing() {
     if (needsHeal) {
       reconcileBetterGravityUI();
     }
-  }, 1500);
+  }, 4000);
 }
 
 // Multi-stage startup reconciliation schedule
