@@ -6234,6 +6234,7 @@ function begin() {
 }
 
 function poll() {
+  if (typeof document !== "undefined" && document.hidden) return;
   if (libraryPage && !libraryCreating && (!libraryPage.isConnected || location.href !== libraryHref)) closePetLibrary();
   if (surface === null) return;
   syncActivitySources();
@@ -6312,6 +6313,13 @@ plugin.onDispose(() => libraryButtonHandle.remove());
 
 const poller = setInterval(poll, POLL_INTERVAL_MS);
 plugin.onDispose(() => clearInterval(poller));
+if (typeof document !== "undefined") {
+  const onPetVisibilityChange = () => {
+    if (!document.hidden) poll();
+  };
+  document.addEventListener("visibilitychange", onPetVisibilityChange);
+  plugin.onDispose(() => document.removeEventListener("visibilitychange", onPetVisibilityChange));
+}
 plugin.onDispose(() => { generation++; stop(); });
 
 plugin.onDispose(
