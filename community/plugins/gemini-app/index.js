@@ -1377,9 +1377,19 @@ function emitAntigravitySparks(track, index, level) {
   }
 }
 
-function openContextUsageModal(target = null) {
-  // Clean up any existing modal & backdrop
-  document.querySelectorAll('.gemini-context-backdrop, .gemini-context-popover').forEach(p => p.remove());
+function openContextUsageModal(target = null, options = {}) {
+  const { isHover = false, pinned = false } = options || {};
+
+  // If a pinned modal is already active and this is just a hover event, don't interrupt it
+  const activePinned = document.querySelector('.gemini-context-backdrop');
+  if (activePinned && isHover) return;
+
+  // Clean up any existing hover popovers or previous modals
+  if (!pinned) {
+    document.querySelectorAll('.gemini-context-popover[data-is-hover="true"]').forEach(p => p.remove());
+  } else {
+    document.querySelectorAll('.gemini-context-backdrop, .gemini-context-popover').forEach(p => p.remove());
+  }
 
   const metrics = getConversationContextMetrics(true);
   let used = metrics?.used || 0;
@@ -1403,26 +1413,82 @@ function openContextUsageModal(target = null) {
       ? "Context utilization is elevated. Inference latency may increase slightly."
       : "Context window is optimal. Peak attention fidelity and minimum inference latency.");
 
-  const backdrop = document.createElement('div');
-  backdrop.className = 'gemini-context-backdrop';
+  const activeEmail = userAccountProfile?.email || "kurtstanleytalastas@gmail.com";
+  const plan = getAccountPlan(activeEmail);
+  const limits = getAccountLimits(activeEmail);
+  const fiveHourPct = limits?.fiveHour ?? 100;
+  const weeklyPct = limits?.weekly ?? 100;
+
+  const fiveHourClass = fiveHourPct < 25 ? "critical" : fiveHourPct < 60 ? "warning" : "optimal";
+  const weeklyClass = weeklyPct < 25 ? "critical" : weeklyPct < 60 ? "warning" : "optimal";
+
+  const backdrop = pinned ? document.createElement('div') : null;
+  if (backdrop) {
+    backdrop.className = 'gemini-context-backdrop';
+  }
 
   const popover = document.createElement('div');
   popover.className = 'gemini-context-popover';
   popover.setAttribute('role', 'dialog');
-  popover.setAttribute('aria-modal', 'true');
-  popover.setAttribute('aria-label', 'Context Window Usage');
+  popover.setAttribute('aria-modal', pinned ? 'true' : 'false');
+  popover.setAttribute('aria-label', 'Account Quota & Context Usage');
+  popover.dataset.isHover = isHover ? 'true' : 'false';
 
   popover.innerHTML = `
+    <div class="gemini-quota-section">
+      <div class="gemini-quota-header">
+        <div class="gemini-quota-title-wrap">
+          <div class="gemini-quota-heading">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:-2px;margin-right:4px;">
+              <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+            </svg>
+            Account Quota & Limits
+          </div>
+          <span class="gemini-quota-email">${activeEmail}</span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 6px;">
+          <span class="gemini-quota-plan-badge ${plan.toLowerCase()}">${plan}</span>
+          ${pinned ? `<button class="gemini-context-popover-close" aria-label="Close" title="Close (Esc)">✕</button>` : ''}
+        </div>
+      </div>
+      <div class="gemini-quota-bars">
+        <div class="gemini-quota-bar-row">
+          <div class="gemini-quota-bar-meta">
+            <span>5-Hour Session Quota</span>
+            <span class="gemini-quota-bar-val ${fiveHourClass}">${fiveHourPct}% remaining</span>
+          </div>
+          <div class="gemini-quota-track">
+            <div class="gemini-quota-fill ${fiveHourClass}" style="width: ${fiveHourPct}%;"></div>
+          </div>
+        </div>
+        <div class="gemini-quota-bar-row">
+          <div class="gemini-quota-bar-meta">
+            <span>Weekly Allowance</span>
+            <span class="gemini-quota-bar-val ${weeklyClass}">${weeklyPct}% remaining</span>
+          </div>
+          <div class="gemini-quota-track">
+            <div class="gemini-quota-fill ${weeklyClass}" style="width: ${weeklyPct}%;"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="gemini-context-popover-divider"></div>
+
     <div class="gemini-context-popover-header">
       <div style="display: flex; align-items: center; gap: 8px;">
         <span class="gemini-context-popover-model">${modelName}</span>
         <span class="gemini-context-risk-badge ${riskClass}">${riskLabel}</span>
       </div>
-      <button class="gemini-context-popover-close" aria-label="Close" title="Close (Esc)">✕</button>
+      <span style="font-size: 11px; font-weight: 600; color: #ffffff; font-variant-numeric: tabular-nums;">
+        ${formatTokensCompact(used)} / ${formatTokensCompact(limit)}
+      </span>
     </div>
+
     <div class="gemini-context-popover-bar-bg">
       <div class="gemini-context-popover-bar-fill" style="width: ${pct}%;"></div>
     </div>
+
     <div class="gemini-context-breakdown-list">
       <div class="gemini-context-breakdown-row">
         <span class="gemini-context-breakdown-label"><span class="dot dot-sys">●</span> System Instructions</span>
@@ -1441,13 +1507,18 @@ function openContextUsageModal(target = null) {
         <span class="gemini-context-breakdown-val">~${formatTokensCompact(toolTokens)}</span>
       </div>
     </div>
+
     <div class="gemini-context-popover-divider"></div>
+
     <div class="gemini-context-popover-total-row">
-      <span style="font-weight: 500;">Total Active Context</span>
-      <span style="font-weight: 600; color: #ffffff;">${used.toLocaleString()} / ${limit.toLocaleString()} (${pct}%)</span>
+      <span style="font-weight: 500;">Active Headroom</span>
+      <span style="font-weight: 600; color: #38bdf8;">~${formatTokensCompact(Math.max(0, limit - used))} tokens available</span>
     </div>
+
     <div class="gemini-context-popover-risk-msg">${riskMsg}</div>
+
     <div class="gemini-context-popover-actions">
+      <span style="font-size: 9.5px; color: rgba(255, 255, 255, 0.45); margin-right: auto; line-height: 1.6;">Resets every 5h / weekly</span>
       <a href="https://aistudio.google.com/plan_information" target="_blank" rel="noopener noreferrer" class="gemini-context-external-link">
         View Quota & Cloud Plan <span style="font-size: 10px;">↗</span>
       </a>
@@ -1468,13 +1539,13 @@ function openContextUsageModal(target = null) {
   }
 
   const popWidth = 340;
-  const popHeight = 310;
+  const popHeight = 410;
 
   if (anchorRect && anchorRect.width > 0) {
     // 1. Try side flyout (to the right of the menu) if space is available
     if (anchorRect.right + popWidth + 16 <= window.innerWidth) {
       let left = anchorRect.right + 10;
-      let top = Math.max(16, Math.min(window.innerHeight - popHeight - 16, anchorRect.top - 80));
+      let top = Math.max(16, Math.min(window.innerHeight - popHeight - 16, anchorRect.top - 120));
       popover.style.left = `${Math.round(left)}px`;
       popover.style.top = `${Math.round(top)}px`;
     } else {
@@ -1501,7 +1572,7 @@ function openContextUsageModal(target = null) {
   const openedAt = performance.now();
 
   const closeModal = () => {
-    backdrop.remove();
+    if (backdrop) backdrop.remove();
     popover.remove();
     document.removeEventListener('keydown', onKeyDown);
   };
@@ -1515,12 +1586,50 @@ function openContextUsageModal(target = null) {
     }
   };
 
-  backdrop.addEventListener('click', (e) => {
-    // Ignore click events that fired in the same gesture as opening
-    if (performance.now() - openedAt < 250) return;
-    e.preventDefault();
-    e.stopPropagation();
-    closeModal();
+  if (backdrop) {
+    backdrop.addEventListener('click', (e) => {
+      if (performance.now() - openedAt < 250) return;
+      e.preventDefault();
+      e.stopPropagation();
+      closeModal();
+    });
+    document.body.appendChild(backdrop);
+  }
+
+  // Hover lifecycle persistence: keep open while cursor is inside popover
+  popover.addEventListener('pointerenter', () => {
+    window.__geminiUsageHoverActive = true;
+    if (window.__geminiUsageCloseTimeout) {
+      clearTimeout(window.__geminiUsageCloseTimeout);
+      window.__geminiUsageCloseTimeout = null;
+    }
+  });
+  popover.addEventListener('mouseenter', () => {
+    window.__geminiUsageHoverActive = true;
+    if (window.__geminiUsageCloseTimeout) {
+      clearTimeout(window.__geminiUsageCloseTimeout);
+      window.__geminiUsageCloseTimeout = null;
+    }
+  });
+  popover.addEventListener('pointerleave', () => {
+    window.__geminiUsageHoverActive = false;
+    if (popover.dataset.isHover === 'true') {
+      window.__geminiUsageCloseTimeout = setTimeout(() => {
+        if (!window.__geminiUsageHoverActive && popover.dataset.isHover === 'true') {
+          popover.remove();
+        }
+      }, 200);
+    }
+  });
+  popover.addEventListener('mouseleave', () => {
+    window.__geminiUsageHoverActive = false;
+    if (popover.dataset.isHover === 'true') {
+      window.__geminiUsageCloseTimeout = setTimeout(() => {
+        if (!window.__geminiUsageHoverActive && popover.dataset.isHover === 'true') {
+          popover.remove();
+        }
+      }, 200);
+    }
   });
 
   popover.querySelector('.gemini-context-popover-close')?.addEventListener('click', (e) => {
@@ -1533,12 +1642,13 @@ function openContextUsageModal(target = null) {
     e.stopPropagation();
   });
 
-  document.body.appendChild(backdrop);
   document.body.appendChild(popover);
 
-  setTimeout(() => {
-    document.addEventListener('keydown', onKeyDown);
-  }, 100);
+  if (pinned) {
+    setTimeout(() => {
+      document.addEventListener('keydown', onKeyDown);
+    }, 100);
+  }
 }
 
 let isEnhancingModelPanel = false;
@@ -1593,26 +1703,74 @@ function enhanceModelSelectorPanel(panel) {
           stats.textContent = statsStr;
         }
 
-        if (!row.dataset.geminiUsageClickAttached) {
-          row.dataset.geminiUsageClickAttached = 'true';
+        const activeEmail = userAccountProfile?.email || "kurtstanleytalastas@gmail.com";
+        const plan = getAccountPlan(activeEmail);
+        const limits = getAccountLimits(activeEmail);
+        row.title = `Quota (${plan}): 5h: ${limits?.fiveHour ?? 100}% | Weekly: ${limits?.weekly ?? 100}% — Context: ${statsStr}`;
+
+        if (!row.dataset.geminiUsageHandlersAttached) {
+          row.dataset.geminiUsageHandlersAttached = 'true';
           row.style.cursor = 'pointer';
 
-          const triggerUsageModal = (e) => {
+          let hoverTimer = null;
+          let closeTimer = null;
+
+          const showUsageFlyout = (pinned = false) => {
+            if (closeTimer) clearTimeout(closeTimer);
+            if (window.__geminiUsageCloseTimeout) {
+              clearTimeout(window.__geminiUsageCloseTimeout);
+              window.__geminiUsageCloseTimeout = null;
+            }
+            const rect = row.getBoundingClientRect();
+            openContextUsageModal({ rect }, { isHover: !pinned, pinned });
+          };
+
+          const hideUsageFlyout = () => {
+            if (hoverTimer) clearTimeout(hoverTimer);
+            window.__geminiUsageHoverActive = false;
+            if (window.__geminiUsageCloseTimeout) clearTimeout(window.__geminiUsageCloseTimeout);
+            window.__geminiUsageCloseTimeout = setTimeout(() => {
+              if (!window.__geminiUsageHoverActive) {
+                const pop = document.querySelector('.gemini-context-popover[data-is-hover="true"]');
+                if (pop) pop.remove();
+              }
+            }, 220);
+          };
+
+          row.addEventListener('pointerenter', () => {
+            window.__geminiUsageHoverActive = true;
+            if (closeTimer) clearTimeout(closeTimer);
+            if (window.__geminiUsageCloseTimeout) clearTimeout(window.__geminiUsageCloseTimeout);
+            hoverTimer = setTimeout(() => showUsageFlyout(false), 80);
+          });
+
+          row.addEventListener('mouseenter', () => {
+            window.__geminiUsageHoverActive = true;
+            if (closeTimer) clearTimeout(closeTimer);
+            if (window.__geminiUsageCloseTimeout) clearTimeout(window.__geminiUsageCloseTimeout);
+            hoverTimer = setTimeout(() => showUsageFlyout(false), 80);
+          });
+
+          row.addEventListener('pointerleave', hideUsageFlyout);
+          row.addEventListener('mouseleave', hideUsageFlyout);
+
+          const onRowClick = (e) => {
             if (e) {
               e.preventDefault();
               e.stopPropagation();
               e.stopImmediatePropagation?.();
             }
-            const rect = row.getBoundingClientRect();
-            openContextUsageModal({ rect });
+            if (hoverTimer) clearTimeout(hoverTimer);
+            if (closeTimer) clearTimeout(closeTimer);
+            showUsageFlyout(true);
           };
 
-          row.addEventListener('click', triggerUsageModal, true);
+          row.addEventListener('click', onRowClick, true);
 
           const chevron = row.querySelector('span.opacity-50') || row.querySelector('span.ml-auto') || row.querySelector('svg[data-icon="chevron-right"]')?.closest('span');
           if (chevron) {
             chevron.style.cursor = 'pointer';
-            chevron.addEventListener('click', triggerUsageModal, true);
+            chevron.addEventListener('click', onRowClick, true);
           }
         }
         continue;
