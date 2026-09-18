@@ -1220,13 +1220,13 @@ function playAntigravityHaptic(level) {
       bgAudioContext.resume().catch(() => {});
     }
     const now = bgAudioContext.currentTime;
-    const osc = bgAudioContext.createOscillator();
-    const gain = bgAudioContext.createGain();
-    osc.connect(gain);
-    gain.connect(bgAudioContext.destination);
 
     if (level === 'low') {
       // Crisp subtle acoustic tick
+      const osc = bgAudioContext.createOscillator();
+      const gain = bgAudioContext.createGain();
+      osc.connect(gain);
+      gain.connect(bgAudioContext.destination);
       osc.type = 'sine';
       osc.frequency.setValueAtTime(860, now);
       osc.frequency.exponentialRampToValueAtTime(320, now + 0.024);
@@ -1235,7 +1235,11 @@ function playAntigravityHaptic(level) {
       osc.start(now);
       osc.stop(now + 0.026);
     } else if (level === 'medium') {
-      // Resonant quantum chime
+      // Resonant quantum chime with harmonic overtone
+      const osc = bgAudioContext.createOscillator();
+      const gain = bgAudioContext.createGain();
+      osc.connect(gain);
+      gain.connect(bgAudioContext.destination);
       osc.type = 'triangle';
       osc.frequency.setValueAtTime(1080, now);
       osc.frequency.exponentialRampToValueAtTime(460, now + 0.036);
@@ -1243,28 +1247,66 @@ function playAntigravityHaptic(level) {
       gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.036);
       osc.start(now);
       osc.stop(now + 0.04);
-    } else {
-      // High: Cosmic Antigravity warp-snap with dual-tone overtone & bass thump
-      osc.type = 'sine';
-      osc.frequency.setValueAtTime(540, now);
-      osc.frequency.exponentialRampToValueAtTime(1600, now + 0.05);
-      osc.frequency.exponentialRampToValueAtTime(800, now + 0.08);
-      gain.gain.setValueAtTime(0.055, now);
-      gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.085);
-      osc.start(now);
-      osc.stop(now + 0.09);
 
+      const chime = bgAudioContext.createOscillator();
+      const chimeGain = bgAudioContext.createGain();
+      chime.type = 'sine';
+      chime.frequency.setValueAtTime(1620, now);
+      chime.frequency.exponentialRampToValueAtTime(810, now + 0.05);
+      chimeGain.gain.setValueAtTime(0.025, now);
+      chimeGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.05);
+      chime.connect(chimeGain);
+      chimeGain.connect(bgAudioContext.destination);
+      chime.start(now);
+      chime.stop(now + 0.052);
+    } else {
+      // HIGH EFFORT: Supernova 3-Voice Physical Power-Snap
+      // 1. Sub-Bass Visceral Thump (195Hz -> 36Hz)
       const sub = bgAudioContext.createOscillator();
       const subGain = bgAudioContext.createGain();
       sub.type = 'sine';
-      sub.frequency.setValueAtTime(160, now);
-      sub.frequency.exponentialRampToValueAtTime(42, now + 0.07);
-      subGain.gain.setValueAtTime(0.05, now);
-      subGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.075);
+      sub.frequency.setValueAtTime(195, now);
+      sub.frequency.exponentialRampToValueAtTime(36, now + 0.085);
+      subGain.gain.setValueAtTime(0.075, now);
+      subGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.09);
       sub.connect(subGain);
       subGain.connect(bgAudioContext.destination);
       sub.start(now);
-      sub.stop(now + 0.08);
+      sub.stop(now + 0.095);
+
+      // 2. Hyperspace Laser Chirp (480Hz -> 2150Hz -> 750Hz)
+      const osc = bgAudioContext.createOscillator();
+      const gain = bgAudioContext.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(480, now);
+      osc.frequency.exponentialRampToValueAtTime(2150, now + 0.038);
+      osc.frequency.exponentialRampToValueAtTime(750, now + 0.08);
+      gain.gain.setValueAtTime(0.065, now);
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.085);
+      osc.connect(gain);
+      gain.connect(bgAudioContext.destination);
+      osc.start(now);
+      osc.stop(now + 0.09);
+
+      // 3. Crystalline Harmonic Bell (Dual pure sine overtones at 2200Hz -> 1760Hz)
+      const bell = bgAudioContext.createOscillator();
+      const bellGain = bgAudioContext.createGain();
+      bell.type = 'triangle';
+      bell.frequency.setValueAtTime(2200, now);
+      bell.frequency.exponentialRampToValueAtTime(1760, now + 0.12);
+      bellGain.gain.setValueAtTime(0.035, now);
+      bellGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.13);
+      bell.connect(bellGain);
+      bellGain.connect(bgAudioContext.destination);
+      bell.start(now);
+      bell.stop(now + 0.135);
+
+      // Physical device vibration if supported
+      try {
+        if (typeof navigator !== 'undefined' && typeof navigator.vibrate === 'function') {
+          navigator.vibrate([15, 30, 20]);
+        }
+      } catch {}
     }
   } catch {}
 }
@@ -1281,40 +1323,63 @@ function emitAntigravitySparks(track, index, level) {
   const originX = rect.left - trackRect.left + rect.width / 2;
   const originY = rect.top - trackRect.top + rect.height / 2;
 
-  const colors = level === 'high' 
-    ? ['#f43f5e', '#fbbf24', '#a855f7', '#38bdf8', '#ffffff'] 
+  const isHigh = level === 'high';
+  const colors = isHigh 
+    ? ['#f43f5e', '#fbbf24', '#a855f7', '#38bdf8', '#ffffff', '#fda4af', '#fde047'] 
     : (level === 'medium' ? ['#a855f7', '#c084fc', '#e9d5ff', '#ffffff'] : ['#38bdf8', '#7dd3fc', '#bae6fd', '#ffffff']);
 
-  const count = level === 'high' ? 14 : (level === 'medium' ? 10 : 7);
+  const count = isHigh ? 36 : (level === 'medium' ? 12 : 8);
+  const starChars = ['✦', '★', '✧', '•', '✹', '✦'];
 
   for (let i = 0; i < count; i++) {
     const spark = document.createElement('span');
     spark.className = 'gemini-antigravity-spark';
-    const angle = (Math.PI * 2 * i) / count + (Math.random() - 0.5) * 0.45;
-    const distance = 16 + Math.random() * (level === 'high' ? 28 : 18);
+    const angle = (Math.PI * 2 * i) / count + (Math.random() - 0.5) * 0.5;
+    const distance = 16 + Math.random() * (isHigh ? 44 : 18);
     const tx = Math.cos(angle) * distance;
-    const ty = Math.sin(angle) * distance - (12 + Math.random() * 14); // Zero-G float upward
+    const ty = Math.sin(angle) * distance - (12 + Math.random() * (isHigh ? 22 : 12)); // Zero-G upward drift
     const color = colors[Math.floor(Math.random() * colors.length)];
-    const size = level === 'high' ? (3 + Math.random() * 3) : (2.5 + Math.random() * 2);
+    const rot = Math.round((Math.random() - 0.5) * 540);
 
-    spark.style.cssText = `
-      left: ${originX}px;
-      top: ${originY}px;
-      width: ${size}px;
-      height: ${size}px;
-      background: ${color};
-      box-shadow: 0 0 ${size * 2.2}px ${color};
-      --tx: ${tx.toFixed(1)}px;
-      --ty: ${ty.toFixed(1)}px;
-    `;
+    // High effort mixes star characters with radiant glow dots
+    if (isHigh && i % 2 === 0) {
+      const char = starChars[Math.floor(Math.random() * starChars.length)];
+      const fontSize = 10 + Math.random() * 6;
+      spark.textContent = char;
+      spark.style.cssText = `
+        left: ${originX}px;
+        top: ${originY}px;
+        color: ${color};
+        font-size: ${fontSize.toFixed(1)}px;
+        text-shadow: 0 0 10px ${color}, 0 0 18px ${color};
+        --tx: ${tx.toFixed(1)}px;
+        --ty: ${ty.toFixed(1)}px;
+        --rot: ${rot}deg;
+      `;
+    } else {
+      const size = isHigh ? (3 + Math.random() * 3.5) : (2.5 + Math.random() * 2);
+      spark.style.cssText = `
+        left: ${originX}px;
+        top: ${originY}px;
+        width: ${size.toFixed(1)}px;
+        height: ${size.toFixed(1)}px;
+        border-radius: 9999px;
+        background: ${color};
+        box-shadow: 0 0 ${size * 2.5}px ${color}, 0 0 ${size * 4}px ${color};
+        --tx: ${tx.toFixed(1)}px;
+        --ty: ${ty.toFixed(1)}px;
+        --rot: ${rot}deg;
+      `;
+    }
 
     track.appendChild(spark);
-    setTimeout(() => spark.remove(), 700);
+    setTimeout(() => spark.remove(), 750);
   }
 }
 
-function openContextUsageModal(anchorEl = null) {
-  document.querySelectorAll('.gemini-context-popover').forEach(p => p.remove());
+function openContextUsageModal(target = null) {
+  // Clean up any existing modal & backdrop
+  document.querySelectorAll('.gemini-context-backdrop, .gemini-context-popover').forEach(p => p.remove());
 
   const metrics = getConversationContextMetrics(true);
   let used = metrics?.used || 0;
@@ -1331,23 +1396,29 @@ function openContextUsageModal(anchorEl = null) {
   const sysTokens = metrics?.systemTokens || Math.max(0, used - userTokens - modelTokens - toolTokens);
 
   const riskClass = pct > 85 ? "risk-high" : (pct > 60 ? "risk-moderate" : "risk-low");
-  const riskLabel = pct > 85 ? "High Risk" : (pct > 60 ? "Moderate" : "Low Risk");
+  const riskLabel = pct > 85 ? "High Risk" : (pct > 60 ? "Moderate" : "Optimal");
   const riskMsg = pct > 85
     ? "Context is near capacity. Earlier conversation history may be compacted or truncated."
     : (pct > 60
       ? "Context utilization is elevated. Inference latency may increase slightly."
       : "Context window is optimal. Fast response generation and high attention fidelity.");
 
+  const backdrop = document.createElement('div');
+  backdrop.className = 'gemini-context-backdrop';
+
   const popover = document.createElement('div');
   popover.className = 'gemini-context-popover';
+  popover.setAttribute('role', 'dialog');
+  popover.setAttribute('aria-modal', 'true');
+  popover.setAttribute('aria-label', 'Context Window Usage');
 
   popover.innerHTML = `
     <div class="gemini-context-popover-header">
-      <span class="gemini-context-popover-model">${modelName}</span>
       <div style="display: flex; align-items: center; gap: 8px;">
+        <span class="gemini-context-popover-model">${modelName}</span>
         <span class="gemini-context-risk-badge ${riskClass}">${riskLabel}</span>
-        <button class="gemini-context-popover-close" title="Close">✕</button>
       </div>
+      <button class="gemini-context-popover-close" aria-label="Close" title="Close (Esc)">✕</button>
     </div>
     <div class="gemini-context-popover-bar-bg">
       <div class="gemini-context-popover-bar-fill" style="width: ${pct}%;"></div>
@@ -1376,57 +1447,80 @@ function openContextUsageModal(anchorEl = null) {
       <span style="font-weight: 600; color: #ffffff;">${used.toLocaleString()} / ${limit.toLocaleString()} (${pct}%)</span>
     </div>
     <div class="gemini-context-popover-risk-msg">${riskMsg}</div>
+    <div class="gemini-context-popover-actions">
+      <a href="https://aistudio.google.com/plan_information" target="_blank" rel="noopener noreferrer" class="gemini-context-external-link">
+        View Quota & Cloud Plan <span style="font-size: 10px;">↗</span>
+      </a>
+    </div>
   `;
 
-  popover.querySelector('.gemini-context-popover-close')?.addEventListener('click', (e) => {
-    e.stopPropagation();
-    popover.remove();
-  });
-
-  let top = window.innerHeight / 2 - 120;
-  let left = window.innerWidth / 2 - 155;
-
-  if (anchorEl && anchorEl.isConnected) {
-    const rect = anchorEl.getBoundingClientRect();
-    if (rect.width > 0 && rect.height > 0) {
-      left = Math.max(16, Math.min(window.innerWidth - 326, rect.left));
-      if (rect.top > 270) {
-        top = rect.top - 240;
-      } else {
-        top = rect.bottom + 8;
-      }
+  // Determine anchor coordinates
+  let anchorRect = null;
+  if (target && target.rect) {
+    anchorRect = target.rect;
+  } else if (target && typeof target.getBoundingClientRect === 'function' && target.isConnected) {
+    anchorRect = target.getBoundingClientRect();
+  } else {
+    const composerPill = document.querySelector(PILL_SELECTOR);
+    if (composerPill && composerPill.isConnected) {
+      anchorRect = composerPill.getBoundingClientRect();
     }
   }
 
-  popover.style.top = `${Math.round(top)}px`;
-  popover.style.left = `${Math.round(left)}px`;
+  if (anchorRect && anchorRect.width > 0) {
+    const popWidth = 330;
+    const popHeight = 310;
+    let right = Math.max(16, window.innerWidth - anchorRect.right);
+    let bottom = Math.max(16, window.innerHeight - anchorRect.top + 10);
 
-  document.body.appendChild(popover);
+    if (window.innerWidth - right < popWidth) right = 16;
+    if (window.innerHeight - bottom < popHeight) bottom = 84;
 
-  const dismiss = (e) => {
-    if (!popover.isConnected) {
-      document.removeEventListener('pointerdown', dismiss);
-      document.removeEventListener('keydown', onKey);
-      return;
-    }
-    if (!popover.contains(e.target) && (!anchorEl || !anchorEl.contains(e.target))) {
-      popover.remove();
-      document.removeEventListener('pointerdown', dismiss);
-      document.removeEventListener('keydown', onKey);
-    }
+    popover.style.right = `${Math.round(right)}px`;
+    popover.style.bottom = `${Math.round(bottom)}px`;
+    popover.style.left = 'auto';
+    popover.style.top = 'auto';
+  } else {
+    popover.style.right = '24px';
+    popover.style.bottom = '84px';
+    popover.style.left = 'auto';
+    popover.style.top = 'auto';
+  }
+
+  const closeModal = () => {
+    backdrop.remove();
+    popover.remove();
+    document.removeEventListener('keydown', onKeyDown);
   };
-  const onKey = (e) => {
+
+  const onKeyDown = (e) => {
     if (e.key === 'Escape') {
-      popover.remove();
-      document.removeEventListener('pointerdown', dismiss);
-      document.removeEventListener('keydown', onKey);
+      e.preventDefault();
+      e.stopPropagation();
+      closeModal();
     }
   };
 
-  setTimeout(() => {
-    document.addEventListener('pointerdown', dismiss);
-    document.addEventListener('keydown', onKey);
-  }, 50);
+  backdrop.addEventListener('click', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    closeModal();
+  });
+
+  popover.querySelector('.gemini-context-popover-close')?.addEventListener('click', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    closeModal();
+  });
+
+  popover.addEventListener('click', (e) => {
+    e.stopPropagation();
+  });
+
+  document.addEventListener('keydown', onKeyDown);
+
+  document.body.appendChild(backdrop);
+  document.body.appendChild(popover);
 }
 
 let isEnhancingModelPanel = false;
@@ -1462,7 +1556,56 @@ function enhanceModelSelectorPanel(panel) {
         continue;
       }
 
-      // Submenu trigger handling: attach hover and click listeners to open effort submenu reliably
+      // Check if this is the View Usage / Manage Models utility row FIRST
+      const isUsageRow = /view usage|manage models/i.test(rowText);
+      if (isUsageRow) {
+        let stats = row.querySelector('.gemini-usage-stats');
+        if (!stats) {
+          stats = document.createElement('span');
+          stats.className = 'gemini-usage-stats';
+          stats.style.pointerEvents = 'none';
+          const chevron = row.querySelector('span.opacity-50') || row.querySelector('span.ml-auto') || row.querySelector('svg[data-icon="chevron-right"]')?.closest('span');
+          row.insertBefore(stats, chevron || null);
+        }
+        const metrics = getConversationContextMetrics();
+        const used = metrics?.used || estimateTokensFromDom();
+        const limit = metrics?.limit || 1048576;
+        const statsStr = `${formatTokensCompact(used)} / ${formatTokensCompact(limit)}`;
+        if (stats.textContent !== statsStr) {
+          stats.textContent = statsStr;
+        }
+
+        if (!row.dataset.geminiUsageClickAttached) {
+          row.dataset.geminiUsageClickAttached = 'true';
+          row.style.cursor = 'pointer';
+
+          const triggerUsageModal = (e) => {
+            if (e) {
+              e.preventDefault();
+              e.stopPropagation();
+            }
+            const rect = row.getBoundingClientRect();
+            const trigger = document.querySelector(PILL_SELECTOR);
+            if (trigger) {
+              trigger.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', code: 'Escape', keyCode: 27, which: 27, bubbles: true, cancelable: true }));
+            }
+            openContextUsageModal({ rect });
+          };
+
+          row.addEventListener('click', triggerUsageModal, true);
+          row.addEventListener('pointerup', triggerUsageModal, true);
+
+          const chevron = row.querySelector('span.opacity-50') || row.querySelector('span.ml-auto') || row.querySelector('svg[data-icon="chevron-right"]')?.closest('span');
+          if (chevron) {
+            chevron.style.cursor = 'pointer';
+            chevron.addEventListener('click', triggerUsageModal, true);
+            chevron.addEventListener('pointerup', triggerUsageModal, true);
+          }
+        }
+        continue;
+      }
+
+      // Submenu trigger handling for MODEL ROWS ONLY: attach hover and click listeners to open effort submenu reliably
       if (row.getAttribute('aria-haspopup') === 'menu') {
         const chevron = row.querySelector('span.opacity-50') || row.querySelector('svg[data-icon="chevron-right"]')?.closest('span');
         
@@ -1512,39 +1655,9 @@ function enhanceModelSelectorPanel(panel) {
         }
       }
 
-      const text = (row.textContent || "").trim();
-      if (text.toLowerCase().includes("view usage") || text.toLowerCase().includes("manage models")) {
-        let stats = row.querySelector('.gemini-usage-stats');
-        if (!stats) {
-          stats = document.createElement('span');
-          stats.className = 'gemini-usage-stats';
-          stats.style.pointerEvents = 'none';
-          const chevron = row.querySelector('span.opacity-50') || row.querySelector('span.ml-auto');
-          row.insertBefore(stats, chevron || null);
-        }
-        const metrics = getConversationContextMetrics();
-        const used = metrics?.used || estimateTokensFromDom();
-        const limit = metrics?.limit || 1048576;
-        const statsStr = `${formatTokensCompact(used)} / ${formatTokensCompact(limit)}`;
-        if (stats.textContent !== statsStr) {
-          stats.textContent = statsStr;
-        }
-
-        if (!row.dataset.geminiUsageClickAttached) {
-          row.dataset.geminiUsageClickAttached = 'true';
-          row.style.cursor = 'pointer';
-          row.addEventListener('click', (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            openContextUsageModal(row);
-          });
-        }
-        continue;
-      }
-
       if (row.querySelector('.gemini-model-limit-tag')) continue;
 
-      const limit = getModelContextLimit(text);
+      const limit = getModelContextLimit(rowText);
       if (limit) {
         let tag = row.querySelector('.gemini-model-limit-tag');
         if (!tag) {
@@ -1672,7 +1785,6 @@ function enhanceEffortSubmenu(submenu) {
               <span class="gemini-thinking-beacon-dot"></span>
             </span>
             <span class="gemini-effort-slider-title">Thinking Effort</span>
-            <span class="gemini-antigravity-tag">ANTIGRAVITY</span>
           </div>
           <span class="gemini-effort-current-badge">
             <span class="gemini-effort-badge-spark"></span>
@@ -1680,7 +1792,8 @@ function enhanceEffortSubmenu(submenu) {
           </span>
         </div>
         <div class="gemini-effort-track" data-active-index="${activeIdx}">
-          <div class="gemini-effort-shockwave"></div>
+          <div class="gemini-effort-shockwave gemini-shockwave-1"></div>
+          <div class="gemini-effort-shockwave gemini-shockwave-2"></div>
           <div class="gemini-effort-glider">
             <span class="gemini-effort-glider-shine"></span>
             <span class="gemini-effort-glider-aura"></span>
@@ -1738,6 +1851,13 @@ function enhanceEffortSubmenu(submenu) {
         track.classList.remove('gemini-effort-burst');
         void track.offsetWidth;
         track.classList.add('gemini-effort-burst');
+
+        // Card rebound impact on High effort snap
+        if (chosenName.toLowerCase() === 'high') {
+          card.classList.remove('gemini-high-impact');
+          void card.offsetWidth;
+          card.classList.add('gemini-high-impact');
+        }
 
         // Futuristic audio haptics & zero-G particle sparks
         playAntigravityHaptic(chosenName.toLowerCase());
