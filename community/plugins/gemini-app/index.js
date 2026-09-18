@@ -1707,85 +1707,19 @@ function enhanceModelSelectorPanel(panel) {
         const plan = getAccountPlan(activeEmail);
         const limits = getAccountLimits(activeEmail);
         row.title = `Quota (${plan}): 5h: ${limits?.fiveHour ?? 100}% | Weekly: ${limits?.weekly ?? 100}% — Context: ${statsStr}`;
-
-        if (!row.dataset.geminiUsageHandlersAttached) {
-          row.dataset.geminiUsageHandlersAttached = 'true';
-          row.style.cursor = 'pointer';
-
-          let hoverTimer = null;
-          let closeTimer = null;
-
-          const showUsageFlyout = (pinned = false) => {
-            if (closeTimer) clearTimeout(closeTimer);
-            if (window.__geminiUsageCloseTimeout) {
-              clearTimeout(window.__geminiUsageCloseTimeout);
-              window.__geminiUsageCloseTimeout = null;
-            }
-            const rect = row.getBoundingClientRect();
-            openContextUsageModal({ rect }, { isHover: !pinned, pinned });
-          };
-
-          const hideUsageFlyout = () => {
-            if (hoverTimer) clearTimeout(hoverTimer);
-            window.__geminiUsageHoverActive = false;
-            if (window.__geminiUsageCloseTimeout) clearTimeout(window.__geminiUsageCloseTimeout);
-            window.__geminiUsageCloseTimeout = setTimeout(() => {
-              if (!window.__geminiUsageHoverActive) {
-                const pop = document.querySelector('.gemini-context-popover[data-is-hover="true"]');
-                if (pop) pop.remove();
-              }
-            }, 220);
-          };
-
-          row.addEventListener('pointerenter', () => {
-            window.__geminiUsageHoverActive = true;
-            if (closeTimer) clearTimeout(closeTimer);
-            if (window.__geminiUsageCloseTimeout) clearTimeout(window.__geminiUsageCloseTimeout);
-            hoverTimer = setTimeout(() => showUsageFlyout(false), 80);
-          });
-
-          row.addEventListener('mouseenter', () => {
-            window.__geminiUsageHoverActive = true;
-            if (closeTimer) clearTimeout(closeTimer);
-            if (window.__geminiUsageCloseTimeout) clearTimeout(window.__geminiUsageCloseTimeout);
-            hoverTimer = setTimeout(() => showUsageFlyout(false), 80);
-          });
-
-          row.addEventListener('pointerleave', hideUsageFlyout);
-          row.addEventListener('mouseleave', hideUsageFlyout);
-
-          const onRowClick = (e) => {
-            if (e) {
-              e.preventDefault();
-              e.stopPropagation();
-              e.stopImmediatePropagation?.();
-            }
-            if (hoverTimer) clearTimeout(hoverTimer);
-            if (closeTimer) clearTimeout(closeTimer);
-            showUsageFlyout(true);
-          };
-
-          row.addEventListener('click', onRowClick, true);
-
-          const chevron = row.querySelector('span.opacity-50') || row.querySelector('span.ml-auto') || row.querySelector('svg[data-icon="chevron-right"]')?.closest('span');
-          if (chevron) {
-            chevron.style.cursor = 'pointer';
-            chevron.addEventListener('click', onRowClick, true);
-          }
-        }
-        continue;
       }
 
-      // Submenu trigger handling for MODEL ROWS ONLY: attach hover and click listeners to open effort submenu reliably
-      if (row.getAttribute('aria-haspopup') === 'menu') {
-        const chevron = row.querySelector('span.opacity-50') || row.querySelector('svg[data-icon="chevron-right"]')?.closest('span');
+      // Submenu trigger handling for MODEL ROWS and UTILITY ROWS (View Usage): attach hover and click listeners to open submenu reliably
+      const hasSubmenu = row.getAttribute('aria-haspopup') === 'menu' || !!row.querySelector('svg[data-icon="chevron-right"]') || !!row.querySelector('span.opacity-50');
+      if (hasSubmenu) {
+        const chevron = row.querySelector('span.opacity-50') || row.querySelector('span.ml-auto') || row.querySelector('svg[data-icon="chevron-right"]')?.closest('span');
         
-        const openEffort = (e) => {
+        const openSubmenu = (e) => {
           if (row.getAttribute('aria-expanded') !== 'true') {
             row.focus();
             row.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', code: 'ArrowRight', keyCode: 39, which: 39, bubbles: true, cancelable: true }));
             setTimeout(() => {
-              const sub = document.querySelector('[role="menu"][data-nested], [role="menu"]:has([data-testid="model-selector-effort-option"]), [role="menu"]:has([data-effort])');
+              const sub = document.querySelector('[role="menu"][data-nested]');
               if (sub) {
                 enhanceEffortSubmenu(sub);
                 repositionEffortSubmenu(sub);
@@ -1802,29 +1736,33 @@ function enhanceModelSelectorPanel(panel) {
             chevron.dataset.geminiEffortTrigger = "true";
             chevron.style.cursor = "pointer";
             chevron.style.pointerEvents = "auto";
-            chevron.addEventListener('pointerenter', openEffort);
-            chevron.addEventListener('mouseenter', openEffort);
+            chevron.addEventListener('pointerenter', openSubmenu);
+            chevron.addEventListener('mouseenter', openSubmenu);
             chevron.addEventListener('click', (e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              openEffort(e);
+              if (row.getAttribute('aria-expanded') !== 'true') {
+                e.preventDefault();
+                e.stopPropagation();
+                openSubmenu(e);
+              }
             });
           }
         }
 
         if (!row.dataset.geminiRowTrigger) {
           row.dataset.geminiRowTrigger = "true";
-          row.addEventListener('pointerenter', openEffort);
-          row.addEventListener('mouseenter', openEffort);
+          row.addEventListener('pointerenter', openSubmenu);
+          row.addEventListener('mouseenter', openSubmenu);
           row.addEventListener('click', (e) => {
             if (row.getAttribute('aria-expanded') !== 'true') {
               e.preventDefault();
               e.stopPropagation();
-              openEffort(e);
+              openSubmenu(e);
             }
           });
         }
       }
+
+      if (isUsageRow) continue;
 
       if (row.querySelector('.gemini-model-limit-tag')) continue;
 
@@ -1877,10 +1815,11 @@ function repositionEffortSubmenu(submenu) {
       const anchorRect = anchor.getBoundingClientRect();
       if (anchorRect.width > 0 && anchorRect.height > 0) {
         const offsetParent = wrapper.offsetParent || document.body;
-        const parentRect = offsetParent.getBoundingClientRect();
-        const placeLeft = anchorRect.right + 280 > window.innerWidth;
-        const leftRel = placeLeft ? (anchorRect.left - parentRect.left - 272) : (anchorRect.right - parentRect.left + 4);
-        const topRel = anchorRect.top - parentRect.top - 8;
+        const subWidth = subRect.width > 0 ? subRect.width : (submenu.classList.contains('gemini-effort-submenu-host') ? 264 : 320);
+        const placeLeft = anchorRect.right + subWidth + 16 > window.innerWidth;
+        const leftRel = placeLeft ? (anchorRect.left - parentRect.left - subWidth - 8) : (anchorRect.right - parentRect.left + 4);
+        const subHeight = subRect.height > 0 ? subRect.height : 260;
+        const topRel = Math.max(8, Math.min(anchorRect.top - parentRect.top - 8, window.innerHeight - subHeight - 16));
         wrapper.style.position = 'fixed';
         wrapper.style.left = '0px';
         wrapper.style.top = '0px';

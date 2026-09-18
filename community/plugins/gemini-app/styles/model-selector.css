@@ -402,10 +402,13 @@
 }
 
 /* In the effort submenu, hide the native radio items so only the slider card displays.
- * MUST be scoped to data-nested so it never hides items in the parent model selector menu! */
-[role="menu"][data-nested] > *:not(.gemini-effort-slider-card):not([role="presentation"]),
-[role="menu"][data-nested] [role="group"],
-[role="menu"][data-nested] [role="menuitemradio"],
+ * MUST be strictly scoped to the effort submenu so it never hides native items in other submenus like View Usage / Quota! */
+[role="menu"][data-nested].gemini-effort-submenu-host > *:not(.gemini-effort-slider-card):not([role="presentation"]),
+[role="menu"][data-nested]:has([data-testid="model-selector-effort-option"]) > *:not(.gemini-effort-slider-card):not([role="presentation"]),
+[role="menu"][data-nested].gemini-effort-submenu-host [role="group"],
+[role="menu"][data-nested]:has([data-testid="model-selector-effort-option"]) [role="group"],
+[role="menu"][data-nested].gemini-effort-submenu-host [role="menuitemradio"],
+[role="menu"][data-nested]:has([data-testid="model-selector-effort-option"]) [role="menuitemradio"],
 [role="menu"][data-nested] [data-testid="model-selector-effort-option"] {
   display: none !important;
   visibility: hidden !important;
@@ -414,6 +417,31 @@
   overflow: hidden !important;
   position: absolute !important;
   pointer-events: none !important;
+}
+
+/* Antigravity native nested submenus (like View Usage / Quota) */
+[role="menu"][data-nested]:not(.gemini-effort-submenu-host):not(:has([data-testid="model-selector-effort-option"])) {
+  min-width: 260px !important;
+  max-width: 380px !important;
+  height: auto !important;
+  padding: 8px !important;
+  border-radius: 16px !important;
+  background: var(--gemini-surface, #1e1f20) !important;
+  border: 1px solid var(--gemini-border, rgba(255, 255, 255, 0.08)) !important;
+  box-shadow: var(--gemini-menu-shadow, 0 12px 36px rgba(0, 0, 0, 0.45)) !important;
+  color: var(--gemini-text, #e3e3e3) !important;
+  font-family: var(--gemini-font) !important;
+  display: flex !important;
+  flex-direction: column !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  pointer-events: auto !important;
+  overflow: visible !important;
+}
+
+[role="menu"][data-nested]:not(.gemini-effort-submenu-host):not(:has([data-testid="model-selector-effort-option"])) > * {
+  visibility: visible !important;
+  opacity: 1 !important;
 }
 
 [role="menu"][data-nested] [role="menuitemradio"]:has([data-testid="model-selector-effort-option"]) {
@@ -435,7 +463,8 @@
   background: var(--gemini-surface-hover) !important;
 }
 
-[role="menu"][data-nested] [role="menuitemradio"] > span[data-checked] {
+[role="menu"][data-nested].gemini-effort-submenu-host [role="menuitemradio"] > span[data-checked],
+[role="menu"][data-nested]:has([data-testid="model-selector-effort-option"]) [role="menuitemradio"] > span[data-checked] {
   display: flex;
   position: absolute;
   top: 0;
@@ -447,7 +476,8 @@
   color: var(--gemini-text);
 }
 
-[role="menu"][data-nested] [role="menuitemradio"] > span[data-checked] > svg {
+[role="menu"][data-nested].gemini-effort-submenu-host [role="menuitemradio"] > span[data-checked] > svg,
+[role="menu"][data-nested]:has([data-testid="model-selector-effort-option"]) [role="menuitemradio"] > span[data-checked] > svg {
   width: 20px !important;
   height: 20px !important;
 }
