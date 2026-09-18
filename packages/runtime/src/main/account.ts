@@ -87,57 +87,103 @@ export function readAccountProfile(homeDirectory: string): AccountProfile {
     }
   } catch {}
 
-  // 2. Try reading from oauth_creds.json for id_token claims
-  const credsJson = readJson(path.join(homeDirectory, ...OAUTH_CREDS));
-  if (isRecord(credsJson)) {
-    const idToken = text(credsJson, "id_token");
-    if (idToken) {
-      const claims = parseJwtPayload(idToken);
-      if (claims) {
-        if (!email && typeof claims.email === "string") email = claims.email.trim();
-        if (typeof claims.given_name === "string" && claims.given_name.trim()) firstName = claims.given_name.trim();
-        if (typeof claims.name === "string" && claims.name.trim()) fullName = claims.name.trim();
-        if (typeof claims.picture === "string" && claims.picture.trim()) pictureUrl = claims.picture.trim();
-        if (claims.email) accountsSet.add(claims.email.trim());
+  // 2. Try reading ~/.antigravity_cockpit/current_account.json
+  try {
+    const currentAcc = readJson(path.join(homeDirectory, ".antigravity_cockpit", "current_account.json"));
+    if (isRecord(currentAcc)) {
+      const curEmail = text(currentAcc, "email");
+      if (!email && curEmail && curEmail.includes("@")) {
+        email = curEmail.toLowerCase().trim();
+      }
+      if (curEmail) accountsSet.add(curEmail.toLowerCase().trim());
+    }
+  } catch {}
+
+  // 3. Try reading ~/.antigravity_cockpit/accounts.json (authoritative list & display names)
+  const accountPlans: Record<string, string> = {};
+  const accountLimits: Record<string, { fiveHour: number; weekly: number }> = {};
+  const accountNames: Record<string, string> = {};
+
+  try {
+    const cockpitMainAccounts = path.join(homeDirectory, ".antigravity_cockpit", "accounts.json");
+    if (fs.existsSync(cockpitMainAccounts)) {
+      const mainData = readJson(cockpitMainAccounts);
+      if (isRecord(mainData) && Array.isArray(mainData["accounts"])) {
+        for (const item of mainData["accounts"]) {
+          if (isRecord(item)) {
+            const accEmail = text(item, "email");
+            const accName = text(item, "name");
+            if (accEmail) {
+              const clean = accEmail.toLowerCase().trim();
+              accountsSet.add(clean);
+              if (accName) {
+                accountNames[clean] = accName;
+                if (email && clean === email.toLowerCase()) {
+                  fullName = fullName ?? accName;
+                  firstName = firstName ?? accName.split(/\s+/)[0];
+                }
+              }
+            }
+          }
+        }
       }
     }
-  }
+  } catch {}
 
-  // 3. Try reading from google_accounts.json for active and historical accounts
+  // 4. Try reading from google_accounts.json for active and historical accounts
   const activeJson = readJson(path.join(homeDirectory, ...ACTIVE_ACCOUNT));
   if (isRecord(activeJson)) {
     const activeEmail = text(activeJson, "active");
     if (!email && activeEmail) {
-      email = activeEmail;
+      email = activeEmail.toLowerCase().trim();
     }
-    if (activeEmail) accountsSet.add(activeEmail);
+    if (activeEmail) accountsSet.add(activeEmail.toLowerCase().trim());
     const oldAccounts = activeJson["old"];
     if (Array.isArray(oldAccounts)) {
       for (const item of oldAccounts) {
         if (typeof item === "string" && item.trim()) {
-          accountsSet.add(item.trim());
+          accountsSet.add(item.trim().toLowerCase());
         }
       }
     }
   }
 
-  // 3. Try reading Chromium's preferences file (legacy fallback)
+  // 5. Try reading from oauth_creds.json for id_token claims
+  const credsJson = readJson(path.join(homeDirectory, ...OAUTH_CREDS));
+  if (isRecord(credsJson)) {
+    const idToken = text(credsJson, "id_token");
+    if (idToken) {
+      const claims = parseJwtPayload(idToken);
+      if (claims && typeof claims.email === "string") {
+        const claimEmail = claims.email.toLowerCase().trim();
+        accountsSet.add(claimEmail);
+        if (!email) email = claimEmail;
+        if (email.toLowerCase() === claimEmail) {
+          if (typeof claims.given_name === "string" && claims.given_name.trim()) firstName = firstName ?? claims.given_name.trim();
+          if (typeof claims.name === "string" && claims.name.trim()) fullName = fullName ?? claims.name.trim();
+          if (typeof claims.picture === "string" && claims.picture.trim()) pictureUrl = pictureUrl ?? claims.picture.trim();
+        }
+      }
+    }
+  }
+
+  // 6. Try reading Chromium's preferences file (legacy fallback)
   const preferences = readJson(path.join(homeDirectory, ...PREFERENCES));
   if (isRecord(preferences)) {
     const accounts = preferences["account_info"];
     const entries = Array.isArray(accounts) ? accounts.filter(isRecord) : [];
     if (entries.length > 0) {
-      const wanted = email?.toLowerCase();
-      const chosen = (wanted ? entries.find(e => text(e, "email")?.toLowerCase() === wanted) : undefined) ?? entries[0];
-      if (chosen) {
-        fullName = fullName ?? text(chosen, "full_name");
-        firstName = firstName ?? text(chosen, "given_name") ?? fullName?.split(/\s+/)[0];
-        email = email ?? text(chosen, "email");
-        pictureUrl = pictureUrl ?? text(chosen, "picture_url") ?? text(chosen, "last_downloaded_image_url_with_size");
-      }
       for (const entry of entries) {
         const entryEmail = text(entry, "email");
-        if (entryEmail) accountsSet.add(entryEmail);
+        if (entryEmail) accountsSet.add(entryEmail.toLowerCase());
+      }
+      const wanted = email?.toLowerCase();
+      const chosen = wanted ? entries.find(e => text(e, "email")?.toLowerCase() === wanted) : entries[0];
+      if (chosen && (!email || text(chosen, "email")?.toLowerCase() === email.toLowerCase())) {
+        fullName = fullName ?? text(chosen, "full_name");
+        firstName = firstName ?? text(chosen, "given_name") ?? fullName?.split(/\s+/)[0];
+        if (!email) email = text(chosen, "email");
+        pictureUrl = pictureUrl ?? text(chosen, "picture_url") ?? text(chosen, "last_downloaded_image_url_with_size");
       }
     }
   }
@@ -158,8 +204,9 @@ export function readAccountProfile(homeDirectory: string): AccountProfile {
           const raw = fs.readFileSync(file, "binary");
           const matches = raw.match(/[a-zA-Z0-9._%+-]+@gmail\.com/gi) || [];
           for (const m of matches) {
-            const clean = m.toLowerCase().replace(/^(identifier|email|login|username|admin_email|emailorphone|fp-email|user_email|staff_email_edit|staff_email_add)+/i, "");
-            if (/^[a-z0-9][a-z0-9._%+-]*@gmail\.com$/i.test(clean) && clean.length > 10) {
+            const clean = m.toLowerCase().replace(/^(emailorphone|identifier|admin_email|staff_email_edit|staff_email_add|user_email|fp-email|orphone|email|login|username)+/i, "");
+            const handle = clean.split("@")[0] || "";
+            if (/^[a-z0-9][a-z0-9._%+-]*@gmail\.com$/i.test(clean) && handle.length >= 4) {
               accountsSet.add(clean);
             }
           }
@@ -168,10 +215,7 @@ export function readAccountProfile(homeDirectory: string): AccountProfile {
     }
   } catch {}
 
-  // 5. Try reading ~/.antigravity_cockpit accounts and quota cache
-  const accountPlans: Record<string, string> = {};
-  const accountLimits: Record<string, { fiveHour: number; weekly: number }> = {};
-  const accountNames: Record<string, string> = {};
+  // 7. Try reading ~/.antigravity_cockpit accounts and quota cache
 
   try {
     const cockpitAccountsDir = path.join(homeDirectory, ".antigravity_cockpit", "gemini_accounts");
@@ -378,6 +422,19 @@ export function switchAccount(homeDirectory: string, targetEmail: string): Accou
           fs.writeFileSync(credsPath, JSON.stringify(credsData, null, 2), "utf8");
           break;
         }
+      }
+    }
+  } catch {}
+
+  // Update ~/.antigravity_cockpit/current_account.json if present
+  try {
+    const cockpitCurr = path.join(homeDirectory, ".antigravity_cockpit", "current_account.json");
+    if (fs.existsSync(cockpitCurr)) {
+      const curData = readJson(cockpitCurr);
+      if (isRecord(curData)) {
+        curData["email"] = targetEmail;
+        curData["updated_at"] = Math.floor(Date.now() / 1000);
+        fs.writeFileSync(cockpitCurr, JSON.stringify(curData, null, 2), "utf8");
       }
     }
   } catch {}

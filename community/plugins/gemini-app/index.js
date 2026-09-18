@@ -694,19 +694,19 @@ function getActiveConversationId() {
 }
 
 const DEFAULT_ACCOUNT = {
-  firstName: "Kurt Stanley",
-  fullName: "Kurt Stanley Talastas",
-  email: "kurtstanleytalastas@gmail.com",
+  firstName: "Yashica",
+  fullName: "Yashica Acosta",
+  email: "acostayashica@gmail.com",
   pictureUrl: "",
   accounts: [
+    "acostayashica@gmail.com",
     "kurtstanleytalastas@gmail.com",
     "kurtgpro2@gmail.com",
     "likhangkamaybusiness@gmail.com",
     "kurtapexlegends@gmail.com",
     "kurtgpro3@gmail.com",
     "kurtgpro5@gmail.com",
-    "akunosteam@gmail.com",
-    "acostayashica@gmail.com"
+    "akunosteam@gmail.com"
   ]
 };
 
@@ -1192,7 +1192,23 @@ function updateComposerMeta(meta) {
     const limit = metrics?.limit || 1048576;
     const tokenStr = `${formatTokensCompact(used)} / ${formatTokensCompact(limit)}`;
 
-    meta.innerHTML = `<span class="gemini-meta-tokens">${tokenStr}</span>`;
+    const ratio = Math.min(Math.max(used / limit, 0), 1);
+    const circumference = 37.699;
+    const offset = circumference * (1 - ratio);
+    let strokeColor = "#34a853";
+    if (ratio >= 0.8) {
+      strokeColor = "#ea4335";
+    } else if (ratio >= 0.6) {
+      strokeColor = "#fbbc04";
+    }
+
+    meta.innerHTML = `
+      <svg class="gemini-context-ring-svg" width="13" height="13" viewBox="0 0 16 16" style="transform: rotate(-90deg); flex-shrink: 0; display: inline-block;">
+        <circle cx="8" cy="8" r="6" fill="none" stroke="rgba(255, 255, 255, 0.18)" stroke-width="2"></circle>
+        <circle cx="8" cy="8" r="6" fill="none" stroke="${strokeColor}" stroke-width="2" stroke-dasharray="37.7" stroke-dashoffset="${offset.toFixed(2)}" stroke-linecap="round"></circle>
+      </svg>
+      <span class="gemini-meta-tokens">${tokenStr}</span>
+    `;
     meta.title = `Context Window: ${used.toLocaleString()} / ${limit.toLocaleString()} tokens (${metrics?.percentage || 0}% used) — Click to view usage details`;
 
     if (!meta.dataset.geminiUsageClickAttached) {
@@ -1589,10 +1605,7 @@ function enhanceModelSelectorPanel(panel) {
           stats.textContent = statsStr;
         }
 
-        const activeEmail = userAccountProfile?.email || "kurtstanleytalastas@gmail.com";
-        const plan = getAccountPlan(activeEmail);
-        const limits = getAccountLimits(activeEmail);
-        row.title = `Quota (${plan}): 5h: ${limits?.fiveHour ?? 100}% | Weekly: ${limits?.weekly ?? 100}% — Context: ${statsStr}`;
+        row.removeAttribute('title');
       }
 
       // Submenu trigger handling for MODEL ROWS and UTILITY ROWS (View Usage): attach hover and click listeners to open submenu reliably
@@ -4309,7 +4322,7 @@ function ensureScheduledTasksRow(block) {
 }
 
 function openGeminiWeb(customUrl) {
-  const email = (typeof userAccountProfile !== "undefined" && userAccountProfile?.email) ? userAccountProfile.email : "kurtstanleytalastas@gmail.com";
+  const email = (typeof userAccountProfile !== "undefined" && userAccountProfile?.email) ? userAccountProfile.email : (DEFAULT_ACCOUNT.email || "acostayashica@gmail.com");
   const url = customUrl || (email ? `https://gemini.google.com/app?authuser=${encodeURIComponent(email)}` : "https://gemini.google.com");
   if (typeof window !== "undefined" && window.BetterGravityBrowser && typeof window.BetterGravityBrowser.open === "function") {
     try {
@@ -8441,16 +8454,19 @@ function setupUserMessageBubble(step) {
     const measure = () => {
       if (!active || !flex1.isConnected || !textContent.isConnected) return;
       resetScroll();
-      const height = hasAttachment
-        ? clampTarget.scrollHeight
-        : (textContent.getBoundingClientRect().height || flex1.scrollHeight);
+      const height = Math.max(
+        textContent.scrollHeight || 0,
+        clampTarget.scrollHeight || 0,
+        flex1.scrollHeight || 0
+      );
       naturalTextHeight = Math.ceil(height - (isExpanded ? USER_MSG_EXPANDED_RESERVE : 0));
       return applyMeasurement;
     };
 
     const applyMeasurement = () => {
       if (!active || !flex1.isConnected || !textContent.isConnected) return;
-      const canToggle = naturalTextHeight > USER_MSG_COLLAPSED_HEIGHT;
+      const fullHeight = Math.max(textContent.scrollHeight || 0, clampTarget.scrollHeight || 0, naturalTextHeight || 0);
+      const canToggle = fullHeight > USER_MSG_COLLAPSED_HEIGHT;
 
       if (!canToggle) {
         boundToggle?.removeEventListener('click', onToggleClick);
@@ -8769,12 +8785,12 @@ function updateAllUserCards(profile) {
     const imgEl = pill.querySelector(".gemini-user-avatar");
     const fallbackEl = pill.querySelector(".gemini-user-avatar-fallback");
 
-    const activeEmail = profile.email || "kurtstanleytalastas@gmail.com";
+    const activeEmail = profile.email || DEFAULT_ACCOUNT.email || "acostayashica@gmail.com";
     const displayName = profile?.accountNames?.[activeEmail.toLowerCase()] ||
                         REAL_ACCOUNT_DATA.names[activeEmail.toLowerCase()] ||
                         profile.fullName ||
                         profile.firstName ||
-                        (activeEmail ? activeEmail.split("@")[0] : "Kurt");
+                        (activeEmail ? activeEmail.split("@")[0] : "Yashica");
     if (nameEl) nameEl.textContent = displayName;
     if (emailEl) {
       emailEl.textContent = activeEmail;
@@ -8837,29 +8853,19 @@ function applyAccountProfile(profile) {
       userAccountProfile.accountLimits = { ...(userAccountProfile.accountLimits || {}), ...profile.accountLimits };
     }
   }
-  const first = userAccountProfile.fullName?.split(/\s+/)[0] || userAccountProfile.firstName || "Kurt";
+  const first = userAccountProfile.fullName?.split(/\s+/)[0] || userAccountProfile.firstName || "Yashica";
   greeting = `Hello there, ${first}`;
   updateAllUserCards(userAccountProfile);
   for (const group of document.querySelectorAll(HOME_GROUP)) ensureHomeGreeting(group);
 }
 
-let greeting = "Hello there, Kurt";
+let greeting = "Hello there, Yashica";
 
 async function refreshAccountProfile() {
-  try {
-    const res = await fetch("http://127.0.0.1:41421/account", { signal: AbortSignal.timeout(1200) });
-    if (res.ok) {
-      const data = await res.json();
-      if (data && data.email) {
-        applyAccountProfile(data);
-        return data;
-      }
-    }
-  } catch {}
   if (plugin.account && typeof plugin.account.read === "function") {
     try {
       const profile = await plugin.account.read();
-      if (profile) {
+      if (profile && profile.email) {
         applyAccountProfile(profile);
         return profile;
       }
@@ -9559,23 +9565,13 @@ async function switchActiveAccount(targetEmail) {
   }
 
   let switched = null;
-  // 1. Try local daemon service which updates Antigravity app_storage and google_accounts directly
-  try {
-    const res = await fetch("http://127.0.0.1:41421/switch-account", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email: targetEmail })
-    });
-    if (res.ok) {
-      switched = await res.json();
-    }
-  } catch {}
-
-  // 2. Fall back to plugin.account.switchAccount if available
-  if (!switched && typeof plugin?.account?.switchAccount === "function") {
+  // 1. Electron IPC switchAccount handler
+  if (typeof plugin?.account?.switchAccount === "function") {
     try {
       switched = await plugin.account.switchAccount(targetEmail);
-    } catch {}
+    } catch (err) {
+      console.debug("[BetterGravity] Error switching account via IPC:", err);
+    }
   }
 
   if (!switched) {
@@ -9640,7 +9636,7 @@ async function toggleAccountPopover(pill, settingsBtn) {
   popover.id = "gemini-account-popover";
   popover.className = "gemini-account-popover";
 
-  const activeEmail = userAccountProfile.email || "kurtstanleytalastas@gmail.com";
+  const activeEmail = userAccountProfile.email || DEFAULT_ACCOUNT.email || "acostayashica@gmail.com";
   const displayName = userAccountProfile?.accountNames?.[activeEmail.toLowerCase()] ||
                       userAccountProfile.fullName ||
                       userAccountProfile.firstName ||
@@ -9883,13 +9879,13 @@ function ensureSidebarUserCard(footer) {
     pill.setAttribute("aria-label", "User profile and settings");
 
     const avatarUrl = userAccountProfile.pictureUrl || "";
-    const email = userAccountProfile.email || "kurtstanleytalastas@gmail.com";
+    const email = userAccountProfile.email || DEFAULT_ACCOUNT.email || "acostayashica@gmail.com";
     const displayName = userAccountProfile?.accountNames?.[email.toLowerCase()] ||
                         REAL_ACCOUNT_DATA.names[email.toLowerCase()] ||
                         userAccountProfile.fullName ||
                         userAccountProfile.firstName ||
-                        (email ? email.split("@")[0] : "Kurt");
-    const initial = (displayName || email || "K").charAt(0).toUpperCase();
+                        (email ? email.split("@")[0] : "Yashica");
+    const initial = (displayName || email || "Y").charAt(0).toUpperCase();
 
     pill.title = email ? (displayName ? `${displayName} (${email})` : email) : displayName;
     if (isSidebarCollapsed()) {
