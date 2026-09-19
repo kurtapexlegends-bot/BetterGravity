@@ -5568,22 +5568,32 @@ function transformItems(items, fiber) {
     }
 
     const result = [];
-    if (pinnedRows.length > 0) {
-      result.push({
-        type: 'section-header',
-        id: 'section-pinned',
-        title: 'Pinned Conversations',
-        isCollapsible: true,
-        isCollapsed: isPinnedCollapsed,
-        collapseId: 'pinned'
-      });
-      if (!isPinnedCollapsed) {
+    const hasPinned = !!originalPinnedHeader || pinnedRows.length > 0;
+    if (hasPinned) {
+      const headerItem = originalPinnedHeader
+        ? {
+            ...originalPinnedHeader,
+            title: 'Pinned Conversations',
+            isCollapsible: true,
+            isCollapsed: isPinnedCollapsed,
+            collapseId: originalPinnedHeader.collapseId || 'pinned'
+          }
+        : {
+            type: 'section-header',
+            id: 'section-pinned',
+            title: 'Pinned Conversations',
+            isCollapsible: true,
+            isCollapsed: isPinnedCollapsed,
+            collapseId: 'pinned'
+          };
+      result.push(headerItem);
+      if (!isPinnedCollapsed && pinnedRows.length > 0) {
         result.push(...pinnedRows);
       }
       result.push({
         type: 'spacer',
         id: 'spacer-section-pinned',
-        height: 16
+        height: isPinnedCollapsed ? 8 : 16
       });
     } else {
       result.push({
@@ -5633,22 +5643,32 @@ function transformItems(items, fiber) {
   }
 
   const result = [];
-  if (pinnedRows.length > 0) {
-    result.push({
-      type: 'section-header',
-      id: 'section-pinned',
-      title: 'Pinned Conversations',
-      isCollapsible: true,
-      isCollapsed: isPinnedCollapsed,
-      collapseId: 'pinned'
-    });
-    if (!isPinnedCollapsed) {
+  const hasPinned = !!originalPinnedHeader || pinnedRows.length > 0;
+  if (hasPinned) {
+    const headerItem = originalPinnedHeader
+      ? {
+          ...originalPinnedHeader,
+          title: 'Pinned Conversations',
+          isCollapsible: true,
+          isCollapsed: isPinnedCollapsed,
+          collapseId: originalPinnedHeader.collapseId || 'pinned'
+        }
+      : {
+          type: 'section-header',
+          id: 'section-pinned',
+          title: 'Pinned Conversations',
+          isCollapsible: true,
+          isCollapsed: isPinnedCollapsed,
+          collapseId: 'pinned'
+        };
+    result.push(headerItem);
+    if (!isPinnedCollapsed && pinnedRows.length > 0) {
       result.push(...pinnedRows);
     }
     result.push({
       type: 'spacer',
       id: 'spacer-section-pinned',
-      height: 16
+      height: isPinnedCollapsed ? 8 : 16
     });
   }
 

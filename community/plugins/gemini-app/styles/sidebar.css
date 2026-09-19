@@ -1554,6 +1554,7 @@ body.gemini-custom-view-open [role="navigation"][aria-label="Sidebar"] #gemini-s
 [role="navigation"][aria-label="Sidebar"] div[class*="group/section-header"][data-collapsed="true"] h2 button::after,
 [role="navigation"][aria-label="Sidebar"] div[class*="group/section-header"] h2 button[aria-expanded="false"]::after {
   content: "keyboard_arrow_right" !important;
+  opacity: 1 !important;
 }
 
 /* Plus action button: reveal ONLY on hover, matching project headers */
