@@ -335,3 +335,109 @@ describe("Gemini App native duplicate logo suppression", () => {
   });
 });
 
+describe("Gemini App experience preservation and items filtering", () => {
+  const transformSource = source.slice(
+    source.indexOf("function transformItems("),
+    source.indexOf("function listFiberFor(")
+  );
+
+  function createTransformScope(currentExp: string, projectMap = new Map()) {
+    const fn = new Function(
+      "getStoredExperience", "conversationProjectMap", "updateProjectMapFromFiber",
+      `
+      let firstDiscoveredProjectId = null;
+      ${transformSource}
+      return { transformItems };
+      `
+    );
+    return fn(() => currentExp, projectMap, () => {});
+  }
+
+  const sampleItems = [
+    { type: "section-header", id: "section-pinned", title: "Pinned" },
+    { type: "row", id: "c-standalone-pinned", groupId: "pinned", cascadeId: "c-standalone-pinned" },
+    { type: "row", id: "c-work-pinned", groupId: "pinned", cascadeId: "c-work-pinned" },
+    { type: "header", id: "header-proj-1", title: "Project Alpha" },
+    { type: "row", id: "c-work-1", groupId: "proj-1", cascadeId: "c-work-1" },
+    { type: "show-more", groupId: "proj-1" },
+    { type: "section-header", id: "section-standalone", title: "Recents" },
+    { type: "row", id: "c-standalone-1", groupId: "standalone", cascadeId: "c-standalone-1" }
+  ];
+
+  it("in Chat mode: includes all pinned chats and standalone recents, strictly excludes project headers and project rows", () => {
+    const map = new Map();
+    map.set("c-work-pinned", "Project Alpha");
+    map.set("c-work-pinned:groupId", "proj-1");
+    map.set("c-work-1", "Project Alpha");
+    map.set("c-work-1:groupId", "proj-1");
+
+    const scope = createTransformScope("chat", map);
+    const result = scope.transformItems(sampleItems);
+
+    const rowIds = result.filter((it: any) => it.type === "row").map((it: any) => it.id);
+    expect(rowIds).toEqual(["c-standalone-pinned", "c-work-pinned", "c-standalone-1"]);
+
+    const headers = result.filter((it: any) => it.type === "header");
+    expect(headers).toHaveLength(0);
+
+    const pinnedHeader = result.find((it: any) => it.id === "section-pinned");
+    expect(pinnedHeader).toBeDefined();
+    expect(pinnedHeader.title).toBe("Pinned Conversations");
+
+    const recentsHeader = result.find((it: any) => it.id === "section-standalone");
+    expect(recentsHeader).toBeDefined();
+    expect(recentsHeader.title).toBe("Recents");
+  });
+
+  it("in Work mode: includes all pinned chats and project headers/rows, strictly excludes unpinned standalone chats", () => {
+    const map = new Map();
+    map.set("c-work-pinned", "Project Alpha");
+    map.set("c-work-pinned:groupId", "proj-1");
+    map.set("c-work-1", "Project Alpha");
+    map.set("c-work-1:groupId", "proj-1");
+
+    const scope = createTransformScope("work", map);
+    const result = scope.transformItems(sampleItems);
+
+    const rowIds = result.filter((it: any) => it.type === "row").map((it: any) => it.id);
+    expect(rowIds).toEqual(["c-standalone-pinned", "c-work-pinned", "c-work-1"]);
+
+    const headers = result.filter((it: any) => it.type === "header");
+    expect(headers).toHaveLength(1);
+    expect(headers[0].id).toBe("header-proj-1");
+
+    const recentsHeader = result.find((it: any) => it.id === "section-standalone");
+    expect(recentsHeader).toBeUndefined();
+  });
+
+  it("checkUrlForProjectSwitch never switches stored experience when URL has section parameter", () => {
+    const checkSource = source.slice(
+      source.indexOf("function checkUrlForProjectSwitch("),
+      source.indexOf("const pinnedStateOwners =")
+    );
+    let lastProj = "";
+    let storedExp = "chat";
+    const markExp = vi.fn();
+    const setLastSelectedProjectId = vi.fn((pid) => { lastProj = pid; });
+    const conversationProjectMap = new Map();
+
+    const scope = new Function(
+      "setLastSelectedProjectId", "getStoredExperience", "markExperience", "conversationProjectMap",
+      `
+      ${checkSource}
+      return { checkUrlForProjectSwitch };
+      `
+    )(setLastSelectedProjectId, () => storedExp, markExp, conversationProjectMap);
+
+    // Simulate navigating to a work conversation with ?section=my-project
+    delete (window as any).location;
+    window.location = new URL("https://app.antigravity.test/c/xyz123?section=my-project") as any;
+
+    scope.checkUrlForProjectSwitch();
+    expect(setLastSelectedProjectId).toHaveBeenCalledWith("my-project");
+    expect(markExp).not.toHaveBeenCalled();
+    expect(storedExp).toBe("chat");
+  });
+});
+
+

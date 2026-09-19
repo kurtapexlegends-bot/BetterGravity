@@ -5492,20 +5492,30 @@ function readProjectMap(cJb) {
 }
 
 let listRerenderDispatcher = null;
+let isRerenderingList = false;
+let lastListRerenderTime = 0;
 
 function triggerListRerender() {
-  if (typeof listRerenderDispatcher === 'function') {
-    listRerenderDispatcher();
-    return;
+  const now = Date.now();
+  if (isRerenderingList || (now - lastListRerenderTime < 50)) return;
+  isRerenderingList = true;
+  lastListRerenderTime = now;
+  try {
+    if (typeof listRerenderDispatcher === 'function') {
+      listRerenderDispatcher();
+      return;
+    }
+    const scroller = document.querySelector(LIST_SELECTOR);
+    if (!scroller) return;
+    reorganizePinnedItems(scroller);
+    if (typeof listRerenderDispatcher === 'function') {
+      listRerenderDispatcher();
+      return;
+    }
+    scroller.dispatchEvent(new Event('scroll'));
+  } finally {
+    setTimeout(() => { isRerenderingList = false; }, 50);
   }
-  const scroller = document.querySelector(LIST_SELECTOR);
-  if (!scroller) return;
-  reorganizePinnedItems(scroller);
-  if (typeof listRerenderDispatcher === 'function') {
-    listRerenderDispatcher();
-    return;
-  }
-  scroller.dispatchEvent(new Event('scroll'));
 }
 
 function transformItems(items, fiber) {
@@ -5713,11 +5723,19 @@ function wrapItems(fiber) {
 
   // type is what React calls; elementType is what it reconciles on. Rule 2.
   fiber.type = wrapper;
-  if (fiber.alternate) fiber.alternate.type = wrapper;
+  fiber.elementType = wrapper;
+  if (fiber.alternate) {
+    fiber.alternate.type = wrapper;
+    fiber.alternate.elementType = wrapper;
+  }
   wrappedFibers.add(new WeakRef(fiber));
   if (wrappedFibers.size >= 512) {
     for (const ref of wrappedFibers) if (!ref.deref()) wrappedFibers.delete(ref);
   }
+
+  // When a newly mounted or reconciled list fiber is wrapped, trigger an immediate
+  // clean re-render so transformItems is executed instead of leaving Antigravity's raw items painted.
+  triggerListRerender();
 }
 
 function unwrapItems() {
@@ -5726,7 +5744,10 @@ function unwrapItems() {
     if (!fiber) continue;
     for (const target of [fiber, fiber.alternate]) {
       const original = target?.type?.[ORIGINAL];
-      if (original) target.type = original;
+      if (original) {
+        target.type = original;
+        target.elementType = original;
+      }
     }
   }
   wrappedFibers.clear();
@@ -5821,6 +5842,17 @@ listenToPage(document, 'click', (e) => {
       }
       curr = curr.return;
     }
+    const targetScroller = document.querySelector(LIST_SELECTOR);
+    if (targetScroller) {
+      queueMicrotask(() => {
+        reorganizePinnedItems(targetScroller);
+        triggerListRerender();
+      });
+      requestAnimationFrame(() => {
+        reorganizePinnedItems(targetScroller);
+        triggerListRerender();
+      });
+    }
   }
 }, true);
 
@@ -5830,8 +5862,22 @@ listenToPage(window, 'keydown', (e) => {
   }
 }, true);
 
-listenToPage(window, 'popstate', checkUrlForProjectSwitch);
-listenToPage(window, 'hashchange', checkUrlForProjectSwitch);
+listenToPage(window, 'popstate', () => {
+  checkUrlForProjectSwitch();
+  const scroller = document.querySelector(LIST_SELECTOR);
+  if (scroller) {
+    reorganizePinnedItems(scroller);
+    triggerListRerender();
+  }
+});
+listenToPage(window, 'hashchange', () => {
+  checkUrlForProjectSwitch();
+  const scroller = document.querySelector(LIST_SELECTOR);
+  if (scroller) {
+    reorganizePinnedItems(scroller);
+    triggerListRerender();
+  }
+});
 
 // Intercept pushState & replaceState for 0ms instantaneous route tracking with clean disposal
 if (typeof history !== "undefined") {
@@ -5842,6 +5888,15 @@ if (typeof history !== "undefined") {
       const ret = rawPushState.apply(this, args);
       try { checkUrlForProjectSwitch(); } catch {}
       try { scheduleAutoHeal(); } catch {}
+      try {
+        requestAnimationFrame(() => {
+          const scroller = document.querySelector(LIST_SELECTOR);
+          if (scroller) {
+            reorganizePinnedItems(scroller);
+            triggerListRerender();
+          }
+        });
+      } catch {}
       return ret;
     };
     plugin.onDispose(() => {
@@ -5858,6 +5913,15 @@ if (typeof history !== "undefined") {
       const ret = rawReplaceState.apply(this, args);
       try { checkUrlForProjectSwitch(); } catch {}
       try { scheduleAutoHeal(); } catch {}
+      try {
+        requestAnimationFrame(() => {
+          const scroller = document.querySelector(LIST_SELECTOR);
+          if (scroller) {
+            reorganizePinnedItems(scroller);
+            triggerListRerender();
+          }
+        });
+      } catch {}
       return ret;
     };
     plugin.onDispose(() => {
