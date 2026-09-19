@@ -66,7 +66,9 @@ export function applySourcePatches(source: string, sets: readonly PluginPatches[
   const failures: PatchFailure[] = [];
 
   for (const { pluginId, patches } of sets) {
+    let candidate = current;
     let pluginChanged = false;
+    let pluginFailed = false;
 
     for (const [index, patch] of patches.entries()) {
       const where = patches.length > 1 ? ` (patch ${index + 1})` : "";
@@ -86,25 +88,37 @@ export function applySourcePatches(source: string, sets: readonly PluginPatches[
           expression = compile(replacement.match, replacement.all === true);
         } catch (error) {
           failures.push({ pluginId, kind: "invalid", reason: `invalid match${where}: ${error instanceof Error ? error.message : String(error)}` });
+          pluginFailed = true;
           continue;
         }
 
-        const matches = current.match(expression);
+        const matches = candidate.match(expression);
         if (!matches) {
           failures.push({ pluginId, kind: "match", reason: `no match${where} for ${JSON.stringify(replacement.match.slice(0, 60))}` });
+          pluginFailed = true;
           continue;
         }
         if (replacement.all === true && matches.length > MAX_REPLACEMENTS) {
           failures.push({ pluginId, kind: "excessive", reason: `refused${where}: ${matches.length} matches exceeds the ${MAX_REPLACEMENTS} limit.` });
+          pluginFailed = true;
           continue;
         }
 
-        current = current.replace(expression, replacement.with);
+        candidate = candidate.replace(expression, replacement.with);
         pluginChanged = true;
       }
     }
 
-    if (pluginChanged) applied.push(pluginId);
+    if (pluginFailed) {
+      // If any replacement targeting this file failed to match, discard partial changes
+      // for this plugin so we never serve a half-patched, corrupted bundle.
+      continue;
+    }
+
+    if (pluginChanged) {
+      current = candidate;
+      applied.push(pluginId);
+    }
   }
 
   return { source: current, changed: current !== source, applied, failures };

@@ -105,6 +105,25 @@ describe("applySourcePatches", () => {
     expect(outcome.applied).toEqual(["healthy"]);
     expect(outcome.failures.map((failure) => failure.pluginId)).toEqual(["broken"]);
   });
+
+  it("discards partial replacements if any replacement in a plugin fails on a matching file", () => {
+    const outcome = applySourcePatches(bundle, [
+      set([
+        {
+          find: "agent-input-box",
+          replace: [
+            { match: "var a=1", with: "var a=999" },
+            { match: "this-does-not-exist", with: "boom" }
+          ]
+        }
+      ], "partially-broken")
+    ]);
+
+    expect(outcome.source).toBe(bundle);
+    expect(outcome.changed).toBe(false);
+    expect(outcome.applied).toEqual([]);
+    expect(outcome.failures[0]?.kind).toBe("match");
+  });
 });
 
 describe("readPatches", () => {

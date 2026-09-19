@@ -364,18 +364,25 @@ export function installNativeSettings(api: BetterGravityApi, report: (message: s
     if (item && !item.hasAttribute(NAV_ATTRIBUTE)) deactivate();
   };
 
+  let isInjecting = false;
   const observer = new MutationObserver(() => {
-    inject();
-    if (activeId === undefined) return;
-    const active = find(activeId);
-    const container = active?.screen?.parentElement;
-    if (!active?.screen || !container) return;
+    if (isInjecting) return;
+    isInjecting = true;
+    try {
+      inject();
+      if (activeId === undefined) return;
+      const active = find(activeId);
+      const container = active?.screen?.parentElement;
+      if (!active?.screen || !container) return;
 
-    // A re-render can restore a native screen underneath ours; put it back.
-    for (const native of nativeScreens(container)) {
-      if (native.style.display !== "none") hideNative(native);
+      // A re-render can restore a native screen underneath ours; put it back.
+      for (const native of nativeScreens(container)) {
+        if (native.style.display !== "none") hideNative(native);
+      }
+      if (active.screen.style.display !== "block") active.screen.style.display = "block";
+    } finally {
+      isInjecting = false;
     }
-    if (active.screen.style.display !== "block") active.screen.style.display = "block";
   });
 
   // Registering or removing a plugin section while the dialog is open should

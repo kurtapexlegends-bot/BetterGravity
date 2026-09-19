@@ -2113,6 +2113,10 @@ function openVoiceSettingsModal() {
           <option value="3.8-flash-live-extended" ${currentModel === "3.8-flash-live-extended" ? "selected" : ""}>Gemini 3.8 Flash Live Extended</option>
         </select>
       </div>
+      <div class="gemini-live-field">
+        <label class="gemini-live-field-label">Gemini API Key</label>
+        <input type="password" class="gemini-live-select" data-field="apikey" placeholder="Enter Gemini API key (AIzaSy...)" value="${resolveApiKey()}" style="font-family: monospace; font-size: 13px;" />
+      </div>
       <button type="button" class="gemini-live-btn-primary" data-action="save">Done</button>
     </div>
   `;
@@ -2149,6 +2153,10 @@ function openVoiceSettingsModal() {
     try {
       settings.voice = VOICES[selectedVoiceIdx].id;
       if (modelSelect) settings.model = modelSelect.value;
+      const apiKeyInput = modal.querySelector('[data-field="apikey"]');
+      if (apiKeyInput && apiKeyInput.value.trim()) {
+        settings.apiKey = apiKeyInput.value.trim();
+      }
     } catch {}
     modal.remove();
   };
@@ -2342,14 +2350,12 @@ function toggleLiveSession(box) {
       if (typeof plugin?.ui?.toast === "function") {
         plugin.ui.toast({
           title: "Gemini Live API Key Required",
-          description: "Please enter your Gemini API key in Settings > Plugins > Gemini Live.",
+          description: "Please enter your Gemini API key in the settings dialog to start Gemini Live.",
           kind: "warn",
           duration: 4000
         });
       }
-      if (typeof BetterGravity !== "undefined" && BetterGravity.panel?.open) {
-        BetterGravity.panel.open();
-      }
+      openVoiceSettingsModal();
     } catch {}
     return;
   }
@@ -2391,6 +2397,14 @@ function isAgentRunning(box) {
   return !!box.querySelector('[data-tooltip-id="input-send-button-cancel-tooltip"]');
 }
 
+function setAttrIfDiff(el, name, val) {
+  if (val === null) {
+    if (el.hasAttribute(name)) el.removeAttribute(name);
+  } else {
+    if (el.getAttribute(name) !== val) el.setAttribute(name, val);
+  }
+}
+
 function updateLiveButtonState(box, button) {
   if (!box || !button) return;
   const isSessionActive = activeSession !== null;
@@ -2399,31 +2413,37 @@ function updateLiveButtonState(box, button) {
 
   if (isSessionActive) {
     if (hasText || isRunning) {
-      button.setAttribute("data-hidden", "true");
+      setAttrIfDiff(button, "data-hidden", "true");
     } else {
-      button.removeAttribute("data-hidden");
-      button.setAttribute("data-ongoing", "true");
-      button.setAttribute("data-live-active", "true");
-      button.setAttribute("aria-label", "Stop live mode");
-      button.setAttribute("title", "Stop live mode");
-      button.innerHTML = STOP_ICON_SVG;
+      setAttrIfDiff(button, "data-hidden", null);
+      setAttrIfDiff(button, "data-ongoing", "true");
+      setAttrIfDiff(button, "data-live-active", "true");
+      setAttrIfDiff(button, "aria-label", "Stop live mode");
+      setAttrIfDiff(button, "title", "Stop live mode");
+      if (button.getAttribute("data-mode") !== "stop") {
+        button.setAttribute("data-mode", "stop");
+        button.innerHTML = STOP_ICON_SVG;
+      }
     }
   } else {
-    button.removeAttribute("data-ongoing");
-    button.removeAttribute("data-live-active");
-    button.setAttribute("aria-label", "Gemini Live");
-    button.setAttribute("title", "Gemini Live");
-    button.innerHTML = LIVE_ICON_SVG;
+    setAttrIfDiff(button, "data-ongoing", null);
+    setAttrIfDiff(button, "data-live-active", null);
+    setAttrIfDiff(button, "aria-label", "Gemini Live");
+    setAttrIfDiff(button, "title", "Gemini Live");
+    if (button.getAttribute("data-mode") !== "live") {
+      button.setAttribute("data-mode", "live");
+      button.innerHTML = LIVE_ICON_SVG;
+    }
     if (hasText || isRunning) {
-      button.setAttribute("data-hidden", "true");
+      setAttrIfDiff(button, "data-hidden", "true");
     } else {
-      button.removeAttribute("data-hidden");
+      setAttrIfDiff(button, "data-hidden", null);
     }
   }
 }
 
 function getButtonContainer(box) {
-  const mic = box.querySelector('button[aria-label="Record voice memo"]');
+  const mic = box.querySelector('button[aria-label="Record voice memo"], button[data-live-mic-mute], button[aria-label="Turn off microphone"], button[aria-label="Turn on microphone"], .gemini-mic-button');
   if (mic) {
     const parent = mic.closest(".flex.items-center.gap-1");
     if (parent) return parent;
@@ -2437,32 +2457,39 @@ function getButtonContainer(box) {
   return null;
 }
 
+let isEnsuringLiveButton = false;
+
 function ensureLiveButton(box) {
-  if (!box || !box.isConnected) return;
+  if (!box || !box.isConnected || isEnsuringLiveButton) return;
+  isEnsuringLiveButton = true;
+  try {
+    const container = getButtonContainer(box);
+    if (!container) return;
 
-  const container = getButtonContainer(box);
-  if (!container) return;
+    let btn = box.querySelector('[data-testid="gemini-live-button"]');
+    if (!btn || btn.parentElement !== container) {
+      if (btn) btn.remove();
+      btn = document.createElement("button");
+      btn.type = "button";
+      btn.setAttribute("data-testid", "gemini-live-button");
+      btn.setAttribute("aria-label", "Gemini Live");
+      btn.setAttribute("title", "Gemini Live");
+      btn.className = "gemini-live-button";
+      btn.setAttribute("data-mode", "live");
+      btn.innerHTML = LIVE_ICON_SVG;
 
-  let btn = box.querySelector('[data-testid="gemini-live-button"]');
-  if (!btn || btn.parentElement !== container) {
-    if (btn) btn.remove();
-    btn = document.createElement("button");
-    btn.type = "button";
-    btn.setAttribute("data-testid", "gemini-live-button");
-    btn.setAttribute("aria-label", "Gemini Live");
-    btn.setAttribute("title", "Gemini Live");
-    btn.className = "gemini-live-button";
-    btn.innerHTML = LIVE_ICON_SVG;
+      btn.addEventListener("click", () => {
+        toggleLiveSession(box);
+      });
 
-    btn.addEventListener("click", () => {
-      toggleLiveSession(box);
-    });
+      container.appendChild(btn);
+    }
 
-    container.appendChild(btn);
+    activeLiveButton = btn;
+    updateLiveButtonState(box, btn);
+  } finally {
+    isEnsuringLiveButton = false;
   }
-
-  activeLiveButton = btn;
-  updateLiveButtonState(box, btn);
 }
 
 /* ── 10. Lifecycle & Observers ──────────────────────────────────────────────── */
@@ -2477,7 +2504,13 @@ const stopBoxObserver = plugin.dom.observe('[data-testid="agent-input-box"]', (b
   ensureLiveButton(box);
 
   activeBoxObserver = new MutationObserver(() => {
-    ensureLiveButton(box);
+    if (!box || !box.isConnected || isEnsuringLiveButton) return;
+    const existing = box.querySelector('[data-testid="gemini-live-button"]');
+    if (!existing) {
+      ensureLiveButton(box);
+    } else {
+      updateLiveButtonState(box, existing);
+    }
   });
   activeBoxObserver.observe(box, {
     childList: true,

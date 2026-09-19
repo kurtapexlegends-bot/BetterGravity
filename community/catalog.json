@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-09-19T05:54:35.409Z",
+  "generatedAt": "2026-09-19T06:21:47.529Z",
   "entries": [
     {
       "id": "compact",
@@ -462,7 +462,7 @@
       "author": "Yashjit Pal",
       "source": "https://github.com/YashjitPal/BetterGravity",
       "path": "community/plugins/gemini-live",
-      "bytes": 324226,
+      "bytes": 325470,
       "files": [
         {
           "name": "assets/watercolor.webp",
@@ -476,8 +476,8 @@
         },
         {
           "name": "index.js",
-          "bytes": 172215,
-          "sha256": "05f66eb2ab999daba7eea1bd0944036a94166b817be5d8af40e0d437acde1a4e"
+          "bytes": 173459,
+          "sha256": "bcae5b205f31a941a1dd7e8cd84d9b5cda7ca578ebb9d08b2dded6448fc4863c"
         },
         {
           "name": "orb/shaders.js",

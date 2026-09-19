@@ -2330,6 +2330,7 @@ plugin.dom.observe(NEW_CONV_SELECTOR, (btn) => {
 // Willow's exact sidebar widths (expanded = 288px, collapsed = 52px) and motion curve
 const WILLOW_SIDEBAR_EXPANDED_WIDTH = "288px";
 const WILLOW_SIDEBAR_COLLAPSED_WIDTH = "52px";
+const WILLOW_SIDEBAR_TRANSITION = "width 300ms cubic-bezier(0.2, 0, 0, 1), height 300ms cubic-bezier(0.2, 0, 0, 1)";
 const TOGGLE_SELECTOR = '.absolute.top-0 button[data-testid="sidebar-toggle"], button[data-testid="sidebar-toggle"][aria-label="Toggle Sidebar"]';
 
 function isSidebarCollapsed() {
@@ -2409,6 +2410,7 @@ function enforceSidebarGeometry(grandParent, collapsed) {
 
 let observedHeader = null;
 let headerObserver = null;
+let isReconciling = false;
 
 function ensureSidebarHeader(sidebar, collapsed) {
   const header = sidebar?.querySelector(':scope > div.shrink-0.flex.items-center') ||
@@ -2421,6 +2423,7 @@ function ensureSidebarHeader(sidebar, collapsed) {
     }
     observedHeader = header;
     headerObserver = new MutationObserver(() => {
+      if (isReconciling) return;
       if (!header.querySelector(".gemini-logo-btn") || !header.querySelector(".willow-sidenav-text")) {
         const sb = document.querySelector(SIDEBAR_SELECTOR);
         if (sb) ensureSidebarHeader(sb, isSidebarCollapsed());
@@ -2573,10 +2576,12 @@ function syncSidebarState(sidebar) {
  * It selects between Chat (standalone conversations) and Work (projects and
  * their conversations).
  * ------------------------------------------------------------------------- */
+const WORK_TOGGLE_SHORTCUT = isMac ? "⌥W" : "Alt+W";
+
 const EXPERIENCES = [
   { id: "chat", label: "Chat" },
-  // Willow's second tab reads "Spark". Here it is "Work".
-  { id: "work", label: "Work", badge: "beta" }
+  // Willow's second tab reads "Spark". Here it is "Work", badged with the keyboard shortcut.
+  { id: "work", label: "Work", badge: WORK_TOGGLE_SHORTCUT }
 ];
 
 const conversationProjectMap = new Map();
@@ -3020,10 +3025,13 @@ function buildExperienceSwitch() {
     if (experience.badge) {
       const badge = document.createElement("span");
       badge.dataset.geminiExperienceBadge = "";
-      // "beta" in the markup, BETA on screen: the uppercasing is Willow's, in CSS.
       badge.textContent = experience.badge;
+      badge.title = `Toggle Chat / Work (${experience.badge})`;
       tab.append(badge);
     }
+    tab.title = experience.id === "work"
+      ? `Switch to Work (${WORK_TOGGLE_SHORTCUT})`
+      : `Switch to Chat (${WORK_TOGGLE_SHORTCUT})`;
     tab.addEventListener("click", (e) => {
       e.preventDefault();
       e.stopPropagation();
@@ -3038,6 +3046,7 @@ function buildExperienceSwitch() {
   collapsedBtn.type = "button";
   collapsedBtn.className = "gemini-experience-collapsed-btn";
   collapsedBtn.setAttribute("data-tooltip-position", "right");
+  collapsedBtn.title = `Toggle Chat / Work (${WORK_TOGGLE_SHORTCUT})`;
   collapsedBtn.innerHTML = `
     <svg class="gemini-experience-collapsed-icon" width="20" height="13" viewBox="0 0 20 13" fill="none">
       <rect x="0.8" y="0.8" width="18.4" height="11.4" rx="5.7" stroke="currentColor" stroke-width="1.6"/>
@@ -5513,8 +5522,12 @@ function transformItems(items, fiber) {
 
   const exp = getStoredExperience();
 
+  // Preserve collapsed state if section-pinned already exists in original items
+  const originalPinnedHeader = items.find((it) => it && it.id === 'section-pinned');
+  const isPinnedCollapsed = originalPinnedHeader ? !!originalPinnedHeader.isCollapsed : false;
+
   if (exp === 'chat') {
-    // Chat mode: Show "Conversations" (standalone) and any standalone pinned chats.
+    // Chat mode: Show "Pinned Conversations" (all pinned chats) and "Recents" (standalone).
     // Exclude Projects section header, project headers, project rows, project show-mores.
     const pinnedRows = [];
     const chatItems = [];
@@ -5529,7 +5542,7 @@ function transformItems(items, fiber) {
         const cid = it.cascadeId || it.id;
         const isProjectChat = conversationProjectMap.has(cid) || conversationProjectMap.has(cid + ':groupId');
         if (it.groupId === 'pinned') {
-          if (!isProjectChat) pinnedRows.push(it);
+          pinnedRows.push(it);
           continue;
         }
         if (it.groupId === 'standalone' && !isProjectChat) {
@@ -5561,10 +5574,12 @@ function transformItems(items, fiber) {
         id: 'section-pinned',
         title: 'Pinned Conversations',
         isCollapsible: true,
-        isCollapsed: false,
+        isCollapsed: isPinnedCollapsed,
         collapseId: 'pinned'
       });
-      result.push(...pinnedRows);
+      if (!isPinnedCollapsed) {
+        result.push(...pinnedRows);
+      }
       result.push({
         type: 'spacer',
         id: 'spacer-section-pinned',
@@ -5581,8 +5596,8 @@ function transformItems(items, fiber) {
     return result;
   }
 
-  // Work mode: Show "Projects" and all project headers, project rows, and project show-mores.
-  // Exclude "Conversations" (standalone) and standalone rows.
+  // Work mode: Show "Pinned Conversations" (all pinned chats at the top) and all project headers, project rows, and project show-mores.
+  // Exclude unpinned standalone conversations.
   const pinnedRows = [];
   const workItems = [];
 
@@ -5597,14 +5612,12 @@ function transformItems(items, fiber) {
     }
 
     if (it.type === 'row') {
-      const cid = it.cascadeId || it.id;
-      const isProjectChat = conversationProjectMap.has(cid) || conversationProjectMap.has(cid + ':groupId');
       if (it.groupId === 'pinned') {
-        if (isProjectChat) pinnedRows.push(it);
+        pinnedRows.push(it);
         continue;
       }
       if (it.groupId === 'standalone') {
-        continue; // Exclude standalone row in work mode
+        continue; // Exclude unpinned standalone row in work mode
       }
       workItems.push(it);
       continue;
@@ -5619,85 +5632,28 @@ function transformItems(items, fiber) {
     workItems.push(it);
   }
 
-  // If any project chats were pinned, insert them under their respective project headers
+  const result = [];
   if (pinnedRows.length > 0) {
-    const projectHeaders = new Map();
-    for (let i = 0; i < workItems.length; i++) {
-      const it = workItems[i];
-      if (it && it.type === 'header') {
-        const projId = (it.id || '').replace(/^header-/, '');
-        if (it.label) projectHeaders.set(it.label.toLowerCase(), { index: i, header: it, projId });
-        if (projId) projectHeaders.set(projId.toLowerCase(), { index: i, header: it, projId });
-      }
+    result.push({
+      type: 'section-header',
+      id: 'section-pinned',
+      title: 'Pinned Conversations',
+      isCollapsible: true,
+      isCollapsed: isPinnedCollapsed,
+      collapseId: 'pinned'
+    });
+    if (!isPinnedCollapsed) {
+      result.push(...pinnedRows);
     }
-
-    const pinnedByHeaderIndex = new Map();
-    const unassignedPinned = [];
-
-    for (const pRow of pinnedRows) {
-      const cid = pRow.cascadeId || pRow.id;
-      const projName = conversationProjectMap.get(cid);
-      const directGroupId = conversationProjectMap.get(cid + ':groupId');
-
-      let matched = null;
-      if (directGroupId && projectHeaders.has(directGroupId.toLowerCase())) {
-        matched = projectHeaders.get(directGroupId.toLowerCase());
-      } else if (projName && projectHeaders.has(projName.toLowerCase())) {
-        matched = projectHeaders.get(projName.toLowerCase());
-      } else if (projName) {
-        for (const [key, entry] of projectHeaders) {
-          if (key.includes(projName.toLowerCase()) || projName.toLowerCase().includes(key)) {
-            matched = entry;
-            break;
-          }
-        }
-      }
-
-      if (matched) {
-        if (!pinnedByHeaderIndex.has(matched.index)) {
-          pinnedByHeaderIndex.set(matched.index, []);
-        }
-        pinnedByHeaderIndex.get(matched.index).push({
-          ...pRow,
-          groupId: matched.projId,
-          isIndented: false
-        });
-      } else {
-        unassignedPinned.push(pRow);
-      }
-    }
-
-    const result = [];
-    if (unassignedPinned.length > 0) {
-      result.push({
-        type: 'section-header',
-        id: 'section-pinned',
-        title: 'Pinned Conversations',
-        isCollapsible: true,
-        isCollapsed: false,
-        collapseId: 'pinned'
-      });
-      result.push(...unassignedPinned);
-      result.push({
-        type: 'spacer',
-        id: 'spacer-section-pinned',
-        height: 16
-      });
-    }
-
-    for (let i = 0; i < workItems.length; i++) {
-      const it = workItems[i];
-      result.push(it);
-      if (pinnedByHeaderIndex.has(i)) {
-        if (!it.isCollapsed) {
-          result.push(...pinnedByHeaderIndex.get(i));
-        }
-      }
-    }
-    return result;
+    result.push({
+      type: 'spacer',
+      id: 'spacer-section-pinned',
+      height: 16
+    });
   }
 
-  return workItems;
+  result.push(...workItems);
+  return result;
 }
 
 /**
@@ -5906,6 +5862,8 @@ const urlTicker = window.setInterval(() => {
   }
 }, 3000);
 
+const PIN_LEAD_SVG = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="shrink-0"><line x1="12" y1="17" x2="12" y2="22"></line><path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h.5a1.5 1.5 0 0 0 0-3h-7a1.5 1.5 0 0 0 0 3h.5v4.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24Z"></path></svg>`;
+
 function hideConversationTime(row) {
   if (!row) return;
   const resting = row.querySelector('.pointer-events-auto > div > div:last-child, [class*="group-hover:opacity-0"]');
@@ -5919,13 +5877,29 @@ function hideConversationTime(row) {
     ? isPinBtnPinned
     : (row.getAttribute('data-pinned') === 'true' || row.closest('[data-title="Pinned Conversations"]') !== null);
 
+  let leadIcon = row.querySelector('.gemini-pinned-lead-icon');
   if (isPinned) {
     if (row.getAttribute('data-pinned') !== 'true') {
       row.setAttribute('data-pinned', 'true');
     }
+    if (!leadIcon) {
+      leadIcon = document.createElement('span');
+      leadIcon.className = 'gemini-pinned-lead-icon';
+      leadIcon.setAttribute('aria-hidden', 'true');
+      leadIcon.innerHTML = PIN_LEAD_SVG;
+      const titleEl = row.querySelector('span.truncate') || row.querySelector('[class*="truncate"]');
+      if (titleEl && titleEl.parentElement) {
+        titleEl.parentElement.insertBefore(leadIcon, titleEl);
+      } else {
+        row.prepend(leadIcon);
+      }
+    }
   } else {
     if (row.getAttribute('data-pinned') === 'true') {
       row.removeAttribute('data-pinned');
+    }
+    if (leadIcon) {
+      leadIcon.remove();
     }
   }
 
@@ -5940,7 +5914,15 @@ function hideConversationTime(row) {
 
 plugin.dom.observe('[data-testid="conversation-row-sidebar"]', (row) => {
   hideConversationTime(row);
-  const obs = new MutationObserver(() => hideConversationTime(row));
+  const obs = new MutationObserver((mutations) => {
+    const isOnlyLeadIcon = mutations.every((m) =>
+      Array.from(m.addedNodes).every((n) => n.classList?.contains?.('gemini-pinned-lead-icon')) ||
+      Array.from(m.removedNodes).every((n) => n.classList?.contains?.('gemini-pinned-lead-icon'))
+    );
+    if (!isOnlyLeadIcon) {
+      hideConversationTime(row);
+    }
+  });
   obs.observe(row, { childList: true, subtree: true });
   remember(row, obs);
 });
@@ -6224,12 +6206,36 @@ plugin.dom.observe('[role="menu"]', (menu) => {
 
 function onGlobalKeyDown(e) {
   const isModifier = isMac ? e.metaKey : e.ctrlKey;
-  if (isModifier && e.shiftKey && e.key.toLowerCase() === "o") {
+  if (isModifier && e.shiftKey && e.key?.toLowerCase() === "o") {
     const btn = document.querySelector(NEW_CONV_SELECTOR);
     if (btn) {
       e.preventDefault();
       btn.click();
     }
+    return;
+  }
+
+  // Toggle between Chat and Work: Alt+W (Windows/Linux) or ⌥W (macOS)
+  const isAltW = e.altKey && !e.ctrlKey && !e.metaKey && (e.key?.toLowerCase() === "w" || e.code === "KeyW");
+  if (isAltW) {
+    e.preventDefault();
+    e.stopPropagation();
+    const pill = document.querySelector("#gemini-experience-switch");
+    const current = pill?.dataset?.geminiExperience || getStoredExperience();
+    const next = current === "chat" ? "work" : "chat";
+    if (pill) {
+      markExperience(pill, next, true);
+    } else {
+      setStoredExperience(next);
+      try {
+        document.documentElement.setAttribute("data-gemini-experience", next);
+      } catch {}
+    }
+    if (typeof playAntigravityHaptic === "function") {
+      playAntigravityHaptic("medium");
+    }
+    navigateToExperienceNewConversation(next);
+    return;
   }
 }
 
@@ -12205,6 +12211,9 @@ plugin.dom.observe('[data-testid="sidecar-detail"]', (view) => {
  *  4. A lightweight 1.5s background heartbeat ensuring complete state integrity.
  * ------------------------------------------------------------------------- */
 function reconcileBetterGravityUI() {
+  if (isReconciling) return;
+  isReconciling = true;
+  try {
   // 1. Dynamic styles & CSS tokens on :root
   try {
     const root = document.documentElement;
@@ -12301,13 +12310,13 @@ function reconcileBetterGravityUI() {
   } catch (err) {
     console.debug("[BetterGravity] Prompt box reconcile error:", err);
   }
+  } finally {
+    isReconciling = false;
+  }
 }
 
 let autoHealRaf = 0;
 let autoHealTimeout = 0;
-let globalAutoHealObserver = null;
-let autoHealHeartbeat = 0;
-const startupTimers = [];
 
 function scheduleAutoHeal() {
   if (autoHealRaf || autoHealTimeout) return;
@@ -12324,91 +12333,18 @@ function scheduleAutoHeal() {
   }
 }
 
-function startAutoHealing() {
-  if (globalAutoHealObserver) return;
-
-  globalAutoHealObserver = new MutationObserver((records) => {
-    let relevant = false;
-    for (const record of records) {
-      const target = record.target;
-      if (!(target instanceof Element)) continue;
-
-      // Ignore mutations originating entirely within BetterGravity's own dynamic components or open menus
-      if (
-        target.id === "gemini-theme-dynamic-styles" ||
-        target.closest?.(
-          "#gemini-experience-switch, #gemini-scroll-nav, #gemini-sidebar-user-pill, #gemini-web-header-btn, #gemini-account-popover, .gemini-context-ring-wrap, .gemini-effort-slider-card, .gemini-usage-stats, .spark-schedule-editor, .gemini-sidebar-top-fade, [data-testid=\"model-selector-panel\"], [role=\"menu\"], [role=\"menuitem\"], [role=\"menuitemradio\"], .gemini-model-limit-tag"
-        )
-      ) {
-        continue;
-      }
-
-      // Ignore streaming text changes in conversation messages
-      if (target.closest?.('.user-input-step, [data-testid="chat-step"], .markdown, .prose')) {
-        continue;
-      }
-
-      if (record.type === "childList" && (record.addedNodes.length > 0 || record.removedNodes.length > 0)) {
-        relevant = true;
-        break;
-      }
-    }
-
-    if (relevant) {
-      scheduleAutoHeal();
-    }
-  });
-
-  const root = document.documentElement || document.body;
-  if (root) {
-    globalAutoHealObserver.observe(root, { childList: true, subtree: true });
-  }
-
-  // Periodic heartbeat ensuring complete state integrity
-  autoHealHeartbeat = window.setInterval(() => {
-    if (document.hidden) return;
-    const sb = document.querySelector(SIDEBAR_SELECTOR);
-    const sbHeader = sb?.querySelector(':scope > div.shrink-0.flex.items-center') || sb?.firstElementChild;
-    const hasLogo = !!sbHeader?.querySelector(".gemini-logo-btn")?.isConnected;
-    const hasText = !!sbHeader?.querySelector(".willow-sidenav-text")?.isConnected;
-    const needsHeal =
-      !document.getElementById("gemini-theme-dynamic-styles")?.isConnected ||
-      (sb && !document.getElementById("gemini-experience-switch")?.isConnected) ||
-      (sb && (!hasLogo || !hasText)) ||
-      ((document.querySelector(LIST_SELECTOR) || sb) && !document.getElementById("gemini-scroll-nav")?.isConnected) ||
-      (document.querySelector(TOP_BAR_MORE) && !document.getElementById("gemini-web-header-btn")?.isConnected);
-
-    if (needsHeal) {
-      reconcileBetterGravityUI();
-    }
-  }, 1000);
-}
-
-// Multi-stage startup reconciliation schedule
+// Clean single-pass startup
 reconcileBetterGravityUI();
-queueMicrotask(() => reconcileBetterGravityUI());
-requestAnimationFrame(() => reconcileBetterGravityUI());
-
-const STARTUP_DELAYS = [30, 80, 150, 300, 600, 1200, 2500, 5000];
-for (const delay of STARTUP_DELAYS) {
-  const t = window.setTimeout(() => reconcileBetterGravityUI(), delay);
-  startupTimers.push(t);
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", () => reconcileBetterGravityUI(), { once: true });
 }
 
 const onLifeCycleEvent = () => scheduleAutoHeal();
-document.addEventListener("DOMContentLoaded", onLifeCycleEvent);
-window.addEventListener("load", onLifeCycleEvent);
 window.addEventListener("popstate", onLifeCycleEvent);
 window.addEventListener("hashchange", onLifeCycleEvent);
 window.addEventListener("focus", onLifeCycleEvent);
 
-startAutoHealing();
-
 plugin.onDispose(() => {
-  if (globalAutoHealObserver) {
-    globalAutoHealObserver.disconnect();
-    globalAutoHealObserver = null;
-  }
   if (autoHealRaf) {
     cancelAnimationFrame(autoHealRaf);
     autoHealRaf = 0;
@@ -12417,14 +12353,6 @@ plugin.onDispose(() => {
     clearTimeout(autoHealTimeout);
     autoHealTimeout = 0;
   }
-  for (const t of startupTimers) clearTimeout(t);
-  startupTimers.length = 0;
-  if (autoHealHeartbeat) {
-    window.clearInterval(autoHealHeartbeat);
-    autoHealHeartbeat = 0;
-  }
-  document.removeEventListener("DOMContentLoaded", onLifeCycleEvent);
-  window.removeEventListener("load", onLifeCycleEvent);
   window.removeEventListener("popstate", onLifeCycleEvent);
   window.removeEventListener("hashchange", onLifeCycleEvent);
   window.removeEventListener("focus", onLifeCycleEvent);

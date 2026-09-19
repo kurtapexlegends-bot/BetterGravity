@@ -621,7 +621,7 @@ html[data-sidebar-collapsed="true"] [role="navigation"][aria-label="Sidebar"] .g
   flex: 1 1 0%;
   display: grid;
   grid-template-columns: 1fr auto 1fr;
-  column-gap: 16px;
+  column-gap: 6px;
   align-items: center;
   min-width: 0;
   height: 100%;
@@ -661,20 +661,32 @@ html[data-sidebar-collapsed="true"] [role="navigation"][aria-label="Sidebar"] .g
   grid-column: 2;
 }
 
-/* 7px/20px at weight 500 in Google Sans Code, uppercased here rather than in the
- * markup as Gemini does it, and inheriting the tab's colour so it dims with the
- * tab instead of staying bright. Willow resets the variation settings on this
- * one leaf (Sidebar.css:54-60): at 7px the width axis is not applied. */
+/* Keyboard shortcut chip: sleek kbd-style badge representing Alt+W / ⌥W toggle */
 #gemini-experience-switch [data-gemini-experience-badge] {
   grid-column: 3;
   justify-self: start;
-  font-family: var(--gemini-code-font);
-  font-variation-settings: normal;
-  font-size: 7px;
+  align-self: center;
+  font-family: var(--gemini-font, system-ui, -apple-system, sans-serif);
+  font-size: 9px;
   font-weight: 500;
-  line-height: 20px;
-  text-transform: uppercase;
-  color: inherit;
+  line-height: 1;
+  padding: 2px 4.5px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  color: var(--gemini-text-dim, #9aa0a6);
+  letter-spacing: 0.2px;
+  text-transform: none;
+  pointer-events: none;
+  user-select: none;
+  transition: color 150ms ease, background-color 150ms ease, border-color 150ms ease;
+}
+
+#gemini-experience-switch [data-gemini-experience-tab][aria-pressed="true"] [data-gemini-experience-badge],
+#gemini-experience-switch [data-gemini-experience-tab]:hover [data-gemini-experience-badge] {
+  color: var(--gemini-text-secondary, #e3e3e3);
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.22);
 }
 
 /* Unread completed task notification dot placed before Chat / Work label */
@@ -1858,6 +1870,84 @@ div[role="dialog"]:has(button.main-row-trigger) {
   color: #ffffff !important;
 }
 
+/* ---------------------------------------------------------------------------
+ * Pinned conversation rows: look & behave like top nav items in media_1789797223845.png
+ * (36px height, rounded corners r=8px, leading pin icon, smooth hover wash)
+ * ------------------------------------------------------------------------- */
+[role="navigation"][aria-label="Sidebar"] div[data-testid="conversation-row-sidebar"][data-pinned="true"],
+div[data-testid="conversation-row-sidebar"][data-pinned="true"] {
+  height: 36px !important;
+  min-height: 36px !important;
+  border-radius: 8px !important;
+  padding-left: 10px !important;
+  padding-right: 8px !important;
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  box-sizing: border-box !important;
+  transition: background-color 150ms ease !important;
+}
+
+[role="navigation"][aria-label="Sidebar"] div[data-testid="conversation-row-sidebar"][data-pinned="true"]:hover,
+div[data-testid="conversation-row-sidebar"][data-pinned="true"]:hover {
+  background-color: var(--gemini-row-hover, rgba(255, 255, 255, 0.08)) !important;
+}
+
+[role="navigation"][aria-label="Sidebar"] div[data-testid="conversation-row-sidebar"][data-pinned="true"][data-selected="true"],
+div[data-testid="conversation-row-sidebar"][data-pinned="true"][data-selected="true"] {
+  background-color: #171717 !important;
+}
+
+[role="navigation"][aria-label="Sidebar"] div[data-testid="conversation-row-sidebar"][data-pinned="true"][data-selected="true"]:hover,
+div[data-testid="conversation-row-sidebar"][data-pinned="true"][data-selected="true"]:hover {
+  background-color: #222222 !important;
+}
+
+[role="navigation"][aria-label="Sidebar"] div[data-testid="conversation-row-sidebar"][data-pinned="true"] span.truncate,
+div[data-testid="conversation-row-sidebar"][data-pinned="true"] span.truncate {
+  font-family: var(--gemini-font, "Google Sans Flex", sans-serif) !important;
+  font-size: 13px !important;
+  line-height: 20px !important;
+  font-weight: 400 !important;
+  color: var(--gemini-text, #e6e6e6) !important;
+}
+
+[role="navigation"][aria-label="Sidebar"] div[data-testid="conversation-row-sidebar"][data-pinned="true"][data-selected="true"] span.truncate,
+div[data-testid="conversation-row-sidebar"][data-pinned="true"][data-selected="true"] span.truncate {
+  font-weight: 500 !important;
+  color: #ffffff !important;
+}
+
+[role="navigation"][aria-label="Sidebar"] div[data-testid="conversation-row-sidebar"][data-pinned="true"]:hover span.truncate,
+div[data-testid="conversation-row-sidebar"][data-pinned="true"]:hover span.truncate {
+  color: #ffffff !important;
+}
+
+/* Leading pin icon on conversation row */
+.gemini-pinned-lead-icon {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 18px !important;
+  height: 18px !important;
+  min-width: 18px !important;
+  flex-shrink: 0 !important;
+  pointer-events: none !important;
+  user-select: none !important;
+  color: var(--gemini-text-dim, #9aa0a6) !important;
+  margin-right: 2px !important;
+  transition: color 150ms ease !important;
+}
+
+[role="navigation"][aria-label="Sidebar"] div[data-testid="conversation-row-sidebar"][data-pinned="true"]:hover .gemini-pinned-lead-icon,
+[role="navigation"][aria-label="Sidebar"] div[data-testid="conversation-row-sidebar"][data-pinned="true"][data-selected="true"] .gemini-pinned-lead-icon,
+div[data-testid="conversation-row-sidebar"][data-pinned="true"]:hover .gemini-pinned-lead-icon,
+div[data-testid="conversation-row-sidebar"][data-pinned="true"][data-selected="true"] .gemini-pinned-lead-icon {
+  color: #ffffff !important;
+}
+
 /* Keep native inline edit input out of layout so the Willow Rename Dialog handles the interaction */
 [data-testid="inline-edit-input"] {
   opacity: 0 !important;
@@ -2184,33 +2274,11 @@ div[role="dialog"]:has(button.main-row-trigger) {
  * empty enough to be hidden. Opening the conversation clears the dot and the
  * pin comes back.
  * ------------------------------------------------------------------------- */
-[data-testid="conversation-row-sidebar"][data-pinned="true"]:not(:has(div[class*="group-hover:opacity-0"] [data-testid="status-unread-dot"])):not(:has(div[class*="group-hover:opacity-0"] [data-testid="status-loading-spinner"])):not(:has(div[class*="group-hover:opacity-0"] [data-testid="attention-dot"])):not(:has(div[class*="group-hover:opacity-0"] svg)):not(:has(div[class*="group-hover:opacity-0"] [class*="animate-spin"])):not(:has(div[class*="group-hover:opacity-0"] [aria-label="Loading"])) .pointer-events-auto > div::before {
-  content: "push_pin" !important;
-  font-family: var(--gemini-icon-font, "Luminous Symbols"), "Google Symbols", sans-serif !important;
-  font-variation-settings: "FILL" 0, "wght" 330, "GRAD" 0, "ROND" 100, "opsz" 16 !important;
-  font-size: 16px !important;
-  line-height: 16px !important;
-  position: absolute !important;
-  inset: 0 !important;
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  /* Both icon faces are subsets, and a glyph a subset does not carry renders as
-   * its own name in words. This box is what keeps that from spilling. */
-  overflow: hidden !important;
-  color: var(--gemini-text, #e6e6e6) !important;
-  pointer-events: none !important;
-  transition: opacity 150ms ease !important;
-  font-feature-settings: "liga" !important;
-  -webkit-font-smoothing: antialiased !important;
-}
-
-/* Hover hands the slot to the kebab, and the kebab keeps it for as long as its
- * menu is open — by then the pointer is on the menu and the row is not hovered. */
-[data-testid="conversation-row-sidebar"][data-pinned="true"]:hover .pointer-events-auto > div::before,
-[data-testid="conversation-row-sidebar"][data-pinned="true"]:focus-within .pointer-events-auto > div::before,
-[data-testid="conversation-row-sidebar"][data-pinned="true"]:has([data-testid="conversation-kebab"][aria-expanded="true"]) .pointer-events-auto > div::before {
-  opacity: 0 !important;
+/* Redundant trailing push_pin icon is suppressed since pinned rows now feature a leading pin icon matching top nav */
+[data-testid="conversation-row-sidebar"][data-pinned="true"] .pointer-events-auto > div::before,
+[data-testid="conversation-row-sidebar"]:has(.gemini-pinned-lead-icon) .pointer-events-auto > div::before {
+  display: none !important;
+  content: none !important;
 }
 
 /* Row action buttons: Willow 24x24 rounded pill with subtle hover wash */
