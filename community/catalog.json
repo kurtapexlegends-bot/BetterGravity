@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-09-16T21:18:21.017Z",
+  "generatedAt": "2026-09-19T05:23:56.810Z",
   "entries": [
     {
       "id": "computer-use",
@@ -14,7 +14,7 @@
         "windows"
       ],
       "path": "community/plugins/computer-use",
-      "bytes": 947463,
+      "bytes": 948996,
       "files": [
         {
           "name": "assets/agent-cursor.png",
@@ -158,8 +158,8 @@
         },
         {
           "name": "index.js",
-          "bytes": 36146,
-          "sha256": "f5441cb8239858b45927b63b5d6d0d403d1d1730fcf27a5b9d31ea2f53a546e7"
+          "bytes": 37679,
+          "sha256": "8ffde89ff5d242367293c37a333232e1e9685b521a9d20cef9fee1a90f21cdb2"
         },
         {
           "name": "mcp-server.cjs",
@@ -255,12 +255,12 @@
       "author": "Yashjit Pal",
       "source": "https://github.com/YashjitPal/BetterGravity",
       "path": "community/plugins/fork-chat",
-      "bytes": 68312,
+      "bytes": 69362,
       "files": [
         {
           "name": "index.js",
-          "bytes": 54009,
-          "sha256": "22f00df93dde9cf9927a38396badc007316826ec8fc173f1e3d3abed48e2d62b"
+          "bytes": 55059,
+          "sha256": "96fa679de2d1379eb16b948db33d56d99095044ce5f3373cb70f7198a3b6f364"
         },
         {
           "name": "plugin.json",
@@ -311,7 +311,7 @@
       "author": "Yashjit Pal",
       "source": "https://github.com/YashjitPal/BetterGravity",
       "path": "community/plugins/gemini-app",
-      "bytes": 949319,
+      "bytes": 1115604,
       "files": [
         {
           "name": "assets/antigravity-mark.png",
@@ -330,8 +330,8 @@
         },
         {
           "name": "index.js",
-          "bytes": 386569,
-          "sha256": "ea036c8dbb2490b6c9976bd0d765c32761bea9aff56a860e9b9647bfd60cba0e"
+          "bytes": 484749,
+          "sha256": "b0970a815704b93d5c736dafb1ffbdb7c36b923f452b22a2f6a1f6f99827cb86"
         },
         {
           "name": "plugin.json",
@@ -370,18 +370,18 @@
         },
         {
           "name": "styles/model-selector.css",
-          "bytes": 11499,
-          "sha256": "bd6ee9e03aef8458e3259c7dee92be4763be2f2636be63a0633a817232ce3f5b"
+          "bytes": 52725,
+          "sha256": "58d5104a764475c757baeabb13ef2576e5db64b6869a3fe63db9360ca60a2a08"
         },
         {
           "name": "styles/plus-menu.css",
-          "bytes": 13444,
-          "sha256": "333b571b0cde54ea0231042520345160b62cb1a99c460c31589c1de4b3af2895"
+          "bytes": 13862,
+          "sha256": "1652ac5c6c899eb9dbe1b59a944c32dfb1d86ba74497565103d637a4e3d7100d"
         },
         {
           "name": "styles/prompt-box.css",
-          "bytes": 36196,
-          "sha256": "1e462cc5a2a296665c03a86f43b069cfcd4b94b6a2e976eb4d0318ae74065348"
+          "bytes": 40840,
+          "sha256": "6beed27a9414680042493477909c64789327b9f153dcc1eed0996cd2bc51bd03"
         },
         {
           "name": "styles/question-box.css",
@@ -395,8 +395,8 @@
         },
         {
           "name": "styles/sidebar.css",
-          "bytes": 130920,
-          "sha256": "942dffc999da084e4793af893a7b11464a30ac29f42f54da7747d2a661a207f1"
+          "bytes": 152737,
+          "sha256": "d747ad6621b4cae42af1fc590e9d89f8d3dc4d396673f5421c15bad077403d0b"
         },
         {
           "name": "styles/skills-tab.css",
@@ -429,12 +429,12 @@
       "author": "BetterGravity Community",
       "source": "https://github.com/YashjitPal/BetterGravity",
       "path": "community/plugins/in-built-browser",
-      "bytes": 803710,
+      "bytes": 803935,
       "files": [
         {
           "name": "index.js",
-          "bytes": 109387,
-          "sha256": "5d1d6ac33143b2462402663cc1afcc04a2f62b2847b8300b24b488148290c800"
+          "bytes": 109612,
+          "sha256": "68e5613c41fb4d9173099282165dbdd4a9a299070e8de90a502e66fee789a050"
         },
         {
           "name": "mcp-server.cjs",
@@ -707,7 +707,7 @@
       "author": "Yashjit Pal",
       "source": "https://github.com/YashjitPal/BetterGravity",
       "path": "community/plugins/pets",
-      "bytes": 1506721,
+      "bytes": 1533757,
       "files": [
         {
           "name": "assets/rocky.webp",
@@ -716,8 +716,8 @@
         },
         {
           "name": "index.js",
-          "bytes": 259129,
-          "sha256": "e6bdf7fc2477877b4b57151eb1bd851a2be90efe5e9561bdfdfc959f7ce115fc"
+          "bytes": 279588,
+          "sha256": "a34c30dea8444da854012750f97dfb3f93662341f53088f7ffdd155a62a00784"
         },
         {
           "name": "plugin.json",
@@ -851,18 +851,18 @@
         },
         {
           "name": "styles/hud.css",
-          "bytes": 42099,
-          "sha256": "610f7b7405a2a8284de38e5583f3f7a3ee43e7e4fbd20f0205ad242a1cb4f670"
+          "bytes": 45365,
+          "sha256": "e360488a5f8bb228c4399d790402ef3ec6ee5226ac562290b7f5056628a7245f"
         },
         {
           "name": "styles/library.css",
-          "bytes": 19123,
-          "sha256": "1d0a3761fa383288c886155b855f0744f62e7d0883d3d480abf4bc2d5e5581c0"
+          "bytes": 19523,
+          "sha256": "988003075044a8099653fa695f40f604a11eaa162b1c357123bf83362dbe4466"
         },
         {
           "name": "styles/pet.css",
-          "bytes": 4024,
-          "sha256": "5623f9391aa7467dd293563e942e59e59e8887ddfd572eeccdfddd1ac066c68d"
+          "bytes": 6935,
+          "sha256": "687d889b901c629402a994f0c28b77982a529deaeee4d639131fc6f2c0d51483"
         }
       ]
     },

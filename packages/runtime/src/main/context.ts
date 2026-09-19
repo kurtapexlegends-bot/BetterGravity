@@ -112,14 +112,10 @@ export function readContextMetrics(requestedSessionId?: string): ContextMetrics 
       for (let i = lines.length - 1; i >= 0; i--) {
         const line = lines[i].trim();
         if (!line) continue;
-        const match = line.match(/Model Selection`? from [^ ]+ to ([A-Za-z0-9. ()-]+)/i);
-        if (match && match[1]) {
-          detectedModel = match[1].trim();
-          break;
-        }
-        const directMatch = line.match(/Gemini (3\.[0-9]|1\.[0-9]|2\.[0-9]) [A-Za-z0-9 ()]+/i);
-        if (directMatch && directMatch[0]) {
-          detectedModel = directMatch[0].trim();
+        // Only match explicit model selection events
+        const modelEventMatch = line.match(/(?:Model Selection`? from [^ ]+ to|"modelName":\s*"|"model":\s*")([A-Za-z0-9. ()-]+)/i);
+        if (modelEventMatch && modelEventMatch[1]) {
+          detectedModel = modelEventMatch[1].trim();
           break;
         }
       }
@@ -170,7 +166,7 @@ export function readContextMetrics(requestedSessionId?: string): ContextMetrics 
   }
 
   if (!detectedModel) {
-    detectedModel = "Gemini 3.7 Flash";
+    detectedModel = "Gemini 3.8 Flash";
   }
 
   const lower = detectedModel.toLowerCase();

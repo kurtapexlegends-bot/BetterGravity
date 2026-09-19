@@ -673,7 +673,7 @@
 /* Context Window Popover / Tooltip (Redesigned Compact & Elegant) */
 .gemini-context-popover {
   position: fixed !important;
-  width: 280px !important;
+  width: 330px !important;
   max-width: calc(100vw - 32px) !important;
   padding: 12px 14px !important;
   border-radius: 14px !important;
@@ -721,7 +721,7 @@
   display: flex !important;
   align-items: center !important;
   justify-content: space-between !important;
-  gap: 6px !important;
+  gap: 8px !important;
 }
 
 .gemini-context-header-left {
@@ -729,6 +729,7 @@
   align-items: center !important;
   gap: 6px !important;
   min-width: 0 !important;
+  flex: 1 1 auto !important;
 }
 
 .gemini-context-header-right {
@@ -752,6 +753,7 @@
   white-space: nowrap !important;
   overflow: hidden !important;
   text-overflow: ellipsis !important;
+  max-width: 155px !important;
 }
 
 .gemini-context-risk-badge {
@@ -761,6 +763,7 @@
   letter-spacing: 0.4px !important;
   padding: 1px 5px !important;
   border-radius: 4px !important;
+  flex-shrink: 0 !important;
 }
 
 .gemini-context-risk-badge.risk-low {
@@ -845,18 +848,91 @@
   margin: 1px 0 !important;
 }
 
-.gemini-context-popover-total-row {
+.gemini-context-popover-total-row,
+.gemini-context-popover-footer {
   display: flex !important;
   justify-content: space-between !important;
   align-items: center !important;
   font-size: 10.5px !important;
   color: rgba(255, 255, 255, 0.75) !important;
   font-variant-numeric: tabular-nums !important;
+  gap: 8px !important;
+}
+
+.gemini-context-headroom-group {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 1px !important;
+  min-width: 0 !important;
+}
+
+.gemini-context-headroom-label {
+  font-size: 10px !important;
+  font-weight: 500 !important;
+  color: rgba(255, 255, 255, 0.65) !important;
 }
 
 .gemini-context-headroom-val {
+  font-size: 11px !important;
   font-weight: 600 !important;
   color: #38bdf8 !important;
+  font-variant-numeric: tabular-nums !important;
+}
+
+.gemini-context-compact-btn {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 5.5px !important;
+  padding: 5px 12px !important;
+  border-radius: 8px !important;
+  font-size: 11px !important;
+  font-weight: 600 !important;
+  font-family: inherit !important;
+  color: #ffffff !important;
+  background: rgba(255, 255, 255, 0.08) !important;
+  border: 1px solid rgba(255, 255, 255, 0.16) !important;
+  cursor: pointer !important;
+  outline: none !important;
+  user-select: none !important;
+  white-space: nowrap !important;
+  flex-shrink: 0 !important;
+  transition: all 140ms cubic-bezier(0.16, 1, 0.3, 1) !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25) !important;
+}
+
+.gemini-context-compact-btn:hover {
+  background: rgba(59, 130, 246, 0.22) !important;
+  border-color: rgba(59, 130, 246, 0.45) !important;
+  color: #60a5fa !important;
+  box-shadow: 0 0 12px rgba(59, 130, 246, 0.3) !important;
+  transform: translateY(-1px) !important;
+}
+
+.gemini-context-compact-btn:active {
+  transform: translateY(0) scale(0.96) !important;
+  background: rgba(59, 130, 246, 0.32) !important;
+}
+
+.gemini-context-compact-btn:focus-visible {
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.6) !important;
+}
+
+.gemini-context-compact-btn.is-compacting {
+  opacity: 0.8 !important;
+  pointer-events: none !important;
+  background: rgba(59, 130, 246, 0.2) !important;
+  color: #93c5fd !important;
+}
+
+.gemini-context-compact-icon {
+  display: inline-block !important;
+  flex-shrink: 0 !important;
+  transition: transform 180ms ease !important;
+}
+
+.gemini-context-compact-btn:hover .gemini-context-compact-icon {
+  transform: scale(1.1);
 }
 
 /* --- 1f. Codex & Claude Code Animated Thinking Effort Slider ---------------- */

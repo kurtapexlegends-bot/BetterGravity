@@ -644,14 +644,114 @@ function formatTokenCount(num) {
 }
 
 function getModelContextLimit(modelName) {
-  if (!modelName) return 1000000;
+  if (!modelName) return 1048576;
   const lower = modelName.toLowerCase();
   for (const [key, limit] of Object.entries(MODEL_CONTEXT_LIMITS)) {
     if (lower.includes(key)) return limit;
   }
-  if (lower.includes("pro")) return 2000000;
-  if (lower.includes("flash") || lower.includes("thinking")) return 1000000;
-  return 1000000;
+  if (lower.includes("pro")) return 2097152;
+  if (lower.includes("claude") || lower.includes("sonnet") || lower.includes("opus") || lower.includes("haiku")) return 200000;
+  if (lower.includes("gpt") || lower.includes("o1") || lower.includes("o3")) return 128000;
+  if (lower.includes("flash") || lower.includes("thinking")) return 1048576;
+  return 1048576;
+}
+
+function getActiveModelInfo() {
+  const trigger = document.querySelector(PILL_SELECTOR) || 
+                  document.querySelector('[data-testid="model-selector-trigger"]');
+  let rawName = "";
+
+  // 1. React Fiber memoizedProps (most authoritative live data)
+  if (trigger) {
+    try {
+      const fiber = getElementFiber(trigger);
+      let f = fiber;
+      let depth = 0;
+      while (f && depth < 35) {
+        if (f.memoizedProps?.selectedModel?.label) {
+          rawName = f.memoizedProps.selectedModel.label;
+          break;
+        }
+        if (f.memoizedProps?.currentModelConfig?.label) {
+          rawName = f.memoizedProps.currentModelConfig.label;
+          break;
+        }
+        f = f.return;
+        depth++;
+      }
+    } catch (e) {}
+  }
+
+  // 2. Trigger aria-label (e.g. "Select model, current: Gemini 3.8 Flash High")
+  if (!rawName && trigger) {
+    const aria = trigger.getAttribute('aria-label') || "";
+    const match = aria.match(/current:\s*(.+)$/i);
+    if (match && match[1]) {
+      rawName = match[1].trim();
+    }
+  }
+
+  // 3. Trigger dataset.fullModelName
+  if (!rawName && trigger?.dataset?.fullModelName) {
+    rawName = trigger.dataset.fullModelName;
+  }
+
+  // 4. Trigger inner text
+  if (!rawName && trigger) {
+    const text = trigger.innerText?.trim();
+    if (text) {
+      rawName = /^\d+\.\d+/.test(text) ? "Gemini " + text : text;
+    }
+  }
+
+  if (!rawName) rawName = "Gemini 3.8 Flash";
+
+  let displayName = rawName.replace(/\s*\((?:High|Medium|Low|Off)\)/gi, "").replace(/\s+(?:High|Medium|Low|Off)$/i, "").trim();
+  if (!displayName.toLowerCase().startsWith("gemini") && /^\d+\.\d+/.test(displayName)) {
+    displayName = "Gemini " + displayName;
+  }
+
+  const limit = getModelContextLimit(displayName || rawName);
+
+  return {
+    rawName,
+    displayName,
+    limit
+  };
+}
+
+function triggerCompactConversation() {
+  try {
+    const root = typeof editorRoot === 'function' ? editorRoot() : document.querySelector('[data-testid="agent-input-box"] [contenteditable="true"]');
+    const props = typeof composerProps === 'function' ? composerProps() : undefined;
+    
+    if (root) {
+      const editor = props?.lexicalRef?.current ?? root.__lexicalEditor;
+      if (editor && typeof editor.focus === "function") {
+        editor.focus();
+      } else {
+        root.focus();
+      }
+      
+      let inserted = false;
+      if (typeof insert === 'function') {
+        inserted = insert(props, "/compact");
+      }
+      if (!inserted) {
+        document.execCommand("insertText", false, "/compact");
+      }
+    }
+
+    // Submit via send button if available and active
+    setTimeout(() => {
+      const sendBtn = document.querySelector('[data-testid="send-button"]:not(:disabled)');
+      if (sendBtn) {
+        sendBtn.click();
+      }
+    }, 150);
+  } catch (err) {
+    console.debug("[BetterGravity] Error triggering compact conversation:", err);
+  }
 }
 
 function getElementFiber(node) {
@@ -1189,7 +1289,8 @@ function updateComposerMeta(meta) {
     if (!used || used <= 0) {
       used = estimateTokensFromDom();
     }
-    const limit = metrics?.limit || 1048576;
+    const activeModel = getActiveModelInfo();
+    const limit = activeModel.limit || metrics?.limit || 1048576;
     const tokenStr = `${formatTokensCompact(used)} / ${formatTokensCompact(limit)}`;
 
     const ratio = Math.min(Math.max(used / limit, 0), 1);
@@ -1209,7 +1310,8 @@ function updateComposerMeta(meta) {
       </svg>
       <span class="gemini-meta-tokens">${tokenStr}</span>
     `;
-    meta.title = `Context Window: ${used.toLocaleString()} / ${limit.toLocaleString()} tokens (${metrics?.percentage || 0}% used) — Click to view usage details`;
+    const pct = Math.min(100, Math.max(1, Math.round((used / limit) * 100)));
+    meta.title = `Context Window: ${used.toLocaleString()} / ${limit.toLocaleString()} tokens (${pct}% used for ${activeModel.displayName}) — Click to view usage details`;
 
     if (!meta.dataset.geminiUsageClickAttached) {
       meta.dataset.geminiUsageClickAttached = 'true';
@@ -1408,14 +1510,15 @@ function openContextUsageModal(target = null, options = {}) {
   // Clean up any lingering backdrops
   document.querySelectorAll('.gemini-context-backdrop').forEach(p => p.remove());
 
+  const activeModel = getActiveModelInfo();
   const metrics = getConversationContextMetrics(true);
   let used = metrics?.used || 0;
   if (!used || used <= 0) used = estimateTokensFromDom();
-  const limit = metrics?.limit || 1048576;
+  const limit = activeModel.limit || metrics?.limit || 1048576;
   const pct = Math.min(100, Math.max(1, Math.round((used / limit) * 100)));
 
-  const pill = document.querySelector(PILL_SELECTOR);
-  const modelName = metrics?.modelName || pill?.querySelector('span')?.childNodes[0]?.textContent?.trim() || "Gemini 3.8 Flash";
+  const modelName = activeModel.displayName;
+  const rawModelName = activeModel.rawName;
 
   const userTokens = metrics?.userTokens || Math.round(used * 0.28);
   const modelTokens = metrics?.modelTokens || Math.round(used * 0.42);
@@ -1434,7 +1537,7 @@ function openContextUsageModal(target = null, options = {}) {
   popover.innerHTML = `
     <div class="gemini-context-popover-header">
       <div class="gemini-context-header-left">
-        <span class="gemini-context-popover-model">${modelName}</span>
+        <span class="gemini-context-popover-model" title="${rawModelName}">${modelName}</span>
         <span class="gemini-context-risk-badge ${riskClass}">${riskLabel}</span>
       </div>
       <div class="gemini-context-header-right">
@@ -1470,9 +1573,20 @@ function openContextUsageModal(target = null, options = {}) {
 
     <div class="gemini-context-popover-divider"></div>
 
-    <div class="gemini-context-popover-total-row">
-      <span style="font-weight: 500;">Active Headroom</span>
-      <span class="gemini-context-headroom-val">~${formatTokensCompact(Math.max(0, limit - used))} available</span>
+    <div class="gemini-context-popover-footer">
+      <div class="gemini-context-headroom-group">
+        <span class="gemini-context-headroom-label">Active Headroom</span>
+        <span class="gemini-context-headroom-val">~${formatTokensCompact(Math.max(0, limit - used))} available</span>
+      </div>
+      <button type="button" class="gemini-context-compact-btn" aria-label="Compact Context" title="Compact conversation context history to free up headroom">
+        <svg class="gemini-context-compact-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="4 14 10 14 10 20"></polyline>
+          <polyline points="20 10 14 10 14 4"></polyline>
+          <line x1="14" y1="10" x2="21" y2="3"></line>
+          <line x1="3" y1="21" x2="10" y2="14"></line>
+        </svg>
+        <span>Compact</span>
+      </button>
     </div>
   `;
 
@@ -1489,8 +1603,8 @@ function openContextUsageModal(target = null, options = {}) {
     }
   }
 
-  const popWidth = 280;
-  const popHeight = 175;
+  const popWidth = 330;
+  const popHeight = 195;
 
   if (anchorRect && anchorRect.width > 0) {
     let left = Math.max(16, Math.min(window.innerWidth - popWidth - 16, anchorRect.left - 2));
@@ -1539,6 +1653,27 @@ function openContextUsageModal(target = null, options = {}) {
     e.stopPropagation();
     closeModal();
   });
+
+  const compactBtn = popover.querySelector('.gemini-context-compact-btn');
+  if (compactBtn) {
+    compactBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      playAntigravityHaptic('medium');
+      compactBtn.classList.add('is-compacting');
+      compactBtn.innerHTML = `
+        <svg class="gemini-context-compact-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="animation: geminiSpin 1s linear infinite;">
+          <circle cx="12" cy="12" r="10" stroke-opacity="0.25"></circle>
+          <path d="M12 2a10 10 0 0 1 10 10" stroke-opacity="1"></path>
+        </svg>
+        <span>Compacting...</span>
+      `;
+      triggerCompactConversation();
+      setTimeout(() => {
+        closeModal();
+      }, 400);
+    });
+  }
 
   popover.addEventListener('click', (e) => {
     e.stopPropagation();
