@@ -58,7 +58,7 @@ describe("Gemini App new-conversation routing", () => {
 
 describe("Gemini App experience switch notification dots", () => {
   const switchSource = source.slice(
-    source.indexOf("function getElementFiber("),
+    source.lastIndexOf("function getElementFiber("),
     source.indexOf("function ensureExperienceSwitch(")
   );
 

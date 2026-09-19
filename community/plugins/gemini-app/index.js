@@ -3029,9 +3029,10 @@ function buildExperienceSwitch() {
       badge.title = `Toggle Chat / Work (${experience.badge})`;
       tab.append(badge);
     }
+    const shortcutLabel = typeof WORK_TOGGLE_SHORTCUT !== "undefined" ? WORK_TOGGLE_SHORTCUT : "Alt+W";
     tab.title = experience.id === "work"
-      ? `Switch to Work (${WORK_TOGGLE_SHORTCUT})`
-      : `Switch to Chat (${WORK_TOGGLE_SHORTCUT})`;
+      ? `Switch to Work (${shortcutLabel})`
+      : `Switch to Chat (${shortcutLabel})`;
     tab.addEventListener("click", (e) => {
       e.preventDefault();
       e.stopPropagation();
@@ -3042,11 +3043,12 @@ function buildExperienceSwitch() {
   }
   track.append(tabsWrap);
 
+  const shortcutLabel = typeof WORK_TOGGLE_SHORTCUT !== "undefined" ? WORK_TOGGLE_SHORTCUT : "Alt+W";
   const collapsedBtn = document.createElement("button");
   collapsedBtn.type = "button";
   collapsedBtn.className = "gemini-experience-collapsed-btn";
   collapsedBtn.setAttribute("data-tooltip-position", "right");
-  collapsedBtn.title = `Toggle Chat / Work (${WORK_TOGGLE_SHORTCUT})`;
+  collapsedBtn.title = `Toggle Chat / Work (${shortcutLabel})`;
   collapsedBtn.innerHTML = `
     <svg class="gemini-experience-collapsed-icon" width="20" height="13" viewBox="0 0 20 13" fill="none">
       <rect x="0.8" y="0.8" width="18.4" height="11.4" rx="5.7" stroke="currentColor" stroke-width="1.6"/>
@@ -5382,16 +5384,8 @@ function checkUrlForProjectSwitch() {
   const section = params.get('section');
   if (section && section !== 'outside-of-project') {
     setLastSelectedProjectId(section);
-    if (getStoredExperience() === 'chat') {
-      const pill = document.querySelector('#gemini-experience-switch');
-      if (pill) markExperience(pill, 'work', true);
-    }
     return;
   } else if (section === 'outside-of-project') {
-    if (getStoredExperience() === 'work') {
-      const pill = document.querySelector('#gemini-experience-switch');
-      if (pill) markExperience(pill, 'chat', true);
-    }
     return;
   }
 
@@ -5401,16 +5395,6 @@ function checkUrlForProjectSwitch() {
     const gid = conversationProjectMap.get(cid + ':groupId');
     if (gid) {
       setLastSelectedProjectId(gid);
-      if (getStoredExperience() === 'chat') {
-        const pill = document.querySelector('#gemini-experience-switch');
-        if (pill) markExperience(pill, 'work', true);
-      }
-    } else if (conversationProjectMap.size > 0) {
-      const isProjectChat = conversationProjectMap.has(cid) || conversationProjectMap.has(cid + ':groupId');
-      if (!isProjectChat && getStoredExperience() === 'work') {
-        const pill = document.querySelector('#gemini-experience-switch');
-        if (pill) markExperience(pill, 'chat', true);
-      }
     }
   }
 }
@@ -5807,10 +5791,6 @@ listenToPage(document, 'click', (e) => {
       if (pid) {
         const cleanId = String(pid).replace(/^header-/, '');
         setLastSelectedProjectId(cleanId);
-        if (getStoredExperience() === 'chat') {
-          const pill = document.querySelector('#gemini-experience-switch');
-          if (pill) markExperience(pill, 'work', true);
-        }
         break;
       }
       curr = curr.return;
@@ -5827,10 +5807,6 @@ listenToPage(document, 'click', (e) => {
         const gid = conversationProjectMap.get(cid + ':groupId');
         if (gid) {
           setLastSelectedProjectId(gid);
-          if (getStoredExperience() === 'chat') {
-            const pill = document.querySelector('#gemini-experience-switch');
-            if (pill) markExperience(pill, 'work', true);
-          }
         }
         break;
       }
@@ -5897,22 +5873,35 @@ function hideConversationTime(row) {
     ? isPinBtnPinned
     : (row.getAttribute('data-pinned') === 'true' || row.closest('[data-title="Pinned Conversations"]') !== null);
 
+  const titleEl = row.querySelector('span.truncate') || row.querySelector('[class*="truncate"]');
+  if (titleEl && !titleEl.textContent.trim()) {
+    const link = row.querySelector('a[aria-label]');
+    const ariaTitle = link?.getAttribute('aria-label');
+    if (ariaTitle) {
+      titleEl.textContent = ariaTitle;
+    }
+  }
+
   let leadIcon = row.querySelector('.gemini-pinned-lead-icon');
   if (isPinned) {
     if (row.getAttribute('data-pinned') !== 'true') {
       row.setAttribute('data-pinned', 'true');
     }
+    const titleContainer = titleEl?.closest('.flex-col');
     if (!leadIcon) {
       leadIcon = document.createElement('span');
       leadIcon.className = 'gemini-pinned-lead-icon';
       leadIcon.setAttribute('aria-hidden', 'true');
       leadIcon.innerHTML = PIN_LEAD_SVG;
-      const titleEl = row.querySelector('span.truncate') || row.querySelector('[class*="truncate"]');
-      if (titleEl && titleEl.parentElement) {
+      if (titleContainer && titleContainer.parentElement && titleContainer.parentElement !== titleContainer) {
+        titleContainer.parentElement.insertBefore(leadIcon, titleContainer);
+      } else if (titleEl && titleEl.parentElement) {
         titleEl.parentElement.insertBefore(leadIcon, titleEl);
       } else {
         row.prepend(leadIcon);
       }
+    } else if (titleContainer && leadIcon.parentElement === titleContainer && titleContainer.parentElement) {
+      titleContainer.parentElement.insertBefore(leadIcon, titleContainer);
     }
   } else {
     if (row.getAttribute('data-pinned') === 'true') {
@@ -5923,7 +5912,7 @@ function hideConversationTime(row) {
     }
   }
 
-  if (resting) {
+  if (resting && resting !== titleEl && !resting.contains(titleEl)) {
     for (const node of Array.from(resting.childNodes)) {
       if (node.nodeType === Node.TEXT_NODE && node.textContent.trim()) {
         node.textContent = '';

@@ -1906,8 +1906,26 @@ div[data-testid="conversation-row-sidebar"][data-pinned="true"][data-selected="t
   background-color: #222222 !important;
 }
 
+[role="navigation"][aria-label="Sidebar"] div[data-testid="conversation-row-sidebar"][data-pinned="true"] .flex-col,
+[role="navigation"][aria-label="Sidebar"] div[data-testid="conversation-row-sidebar"][data-pinned="true"] div:has(> span.truncate),
+div[data-testid="conversation-row-sidebar"][data-pinned="true"] .flex-col,
+div[data-testid="conversation-row-sidebar"][data-pinned="true"] div:has(> span.truncate) {
+  flex: 1 1 auto !important;
+  min-width: 0 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: center !important;
+}
+
 [role="navigation"][aria-label="Sidebar"] div[data-testid="conversation-row-sidebar"][data-pinned="true"] span.truncate,
 div[data-testid="conversation-row-sidebar"][data-pinned="true"] span.truncate {
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  width: 100% !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
   font-family: var(--gemini-font, "Google Sans Flex", sans-serif) !important;
   font-size: 13px !important;
   line-height: 20px !important;
@@ -1964,8 +1982,8 @@ div[data-testid="conversation-row-sidebar"][data-pinned="true"][data-selected="t
 
 /* Hide redundant project name subtitle on conversation rows */
 [data-testid="conversation-row-sidebar"] span.text-xs:has(svg),
-[data-testid="conversation-row-sidebar"] .flex-col > span:nth-child(2),
-[data-testid="conversation-row-sidebar"] .flex-col > span.text-xs {
+[data-testid="conversation-row-sidebar"] .flex-col > span.text-xs,
+[data-testid="conversation-row-sidebar"] .flex-col > span:not(.truncate):not(.gemini-pinned-lead-icon) {
   display: none !important;
   width: 0 !important;
   height: 0 !important;
