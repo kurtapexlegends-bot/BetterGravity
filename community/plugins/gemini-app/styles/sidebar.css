@@ -1471,6 +1471,11 @@ body.gemini-custom-view-open [role="navigation"][aria-label="Sidebar"] #gemini-s
 
 [role="navigation"][aria-label="Sidebar"] .group\/section-header,
 [role="navigation"][aria-label="Sidebar"] div[class*="group/section-header"] {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  flex-wrap: nowrap !important;
   font-family: var(--gemini-font, "Google Sans Flex", sans-serif) !important;
   font-size: 13px !important;
   line-height: 17px !important;
@@ -1603,8 +1608,8 @@ body.gemini-custom-view-open [role="navigation"][aria-label="Sidebar"] #gemini-s
 }
 
 /* 2. Zero out internal leading paddings, margins, and gaps so title starts flush with button padding (8px) */
-[role="navigation"][aria-label="Sidebar"] .group\/header,
-[role="navigation"][aria-label="Sidebar"] div[class*="group/header"],
+[role="navigation"][aria-label="Sidebar"] .group\/header:not([class*="section-header"]),
+[role="navigation"][aria-label="Sidebar"] div[class~="group/header"]:not([class*="section-header"]),
 [role="navigation"][aria-label="Sidebar"] [data-testid="lifted-context-menu-trigger"],
 [role="navigation"][aria-label="Sidebar"] .group\/headerbtn .flex-1,
 [role="navigation"][aria-label="Sidebar"] button[class*="group/headerbtn"] .flex-1,
@@ -1707,20 +1712,20 @@ body.gemini-custom-view-open [role="navigation"][aria-label="Sidebar"] #gemini-s
 [role="navigation"][aria-label="Sidebar"] .group\/header button:has(circle),
 [role="navigation"][aria-label="Sidebar"] div[class*="group/header"] button:has(circle),
 [role="navigation"][aria-label="Sidebar"] div.bg-sidebar button:has(circle),
-[role="navigation"][aria-label="Sidebar"] .group\/header button:has(svg[class*="ellipsis"]),
-[role="navigation"][aria-label="Sidebar"] .group\/header button:has(svg[class*="more"]),
-[role="navigation"][aria-label="Sidebar"] div[class*="group/header"] button:has(svg[class*="ellipsis"]),
-[role="navigation"][aria-label="Sidebar"] div[class*="group/header"] button:has(svg[class*="more"]),
-[role="navigation"][aria-label="Sidebar"] .group\/header button[aria-haspopup="menu"],
-[role="navigation"][aria-label="Sidebar"] div[class*="group/header"] button[aria-haspopup="menu"],
-[role="navigation"][aria-label="Sidebar"] div.bg-sidebar button[aria-haspopup="menu"],
-[role="navigation"][aria-label="Sidebar"] .group\/header button[data-state]:not([class*="group/headerbtn"]),
-[role="navigation"][aria-label="Sidebar"] div[class*="group/header"] button[data-state]:not([class*="group/headerbtn"]),
-[role="navigation"][aria-label="Sidebar"] div.bg-sidebar button[data-state]:not([class*="group/headerbtn"]),
-[role="navigation"][aria-label="Sidebar"] .group\/header div:has(> button) > div:has(button[aria-haspopup="menu"]),
-[role="navigation"][aria-label="Sidebar"] div[class*="group/header"] div:has(> button) > div:has(button[aria-haspopup="menu"]),
-[role="navigation"][aria-label="Sidebar"] .group\/header div:has(> button) > div:has(button:has(circle)),
-[role="navigation"][aria-label="Sidebar"] div[class*="group/header"] div:has(> button) > div:has(button:has(circle)) {
+[role="navigation"][aria-label="Sidebar"] .group\/header:not([class*="section-header"]) button:has(svg[class*="ellipsis"]),
+[role="navigation"][aria-label="Sidebar"] .group\/header:not([class*="section-header"]) button:has(svg[class*="more"]),
+[role="navigation"][aria-label="Sidebar"] div[class*="group/header"]:not([class*="section-header"]) button:has(svg[class*="ellipsis"]),
+[role="navigation"][aria-label="Sidebar"] div[class*="group/header"]:not([class*="section-header"]) button:has(svg[class*="more"]),
+[role="navigation"][aria-label="Sidebar"] .group\/header:not([class*="section-header"]) button[aria-haspopup="menu"],
+[role="navigation"][aria-label="Sidebar"] div[class*="group/header"]:not([class*="section-header"]) button[aria-haspopup="menu"],
+[role="navigation"][aria-label="Sidebar"] div.bg-sidebar:not([class*="section-header"]) button[aria-haspopup="menu"],
+[role="navigation"][aria-label="Sidebar"] .group\/header:not([class*="section-header"]) button[data-state]:not([class*="group/headerbtn"]),
+[role="navigation"][aria-label="Sidebar"] div[class*="group/header"]:not([class*="section-header"]) button[data-state]:not([class*="group/headerbtn"]),
+[role="navigation"][aria-label="Sidebar"] div.bg-sidebar:not([class*="section-header"]) button[data-state]:not([class*="group/headerbtn"]),
+[role="navigation"][aria-label="Sidebar"] .group\/header:not([class*="section-header"]) div:has(> button) > div:has(button[aria-haspopup="menu"]),
+[role="navigation"][aria-label="Sidebar"] div[class*="group/header"]:not([class*="section-header"]) div:has(> button) > div:has(button[aria-haspopup="menu"]),
+[role="navigation"][aria-label="Sidebar"] .group\/header:not([class*="section-header"]) div:has(> button) > div:has(button:has(circle)),
+[role="navigation"][aria-label="Sidebar"] div[class*="group/header"]:not([class*="section-header"]) div:has(> button) > div:has(button:has(circle)) {
   display: none !important;
   width: 0 !important;
   min-width: 0 !important;

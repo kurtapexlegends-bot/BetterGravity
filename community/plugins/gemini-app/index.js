@@ -5687,8 +5687,9 @@ function transformItems(items, fiber) {
  */
 function listFiberFor(scroller) {
   let fiber = plugin.react.getFiber(scroller);
-  for (let depth = 0; fiber && depth < 6; depth += 1, fiber = fiber.return) {
-    if (typeof fiber.type === 'function' && Array.isArray(fiber.memoizedProps?.items)) return fiber;
+  for (let depth = 0; fiber && depth < 20; depth += 1, fiber = fiber.return) {
+    const fn = typeof fiber.type === 'function' ? fiber.type : (typeof fiber.type?.type === 'function' ? fiber.type.type : null);
+    if (fn && Array.isArray(fiber.memoizedProps?.items)) return fiber;
   }
   return null;
 }
@@ -5698,7 +5699,8 @@ const wrappedFibers = new Set();
 const ORIGINAL = '__geminiOriginal';
 
 function wrapItems(fiber) {
-  const original = fiber.type;
+  const isMemo = typeof fiber.type === 'object' && typeof fiber.type?.type === 'function';
+  const original = isMemo ? fiber.type.type : fiber.type;
   if (typeof original !== 'function' || original[ORIGINAL]) return;
 
   const wrapper = function (props, secondArg) {
@@ -5722,20 +5724,17 @@ function wrapItems(fiber) {
   wrapper.displayName = original.displayName || original.name;
 
   // type is what React calls; elementType is what it reconciles on. Rule 2.
-  fiber.type = wrapper;
-  fiber.elementType = wrapper;
-  if (fiber.alternate) {
-    fiber.alternate.type = wrapper;
-    fiber.alternate.elementType = wrapper;
+  if (isMemo) {
+    fiber.type.type = wrapper;
+    if (fiber.alternate?.type?.type) fiber.alternate.type.type = wrapper;
+  } else {
+    fiber.type = wrapper;
+    if (fiber.alternate) fiber.alternate.type = wrapper;
   }
   wrappedFibers.add(new WeakRef(fiber));
   if (wrappedFibers.size >= 512) {
     for (const ref of wrappedFibers) if (!ref.deref()) wrappedFibers.delete(ref);
   }
-
-  // When a newly mounted or reconciled list fiber is wrapped, trigger an immediate
-  // clean re-render so transformItems is executed instead of leaving Antigravity's raw items painted.
-  triggerListRerender();
 }
 
 function unwrapItems() {
@@ -5743,10 +5742,11 @@ function unwrapItems() {
     const fiber = ref.deref();
     if (!fiber) continue;
     for (const target of [fiber, fiber.alternate]) {
-      const original = target?.type?.[ORIGINAL];
-      if (original) {
-        target.type = original;
-        target.elementType = original;
+      if (!target) continue;
+      if (typeof target.type === 'object' && target.type?.type?.[ORIGINAL]) {
+        target.type.type = target.type.type[ORIGINAL];
+      } else if (target.type?.[ORIGINAL]) {
+        target.type = target.type[ORIGINAL];
       }
     }
   }
