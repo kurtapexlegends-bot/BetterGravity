@@ -1374,31 +1374,40 @@
   display: none !important;
 }
 /* Suppress awkward floating tooltips popping up over model row titles */
-[data-testid="model-selector-panel"] [role="tooltip"],
-[data-testid="model-selector-panel"] [data-base-ui-tooltip-popup],
-[data-testid="model-selector-panel"] [data-radix-tooltip-content],
-[data-testid="model-selector-panel"] .react-tooltip,
-[role="menu"]:has([data-testid="model-selector-panel"]) ~ [role="tooltip"],
-[role="menu"]:has([data-testid="model-selector-panel"]) ~ [data-base-ui-tooltip-popup],
-[data-base-ui-tooltip-popup],
-body > [role="tooltip"] {
+[data-testid="model-selector-panel"] [role="tooltip"]:not([id*="quota"]),
+[data-testid="model-selector-panel"] [data-base-ui-tooltip-popup]:not([id*="quota"]),
+[data-testid="model-selector-panel"] [data-radix-tooltip-content]:not([id*="quota"]),
+[data-testid="model-selector-panel"] .react-tooltip:not([id*="quota"]),
+[role="menu"]:has([data-testid="model-selector-panel"]) ~ [role="tooltip"]:not([id*="quota"]),
+[role="menu"]:has([data-testid="model-selector-panel"]) ~ [data-base-ui-tooltip-popup]:not([id*="quota"]),
+body > [role="tooltip"]:not([id*="quota"]) {
   display: none !important;
   pointer-events: none !important;
 }
 
-/* Hide the tiny redundant (i) info icon inside the Fast badge */
-[data-testid="model-selector-panel"] [role="menuitem"] div.rounded-full svg,
-[data-testid="model-selector-panel"] [role="menuitem"] div[data-tooltip-id] svg,
-[data-testid="model-selector-panel"] [data-tooltip-id] svg,
-[data-testid="model-selector-panel"] [role="menuitem"] button:has(svg) {
+/* Hide the tiny redundant (i) info icon inside the Fast badge without breaking quota rings */
+[data-testid="model-selector-panel"] [role="menuitem"] [data-tooltip-id*="fast" i] svg,
+[data-testid="model-selector-panel"] [role="menuitem"] button[aria-label*="Fast" i] {
   display: none !important;
   visibility: hidden !important;
   pointer-events: none !important;
 }
 
-[data-testid="model-selector-panel"] [data-tooltip-id],
-[data-testid="model-selector-panel"] div[data-tooltip-id] {
-  pointer-events: none !important;
+/* Ensure Native Quota / Usage progress circle SVGs and tracks are ALWAYS visible and accurately rendered */
+[data-testid="quota-progress-circle"],
+svg:has([data-testid="quota-progress-circle"]),
+div:has(> svg > [data-testid="quota-progress-circle"]),
+div.rounded-full:has(> svg > [data-testid="quota-progress-circle"]),
+[data-tooltip-id*="quota"] svg {
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  pointer-events: auto !important;
 }
+
+[data-tooltip-id*="quota"] {
+  pointer-events: auto !important;
+}
+
 
 

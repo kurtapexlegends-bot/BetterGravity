@@ -1694,6 +1694,11 @@ const EFFORT_DESCRIPTIONS = {
 
 function repositionEffortSubmenu(submenu) {
   if (!submenu || !submenu.isConnected) return;
+  // STRICT GUARD: Only reposition thinking effort submenus, never touch View Usage or native quota submenus
+  if (!submenu.classList.contains('gemini-effort-submenu-host') && !submenu.querySelector('[data-testid="model-selector-effort-option"]')) {
+    return;
+  }
+
   const wrapper = submenu.closest('[role="presentation"].z-\\[6000\\]') || submenu.closest('[role="presentation"]') || submenu.parentElement;
   if (!wrapper) return;
 
@@ -1714,7 +1719,8 @@ function repositionEffortSubmenu(submenu) {
       const anchorRect = anchor.getBoundingClientRect();
       if (anchorRect.width > 0 && anchorRect.height > 0) {
         const offsetParent = wrapper.offsetParent || document.body;
-        const subWidth = subRect.width > 0 ? subRect.width : (submenu.classList.contains('gemini-effort-submenu-host') ? 264 : 320);
+        const parentRect = offsetParent.getBoundingClientRect();
+        const subWidth = subRect.width > 0 ? subRect.width : 264;
         const placeLeft = anchorRect.right + subWidth + 16 > window.innerWidth;
         const leftRel = placeLeft ? (anchorRect.left - parentRect.left - subWidth - 8) : (anchorRect.right - parentRect.left + 4);
         const subHeight = subRect.height > 0 ? subRect.height : 260;
