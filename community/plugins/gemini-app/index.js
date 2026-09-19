@@ -2601,6 +2601,7 @@ try {
 } catch {}
 
 function setStoredExperience(val) {
+  if (val !== "work" && val !== "chat") return;
   try {
     localStorage.setItem(EXPERIENCE_STORAGE_KEY, val);
   } catch {}
@@ -2788,6 +2789,7 @@ function navigateToExperienceNewConversation(exp) {
 let topChipsReady = false;
 
 function markExperience(pill, selected, shouldRerender = true) {
+  if (selected !== "work" && selected !== "chat") return;
   setStoredExperience(selected);
   pill.dataset.geminiExperience = selected;
   document.documentElement.setAttribute("data-gemini-experience", selected);
@@ -4945,7 +4947,9 @@ function getReferenceLeft(sidebar) {
   if (cachedReferenceLeft > 0 && (now - cachedReferenceTime) < 500) {
     return cachedReferenceLeft;
   }
-  const row = document.querySelector('[data-testid="conversation-row-sidebar"] span.truncate');
+  // Pinned rows have a leading pin icon which pushes their text ~20px to the right.
+  // Sample only unpinned conversation rows or section headers to establish the clean baseline.
+  const row = document.querySelector('[data-testid="conversation-row-sidebar"]:not([data-pinned="true"]) span.truncate');
   if (row) {
     const r = row.getBoundingClientRect();
     if (r.width > 0 && r.left > 0) {
@@ -4954,7 +4958,7 @@ function getReferenceLeft(sidebar) {
       return r.left;
     }
   }
-  const header = document.querySelector('[data-testid="section-header"], .group\\/section-header, [role="navigation"][aria-label="Sidebar"] h2, [role="navigation"][aria-label="Sidebar"] h3');
+  const header = document.querySelector('[data-testid="section-header"]:not([data-pinned="true"]) span, .group\\/section-header span, [role="navigation"][aria-label="Sidebar"] h2 span, [role="navigation"][aria-label="Sidebar"] h3 span');
   if (header) {
     const r = header.getBoundingClientRect();
     if (r.width > 0 && r.left > 0) {
@@ -5017,6 +5021,11 @@ function normaliseSubheading(btn) {
     btn.parentElement.style.setProperty('margin-left', '0px', 'important');
   }
 
+  // Reset any stray margin-left that was previously injected by corrupted target offsets
+  if (truncate.style.marginLeft && Math.abs(parseFloat(truncate.style.marginLeft)) > 15) {
+    truncate.style.removeProperty('margin-left');
+  }
+
   return truncate;
 }
 
@@ -5024,7 +5033,7 @@ function normaliseSubheading(btn) {
 function applySubheadingOffset(truncate, headingLeft, targetLeft) {
   if (!(headingLeft > 0) || !(targetLeft > 0)) return;
   const diff = headingLeft - targetLeft;
-  if (Math.abs(diff) <= 0.5 || Math.abs(diff) >= 80) return;
+  if (Math.abs(diff) <= 0.5 || Math.abs(diff) >= 20) return;
   const currentMargin = parseFloat(truncate.style.marginLeft || '0');
   const targetMargin = `${currentMargin - diff}px`;
   if (truncate.style.marginLeft !== targetMargin) {
@@ -5824,27 +5833,40 @@ listenToPage(window, 'keydown', (e) => {
 listenToPage(window, 'popstate', checkUrlForProjectSwitch);
 listenToPage(window, 'hashchange', checkUrlForProjectSwitch);
 
-// Intercept pushState & replaceState for 0ms instantaneous route tracking
+// Intercept pushState & replaceState for 0ms instantaneous route tracking with clean disposal
 if (typeof history !== "undefined") {
   try {
-    const origPushState = history.pushState;
-    if (typeof origPushState === "function") {
-      history.pushState = function(...args) {
-        const ret = origPushState.apply(this, args);
-        try { checkUrlForProjectSwitch(); } catch {}
-        try { scheduleAutoHeal(); } catch {}
-        return ret;
-      };
-    }
-    const origReplaceState = history.replaceState;
-    if (typeof origReplaceState === "function") {
-      history.replaceState = function(...args) {
-        const ret = origReplaceState.apply(this, args);
-        try { checkUrlForProjectSwitch(); } catch {}
-        try { scheduleAutoHeal(); } catch {}
-        return ret;
-      };
-    }
+    const rawPushState = history.__bettergravity_raw_pushState || history.pushState;
+    history.__bettergravity_raw_pushState = rawPushState;
+    history.pushState = function(...args) {
+      const ret = rawPushState.apply(this, args);
+      try { checkUrlForProjectSwitch(); } catch {}
+      try { scheduleAutoHeal(); } catch {}
+      return ret;
+    };
+    plugin.onDispose(() => {
+      try {
+        if (history.__bettergravity_raw_pushState) {
+          history.pushState = history.__bettergravity_raw_pushState;
+        }
+      } catch {}
+    });
+
+    const rawReplaceState = history.__bettergravity_raw_replaceState || history.replaceState;
+    history.__bettergravity_raw_replaceState = rawReplaceState;
+    history.replaceState = function(...args) {
+      const ret = rawReplaceState.apply(this, args);
+      try { checkUrlForProjectSwitch(); } catch {}
+      try { scheduleAutoHeal(); } catch {}
+      return ret;
+    };
+    plugin.onDispose(() => {
+      try {
+        if (history.__bettergravity_raw_replaceState) {
+          history.replaceState = history.__bettergravity_raw_replaceState;
+        }
+      } catch {}
+    });
   } catch {}
 }
 
@@ -5976,10 +5998,10 @@ function updateActiveConversationRow(e) {
   }
 }
 
-document.addEventListener('pointerdown', updateActiveConversationRow, true);
-document.addEventListener('click', updateActiveConversationRow, true);
-document.addEventListener('mouseover', updateActiveConversationRow, { passive: true, capture: true });
-document.addEventListener('contextmenu', updateActiveConversationRow, true);
+listenToPage(document, 'pointerdown', updateActiveConversationRow, true);
+listenToPage(document, 'click', updateActiveConversationRow, true);
+listenToPage(document, 'mouseover', updateActiveConversationRow, { passive: true, capture: true });
+listenToPage(document, 'contextmenu', updateActiveConversationRow, true);
 
 function closeActiveMenu(menu) {
   activeConversationRow = null;

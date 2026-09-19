@@ -694,11 +694,12 @@ html[data-sidebar-collapsed="true"] [role="navigation"][aria-label="Sidebar"] .g
   display: none;
   grid-column: 1;
   justify-self: end;
+  align-self: center;
   width: 6px;
   height: 6px;
   border-radius: 50%;
   background-color: var(--gemini-accent, #3b82f6);
-  margin-right: -10px;
+  margin-right: 0;
   flex-shrink: 0;
 }
 
@@ -1614,12 +1615,16 @@ body.gemini-custom-view-open [role="navigation"][aria-label="Sidebar"] #gemini-s
   padding-left: 0 !important;
   margin-left: 0 !important;
   gap: 0 !important;
+  justify-content: flex-start !important;
+  text-align: left !important;
 }
 
 [role="navigation"][aria-label="Sidebar"] .group\/headerbtn,
 [role="navigation"][aria-label="Sidebar"] button[class*="group/headerbtn"] {
   padding-left: 8px !important;
   padding-right: 6px !important;
+  justify-content: flex-start !important;
+  text-align: left !important;
   background-color: transparent !important;
   font-family: var(--gemini-font, "Google Sans Flex", sans-serif) !important;
   font-size: 13px !important;
@@ -1646,6 +1651,7 @@ body.gemini-custom-view-open [role="navigation"][aria-label="Sidebar"] #gemini-s
   font-weight: 400 !important;
   font-variation-settings: "ROND" 0, "slnt" 0, "wdth" 92, "wght" 400 !important;
   color: var(--gemini-text-dim, rgba(255, 255, 255, 0.55)) !important;
+  text-align: left !important;
   transition: color 150ms ease !important;
 }
 
