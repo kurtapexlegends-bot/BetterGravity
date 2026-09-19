@@ -229,3 +229,88 @@ export function readContextMetrics(requestedSessionId?: string): ContextMetrics 
   return metrics;
 }
 
+export async function compactContextSession(requestedSessionId?: string): Promise<{
+  success: boolean;
+  originalTokens?: number;
+  compactTokens?: number;
+  reclaimedTokens?: number;
+  reclaimedPercentage?: number;
+  preservedRecentTurnsCount?: number;
+  preservedRecentStepsCount?: number;
+  backupPath?: string;
+  message: string;
+  metrics?: ContextMetrics;
+}> {
+  const targetSessionId = (requestedSessionId || "").trim();
+
+  // Try loading user's compiled contextCompacter directly
+  try {
+    const homedir = os.homedir();
+    const compacterPath = path.join(homedir, ".gemini", "antigravity", "scratch", "context-tracker-extension", "out", "services", "contextCompacter.js");
+    const watcherPath = path.join(homedir, ".gemini", "antigravity", "scratch", "context-tracker-extension", "out", "services", "transcriptWatcher.js");
+    const analyzerPath = path.join(homedir, ".gemini", "antigravity", "scratch", "context-tracker-extension", "out", "services", "contextAnalyzer.js");
+
+    if (fs.existsSync(compacterPath) && fs.existsSync(watcherPath) && fs.existsSync(analyzerPath)) {
+      const { TranscriptWatcher } = require(watcherPath);
+      const { ContextAnalyzer } = require(analyzerPath);
+      const { ContextCompacter } = require(compacterPath);
+
+      const watcher = new TranscriptWatcher(targetSessionId || undefined);
+      const { steps, session } = watcher.readActiveSteps();
+
+      if (session && steps && steps.length > 0) {
+        const analysis = ContextAnalyzer.analyze(steps, session);
+        const result = ContextCompacter.compactInPlace(steps, session, analysis, 3);
+
+        cachedRecord = null; // Invalidate cached metrics
+        const updatedMetrics = readContextMetrics(session.id);
+
+        return {
+          success: true,
+          originalTokens: result.originalTokens,
+          compactTokens: result.compactTokens,
+          reclaimedTokens: result.reclaimedTokens,
+          reclaimedPercentage: result.reclaimedPercentage,
+          preservedRecentTurnsCount: result.preservedRecentTurnsCount,
+          preservedRecentStepsCount: result.preservedRecentStepsCount,
+          backupPath: result.backupPath,
+          message: `✔ Smart Hybrid Compaction applied: Reclaimed ${result.reclaimedTokens.toLocaleString()} tokens (${result.reclaimedPercentage}% reduction)`,
+          metrics: updatedMetrics
+        };
+      }
+    }
+  } catch {}
+
+  // Fallback: execute ag-context CLI
+  try {
+    const { exec } = require("node:child_process");
+    await new Promise<void>((resolve, reject) => {
+      exec("ag-context compact", { timeout: 25000 }, (error: any) => {
+        if (error) {
+          const homedir = os.homedir();
+          const cliPath = path.join(homedir, ".gemini", "antigravity", "scratch", "context-tracker-extension", "out", "cli.js");
+          if (fs.existsSync(cliPath)) {
+            exec(`node "${cliPath}" compact`, { timeout: 25000 }, () => resolve());
+          } else {
+            reject(error);
+          }
+        } else {
+          resolve();
+        }
+      });
+    });
+
+    cachedRecord = null;
+    const updatedMetrics = readContextMetrics(targetSessionId);
+    return {
+      success: true,
+      message: "✔ Smart compaction applied via ag-context CLI",
+      metrics: updatedMetrics
+    };
+  } catch (err: any) {
+    return {
+      success: false,
+      message: `Failed to run ag-context compact: ${err?.message || String(err)}`
+    };
+  }
+}

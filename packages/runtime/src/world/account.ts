@@ -79,6 +79,15 @@ export function createAccountTools(): PluginAccount {
       } catch {
         return null;
       }
+    },
+    compactContext: async (conversationId?: string) => {
+      const bridge = resolveBridge();
+      if (!bridge?.compactContext) return null;
+      try {
+        return await bridge.compactContext(conversationId);
+      } catch {
+        return null;
+      }
     }
   };
 }

@@ -53,6 +53,7 @@ export interface RuntimeBridge {
   addAccount(email: string): Promise<AccountProfile | null>;
   removeAccount(email: string): Promise<AccountProfile | null>;
   getContextMetrics?(conversationId?: string): Promise<ContextMetrics | null>;
+  compactContext?(conversationId?: string): Promise<any>;
   petsRead(owner: string): Promise<PetLibraryState>;
   petsLoad(owner: string, id: string): Promise<PetSprite>;
   petsPrepare(owner: string): Promise<{ skillPath: string; directory: string }>;

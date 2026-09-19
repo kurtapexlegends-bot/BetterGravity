@@ -720,39 +720,111 @@ function getActiveModelInfo() {
   };
 }
 
-function triggerCompactConversation() {
+async function executeContextCompaction(popover, compactBtn) {
+  if (!compactBtn || compactBtn.disabled) return;
+  compactBtn.disabled = true;
+  compactBtn.classList.add('is-compacting');
+  playAntigravityHaptic('medium');
+  compactBtn.innerHTML = `
+    <svg class="gemini-context-compact-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="animation: geminiSpin 1s linear infinite;">
+      <circle cx="12" cy="12" r="10" stroke-opacity="0.25"></circle>
+      <path d="M12 2a10 10 0 0 1 10 10" stroke-opacity="1"></path>
+    </svg>
+    <span>Compacting...</span>
+  `;
+
   try {
-    const root = typeof editorRoot === 'function' ? editorRoot() : document.querySelector('[data-testid="agent-input-box"] [contenteditable="true"]');
-    const props = typeof composerProps === 'function' ? composerProps() : undefined;
-    
-    if (root) {
-      const editor = props?.lexicalRef?.current ?? root.__lexicalEditor;
-      if (editor && typeof editor.focus === "function") {
-        editor.focus();
-      } else {
-        root.focus();
+    const activeSessionId = getActiveConversationId();
+    let result = null;
+
+    if (plugin?.account?.compactContext) {
+      result = await plugin.account.compactContext(activeSessionId);
+    }
+
+    // Refresh context metrics immediately
+    let freshMetrics = result?.metrics;
+    if (!freshMetrics && plugin?.account?.getContextMetrics) {
+      freshMetrics = await plugin.account.getContextMetrics(activeSessionId);
+    }
+
+    if (result && result.success) {
+      playAntigravityHaptic('high');
+      compactBtn.style.backgroundColor = 'rgba(74, 222, 128, 0.15)';
+      compactBtn.style.borderColor = 'rgba(74, 222, 128, 0.4)';
+      compactBtn.style.color = '#4ade80';
+      const reclaimedFmt = result.reclaimedPercentage ? `${result.reclaimedPercentage}% off` : 'Done';
+      compactBtn.innerHTML = `
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="20 6 9 17 4 12"></polyline>
+        </svg>
+        <span>✔ Compacted (${reclaimedFmt})</span>
+      `;
+    } else {
+      compactBtn.style.color = '#4ade80';
+      compactBtn.innerHTML = `<span>✔ Compacted!</span>`;
+    }
+
+    if (freshMetrics && popover && popover.isConnected) {
+      const formatTok = (n) => {
+        if (n >= 1000000) return (n / 1000000).toFixed(1) + "M";
+        if (n >= 1000) return (n / 1000).toFixed(1) + "k";
+        return String(n);
+      };
+
+      const tokenStat = popover.querySelector('.gemini-context-token-stat');
+      if (tokenStat) {
+        tokenStat.textContent = `${formatTok(freshMetrics.used)} / ${formatTok(freshMetrics.limit)}`;
       }
-      
-      let inserted = false;
-      if (typeof insert === 'function') {
-        inserted = insert(props, "/compact");
+      const barFill = popover.querySelector('.gemini-context-popover-bar-fill');
+      if (barFill) {
+        const pct = freshMetrics.percentage ?? Math.round((freshMetrics.used / freshMetrics.limit) * 100);
+        barFill.style.width = `${pct}%`;
+        barFill.className = `gemini-context-popover-bar-fill ${pct > 85 ? 'risk-high' : (pct > 60 ? 'risk-moderate' : 'risk-low')}`;
       }
-      if (!inserted) {
-        document.execCommand("insertText", false, "/compact");
+      const riskBadge = popover.querySelector('.gemini-context-risk-badge');
+      if (riskBadge) {
+        const pct = freshMetrics.percentage ?? Math.round((freshMetrics.used / freshMetrics.limit) * 100);
+        riskBadge.className = `gemini-context-risk-badge ${pct > 85 ? 'risk-high' : (pct > 60 ? 'risk-moderate' : 'risk-low')}`;
+        riskBadge.textContent = pct > 85 ? 'High Risk' : (pct > 60 ? 'Moderate' : 'Optimal');
+      }
+      const headroomVal = popover.querySelector('.gemini-context-headroom-val');
+      if (headroomVal) {
+        headroomVal.textContent = `~${formatTok(Math.max(0, freshMetrics.limit - freshMetrics.used))} available`;
+      }
+      const valElements = popover.querySelectorAll('.gemini-context-breakdown-val');
+      if (valElements.length >= 4) {
+        valElements[0].textContent = `~${formatTok(freshMetrics.systemTokens)}`;
+        valElements[1].textContent = `~${formatTok(freshMetrics.userTokens)}`;
+        valElements[2].textContent = `~${formatTok(freshMetrics.modelTokens)}`;
+        valElements[3].textContent = `~${formatTok(freshMetrics.toolTokens)}`;
       }
     }
 
-    // Submit via send button if available and active
-    setTimeout(() => {
-      const sendBtn = document.querySelector('[data-testid="send-button"]:not(:disabled)');
-      if (sendBtn) {
-        sendBtn.click();
+    // Refresh context ring in composer
+    if (freshMetrics) {
+      const ringText = document.querySelector('.gemini-meta-tokens') || document.querySelector('.gemini-context-ring-text');
+      if (ringText) {
+        const usedFmt = freshMetrics.used >= 1000000 ? `${(freshMetrics.used / 1000000).toFixed(1)}M` : `${(freshMetrics.used / 1000).toFixed(1)}K`;
+        const limitFmt = freshMetrics.limit >= 1000000 ? `${(freshMetrics.limit / 1000000).toFixed(0)}M` : `${Math.round(freshMetrics.limit / 1000)}K`;
+        ringText.textContent = `${usedFmt} / ${limitFmt}`;
       }
-    }, 150);
+      const composerMeta = document.querySelector('.gemini-composer-meta');
+      if (composerMeta) {
+        updateComposerMeta(composerMeta);
+      }
+    }
+
+    setTimeout(() => {
+      popover?.remove?.();
+    }, 1800);
   } catch (err) {
-    console.debug("[BetterGravity] Error triggering compact conversation:", err);
+    console.debug("[BetterGravity] Context compaction error:", err);
+    compactBtn.disabled = false;
+    compactBtn.classList.remove('is-compacting');
+    compactBtn.innerHTML = `<span>Compact Failed</span>`;
   }
 }
+
 
 function getElementFiber(node) {
   if (!node) return null;
@@ -1659,19 +1731,7 @@ function openContextUsageModal(target = null, options = {}) {
     compactBtn.addEventListener('click', (e) => {
       e.preventDefault();
       e.stopPropagation();
-      playAntigravityHaptic('medium');
-      compactBtn.classList.add('is-compacting');
-      compactBtn.innerHTML = `
-        <svg class="gemini-context-compact-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="animation: geminiSpin 1s linear infinite;">
-          <circle cx="12" cy="12" r="10" stroke-opacity="0.25"></circle>
-          <path d="M12 2a10 10 0 0 1 10 10" stroke-opacity="1"></path>
-        </svg>
-        <span>Compacting...</span>
-      `;
-      triggerCompactConversation();
-      setTimeout(() => {
-        closeModal();
-      }, 400);
+      executeContextCompaction(popover, compactBtn);
     });
   }
 
@@ -2351,10 +2411,12 @@ function ensureSidebarHeader(sidebar, collapsed) {
     }
     observedHeader = header;
     headerObserver = new MutationObserver(() => {
-      const sb = document.querySelector(SIDEBAR_SELECTOR);
-      if (sb) ensureSidebarHeader(sb, isSidebarCollapsed());
+      if (!header.querySelector(".gemini-logo-btn") || !header.querySelector(".willow-sidenav-text")) {
+        const sb = document.querySelector(SIDEBAR_SELECTOR);
+        if (sb) ensureSidebarHeader(sb, isSidebarCollapsed());
+      }
     });
-    headerObserver.observe(header, { childList: true });
+    headerObserver.observe(header, { childList: true, subtree: true });
     remember(header, headerObserver);
   }
 
@@ -4717,6 +4779,13 @@ plugin.dom.observe(SIDEBAR_SELECTOR, (sidebar) => {
   });
   sidebarObserver.observe(sidebar, { childList: true });
   remember(sidebar, sidebarObserver);
+});
+
+plugin.dom.observe(`${SIDEBAR_SELECTOR} > div.shrink-0.flex.items-center`, (header) => {
+  const sidebar = header.closest(SIDEBAR_SELECTOR);
+  if (sidebar) {
+    ensureSidebarHeader(sidebar, isSidebarCollapsed());
+  }
 });
 
 plugin.dom.observe(TOGGLE_SELECTOR, (toggle) => {
@@ -12275,17 +12344,21 @@ function startAutoHealing() {
   // Periodic heartbeat ensuring complete state integrity
   autoHealHeartbeat = window.setInterval(() => {
     if (document.hidden) return;
+    const sb = document.querySelector(SIDEBAR_SELECTOR);
+    const sbHeader = sb?.querySelector(':scope > div.shrink-0.flex.items-center') || sb?.firstElementChild;
+    const hasLogo = !!sbHeader?.querySelector(".gemini-logo-btn")?.isConnected;
+    const hasText = !!sbHeader?.querySelector(".willow-sidenav-text")?.isConnected;
     const needsHeal =
       !document.getElementById("gemini-theme-dynamic-styles")?.isConnected ||
-      (document.querySelector(SIDEBAR_SELECTOR) && !document.getElementById("gemini-experience-switch")?.isConnected) ||
-      (document.querySelector(SIDEBAR_SELECTOR) && (!document.querySelector(".gemini-logo-btn")?.isConnected || !document.querySelector(".willow-sidenav-text")?.isConnected)) ||
-      ((document.querySelector(LIST_SELECTOR) || document.querySelector('[role="navigation"][aria-label="Sidebar"]')) && !document.getElementById("gemini-scroll-nav")?.isConnected) ||
+      (sb && !document.getElementById("gemini-experience-switch")?.isConnected) ||
+      (sb && (!hasLogo || !hasText)) ||
+      ((document.querySelector(LIST_SELECTOR) || sb) && !document.getElementById("gemini-scroll-nav")?.isConnected) ||
       (document.querySelector(TOP_BAR_MORE) && !document.getElementById("gemini-web-header-btn")?.isConnected);
 
     if (needsHeal) {
       reconcileBetterGravityUI();
     }
-  }, 4000);
+  }, 1000);
 }
 
 // Multi-stage startup reconciliation schedule
