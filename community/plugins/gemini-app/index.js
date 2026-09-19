@@ -2125,11 +2125,11 @@ plugin.dom.observe(NEW_CONV_SELECTOR, (btn) => {
 // Willow's exact sidebar widths (expanded = 288px, collapsed = 52px) and motion curve
 const WILLOW_SIDEBAR_EXPANDED_WIDTH = "288px";
 const WILLOW_SIDEBAR_COLLAPSED_WIDTH = "52px";
-const WILLOW_SIDEBAR_TRANSITION = "width 300ms cubic-bezier(0.2, 0, 0, 1), background-color 300ms cubic-bezier(0.2, 0, 0, 1)";
-const TOGGLE_SELECTOR = 'button[data-testid="sidebar-toggle"][aria-label="Toggle Sidebar"]';
+const TOGGLE_SELECTOR = '.absolute.top-0 button[data-testid="sidebar-toggle"], button[data-testid="sidebar-toggle"][aria-label="Toggle Sidebar"]';
 
 function isSidebarCollapsed() {
-  const toggle = document.querySelector(TOGGLE_SELECTOR);
+  const toggle = document.querySelector('.absolute.top-0 button[data-testid="sidebar-toggle"]') ||
+                 document.querySelector(TOGGLE_SELECTOR);
   if (toggle && toggle.hasAttribute("aria-expanded")) {
     return toggle.getAttribute("aria-expanded") === "false";
   }
@@ -3101,25 +3101,25 @@ function ensureDisplayOptionsRow(block) {
       }
       if (orig) {
         const r = displayOptsBtn.getBoundingClientRect();
-        orig.style.display = 'block';
-        orig.style.position = 'fixed';
-        orig.style.top = `${r.bottom}px`;
-        orig.style.left = `${Math.max(10, r.right - 180)}px`;
-        orig.style.width = '180px';
-        orig.style.height = '1px';
-        orig.style.opacity = '0';
-        orig.style.pointerEvents = 'none';
+        orig.style.setProperty('display', 'block', 'important');
+        orig.style.setProperty('position', 'fixed', 'important');
+        orig.style.setProperty('top', `${r.bottom}px`, 'important');
+        orig.style.setProperty('left', `${r.left}px`, 'important');
+        orig.style.setProperty('width', `${r.width}px`, 'important');
+        orig.style.setProperty('height', '1px', 'important');
+        orig.style.setProperty('opacity', '0', 'important');
+        orig.style.setProperty('pointer-events', 'auto', 'important');
         orig.click();
         setTimeout(() => {
-          orig.style.position = '';
-          orig.style.top = '';
-          orig.style.left = '';
-          orig.style.width = '';
-          orig.style.height = '';
-          orig.style.opacity = '';
-          orig.style.pointerEvents = '';
-          orig.style.display = '';
-        }, 100);
+          orig.style.removeProperty('position');
+          orig.style.removeProperty('top');
+          orig.style.removeProperty('left');
+          orig.style.removeProperty('width');
+          orig.style.removeProperty('height');
+          orig.style.removeProperty('opacity');
+          orig.style.removeProperty('pointer-events');
+          orig.style.removeProperty('display');
+        }, 150);
       }
     });
   }
@@ -4440,10 +4440,11 @@ function ensureScrollNav() {
   const isWork = getStoredExperience() === 'work';
   if (isWork) {
     ensureNewProjectRow(block);
+    ensureDisplayOptionsRow(block);
   } else {
     document.getElementById('gemini-new-project-button')?.remove();
+    document.getElementById('gemini-display-options-button')?.remove();
   }
-  ensureDisplayOptionsRow(block);
 
   const topRowIds = isWork
     ? ['gemini-skills-button', 'gemini-scheduled-tasks-button', 'gemini-browser-button', 'gemini-new-project-button']
@@ -4453,7 +4454,7 @@ function ensureScrollNav() {
     .map((id) => document.getElementById(id))
     .filter((row) => row && row.parentElement === block);
 
-  const bottomRows = ['gemini-display-options-button']
+  const bottomRows = (isWork ? ['gemini-display-options-button'] : [])
     .map((id) => document.getElementById(id))
     .filter((row) => row && row.parentElement === block);
 

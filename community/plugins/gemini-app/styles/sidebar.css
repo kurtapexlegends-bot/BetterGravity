@@ -219,19 +219,10 @@ div.bg-border.flex-shrink-0.w-\[1px\] {
   user-select: none !important;
 }
 
-/* Collapsed logo hover state: logo scales down and fades out; expand icon scales up and fades in */
-[role="navigation"][aria-label="Sidebar"][data-collapsed="true"] .gemini-logo-btn:hover {
-  background-color: rgba(255, 255, 255, 0.08) !important;
-}
-
-[role="navigation"][aria-label="Sidebar"][data-collapsed="true"] .gemini-logo-btn:hover .gemini-logo-wrap {
-  opacity: 0 !important;
-  transform: scale(0.75) !important;
-}
-
-[role="navigation"][aria-label="Sidebar"][data-collapsed="true"] .gemini-logo-btn:hover .gemini-logo-expand-wrap {
-  opacity: 1 !important;
-  transform: scale(1.1) !important;
+/* Collapsed logo: hide duplicate logo button so sidebar-toggle acts as the primary expand button */
+[role="navigation"][aria-label="Sidebar"][data-collapsed="true"] .gemini-logo-btn,
+html[data-sidebar-collapsed="true"] [role="navigation"][aria-label="Sidebar"] .gemini-logo-btn {
+  display: none !important;
 }
 
 /* Expanded logo: default cursor, expand icon hidden */
@@ -359,23 +350,36 @@ div:has(+ div > [data-testid="sidebar-toggle"]):has(svg),
   transform: scale(0.9) !important;
 }
 
-/* Closed, Willow's rail hides the close toggle completely: the collapsed logo
- * button assumes the expand role with `side_nav_expand` on hover. */
-[data-testid="sidebar-toggle"][aria-label*="Toggle Sidebar"][aria-expanded="false"],
-html[data-sidebar-collapsed="true"] [data-testid="sidebar-toggle"][aria-label="Toggle Sidebar"],
-[role="navigation"][aria-label="Sidebar"][data-collapsed="true"] ~ * [data-testid="sidebar-toggle"][aria-label="Toggle Sidebar"],
-div:has(> [role="navigation"][aria-label="Sidebar"][data-collapsed="true"]) ~ * [data-testid="sidebar-toggle"][aria-label="Toggle Sidebar"] {
-  opacity: 0 !important;
-  visibility: hidden !important;
-  pointer-events: none !important;
+/* When collapsed, keep the sidebar toggle clearly visible and centered in the 52px rail.
+ * It assumes the expand role with `side_nav_expand` icon and never vanishes. */
+.absolute.top-0 [data-testid="sidebar-toggle"][aria-label*="Toggle Sidebar"][aria-expanded="false"],
+html[data-sidebar-collapsed="true"] .absolute.top-0 [data-testid="sidebar-toggle"][aria-label*="Toggle Sidebar"],
+[data-testid="sidebar-toggle"][aria-label*="Toggle Sidebar"][aria-expanded="false"]:not([class*="group/file-row"] *),
+html[data-sidebar-collapsed="true"] [data-testid="sidebar-toggle"][aria-label*="Toggle Sidebar"]:not([class*="group/file-row"] *),
+[role="navigation"][aria-label="Sidebar"][data-collapsed="true"] ~ * [data-testid="sidebar-toggle"][aria-label*="Toggle Sidebar"]:not([class*="group/file-row"] *),
+div:has(> [role="navigation"][aria-label="Sidebar"][data-collapsed="true"]) ~ * [data-testid="sidebar-toggle"][aria-label*="Toggle Sidebar"]:not([class*="group/file-row"] *) {
+  position: absolute !important;
+  left: 6px !important;
+  top: 6px !important;
+  width: 40px !important;
+  height: 40px !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  pointer-events: auto !important;
   animation: none !important;
 }
 
+.absolute.top-0 [data-testid="sidebar-toggle"][aria-label*="Toggle Sidebar"][aria-expanded="false"] > span:first-child::before,
+html[data-sidebar-collapsed="true"] .absolute.top-0 [data-testid="sidebar-toggle"][aria-label*="Toggle Sidebar"] > span:first-child::before,
+[data-testid="sidebar-toggle"][aria-label*="Toggle Sidebar"][aria-expanded="false"]:not([class*="group/file-row"] *) > span:first-child::before,
+html[data-sidebar-collapsed="true"] [data-testid="sidebar-toggle"][aria-label*="Toggle Sidebar"]:not([class*="group/file-row"] *) > span:first-child::before {
+  content: "side_nav_expand" !important;
+}
+
 /* Open, the button crosses the rail to Willow's corner: 288 − 14 − 40 = 234,
- * `top-1.5` = 6, `h-10 w-10 rounded-full text-[#e3e3e3] hover:bg-white/[0.08]`.
- * Willow's staged reveal: lands 50ms before the 300ms width settles (250ms delay)
- * so the button never paints over a rail that is still narrower than itself. */
-[data-testid="sidebar-toggle"][aria-label*="Toggle Sidebar"] {
+ * `top-1.5` = 6, `h-10 w-10 rounded-full text-[#e3e3e3] hover:bg-white/[0.08]`. */
+.absolute.top-0 [data-testid="sidebar-toggle"][aria-label*="Toggle Sidebar"],
+[data-testid="sidebar-toggle"][aria-label*="Toggle Sidebar"]:not([class*="group/file-row"] *):not([class*="border-b"] *) {
   position: absolute !important;
   left: 234px !important;
   top: 6px !important;
@@ -384,9 +388,9 @@ div:has(> [role="navigation"][aria-label="Sidebar"][data-collapsed="true"]) ~ * 
   border-radius: 9999px !important;
   color: var(--gemini-body-text, #e3e3e3) !important;
   background-color: transparent !important;
-  opacity: 0;
-  visibility: hidden;
-  animation: willow-sidenav-show-close-button 50ms linear 250ms forwards !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  pointer-events: auto !important;
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
@@ -395,10 +399,11 @@ div:has(> [role="navigation"][aria-label="Sidebar"][data-collapsed="true"]) ~ * 
   cursor: pointer !important;
   outline: none !important;
   z-index: 50 !important;
-  transition: background-color 150ms ease, color 150ms ease !important;
+  transition: left 300ms cubic-bezier(0.2, 0, 0, 1), background-color 150ms ease, color 150ms ease !important;
 }
 
-[data-testid="sidebar-toggle"][aria-label*="Toggle Sidebar"]:hover {
+.absolute.top-0 [data-testid="sidebar-toggle"][aria-label*="Toggle Sidebar"]:hover,
+[data-testid="sidebar-toggle"][aria-label*="Toggle Sidebar"]:not([class*="group/file-row"] *):hover {
   background-color: rgba(255, 255, 255, 0.08) !important;
   color: var(--gemini-body-text, #e3e3e3) !important;
 }
@@ -1739,17 +1744,20 @@ body.gemini-custom-view-open [role="navigation"][aria-label="Sidebar"] #gemini-s
   pointer-events: auto !important;
 }
 
-/* Hide original Projects section header and sticky/virtual wrapper */
+/* Hide original Projects section header visually while keeping triggers active in the render tree */
 [role="navigation"][aria-label="Sidebar"] div.group\/section-header:has([data-testid="sidebar-add-project-button"]),
 [role="navigation"][aria-label="Sidebar"] div.group\/section-header:has([aria-label="Display Options"]),
 [role="navigation"][aria-label="Sidebar"] div[class*="group/section-header"]:has([data-testid="sidebar-add-project-button"]),
 [role="navigation"][aria-label="Sidebar"] div[class*="group/section-header"]:has([aria-label="Display Options"]) {
-  display: none !important;
   height: 0 !important;
   min-height: 0 !important;
+  max-height: 0 !important;
   padding: 0 !important;
   margin: 0 !important;
+  border: none !important;
   overflow: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
 }
 
 [role="navigation"][aria-label="Sidebar"] div[style*="transform"]:has(> div.group\/section-header:has([data-testid="sidebar-add-project-button"])),
