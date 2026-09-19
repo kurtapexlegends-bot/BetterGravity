@@ -2202,10 +2202,26 @@ function enforceSidebarGeometry(grandParent, collapsed) {
   }
 }
 
+let observedHeader = null;
+let headerObserver = null;
+
 function ensureSidebarHeader(sidebar, collapsed) {
   const header = sidebar?.querySelector(':scope > div.shrink-0.flex.items-center') ||
                  (sidebar?.firstElementChild?.id === "gemini-experience-switch" ? sidebar?.children[1] : sidebar?.firstElementChild);
   if (!header) return;
+
+  if (observedHeader !== header) {
+    if (headerObserver) {
+      try { headerObserver.disconnect(); } catch {}
+    }
+    observedHeader = header;
+    headerObserver = new MutationObserver(() => {
+      const sb = document.querySelector(SIDEBAR_SELECTOR);
+      if (sb) ensureSidebarHeader(sb, isSidebarCollapsed());
+    });
+    headerObserver.observe(header, { childList: true });
+    remember(header, headerObserver);
+  }
 
   let logoBtn = header.querySelector(".gemini-logo-btn");
   if (!logoBtn) {
@@ -5637,6 +5653,7 @@ if (typeof history !== "undefined") {
       history.pushState = function(...args) {
         const ret = origPushState.apply(this, args);
         try { checkUrlForProjectSwitch(); } catch {}
+        try { scheduleAutoHeal(); } catch {}
         return ret;
       };
     }
@@ -5645,6 +5662,7 @@ if (typeof history !== "undefined") {
       history.replaceState = function(...args) {
         const ret = origReplaceState.apply(this, args);
         try { checkUrlForProjectSwitch(); } catch {}
+        try { scheduleAutoHeal(); } catch {}
         return ret;
       };
     }
@@ -5657,6 +5675,7 @@ const urlTicker = window.setInterval(() => {
   if (window.location.href !== lastCheckedUrl) {
     lastCheckedUrl = window.location.href;
     checkUrlForProjectSwitch();
+    scheduleAutoHeal();
   }
 }, 3000);
 
@@ -12124,6 +12143,7 @@ function startAutoHealing() {
     const needsHeal =
       !document.getElementById("gemini-theme-dynamic-styles")?.isConnected ||
       (document.querySelector(SIDEBAR_SELECTOR) && !document.getElementById("gemini-experience-switch")?.isConnected) ||
+      (document.querySelector(SIDEBAR_SELECTOR) && (!document.querySelector(".gemini-logo-btn")?.isConnected || !document.querySelector(".willow-sidenav-text")?.isConnected)) ||
       ((document.querySelector(LIST_SELECTOR) || document.querySelector('[role="navigation"][aria-label="Sidebar"]')) && !document.getElementById("gemini-scroll-nav")?.isConnected) ||
       (document.querySelector(TOP_BAR_MORE) && !document.getElementById("gemini-web-header-btn")?.isConnected);
 

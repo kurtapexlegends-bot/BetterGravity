@@ -2486,7 +2486,6 @@ div:has(> [role="menu"][data-gemini-conversation-menu]) {
 [role="navigation"][aria-label="Sidebar"] > div:last-child {
   display: flex !important;
   flex-direction: row !important;
-  justify-content: space-between !important;
   align-items: center !important;
   padding: 4px 8px 6px 8px !important;
   margin-top: auto !important;
@@ -2495,6 +2494,16 @@ div:has(> [role="menu"][data-gemini-conversation-menu]) {
   box-sizing: border-box !important;
   width: 100% !important;
   overflow: hidden !important;
+}
+
+[role="navigation"][aria-label="Sidebar"]:has(#gemini-sidebar-user-pill) > div:has(> [data-testid="settings-button"]),
+[role="navigation"][aria-label="Sidebar"]:has(#gemini-sidebar-user-pill) > div:last-child {
+  justify-content: space-between !important;
+}
+
+[role="navigation"][aria-label="Sidebar"]:not(:has(#gemini-sidebar-user-pill)) > div:has(> [data-testid="settings-button"]),
+[role="navigation"][aria-label="Sidebar"]:not(:has(#gemini-sidebar-user-pill)) > div:last-child {
+  justify-content: flex-start !important;
 }
 
 /* User Account Card in sidebar footer */
@@ -3168,8 +3177,8 @@ div:has(> [role="menu"][data-gemini-conversation-menu]) {
   transition: none !important;
 }
 
-[role="navigation"][aria-label="Sidebar"][data-collapsed="true"] > div:has(> [data-testid="settings-button"]),
-[role="navigation"][aria-label="Sidebar"][data-collapsed="true"] > div:last-child {
+[role="navigation"][aria-label="Sidebar"][data-collapsed="true"]:has(#gemini-sidebar-user-pill) > div:has(> [data-testid="settings-button"]),
+[role="navigation"][aria-label="Sidebar"][data-collapsed="true"]:has(#gemini-sidebar-user-pill) > div:last-child {
   width: 52px !important;
   height: 92px !important;
   min-height: 92px !important;
@@ -3183,6 +3192,20 @@ div:has(> [role="menu"][data-gemini-conversation-menu]) {
   transition: none !important;
 }
 
+[role="navigation"][aria-label="Sidebar"][data-collapsed="true"]:not(:has(#gemini-sidebar-user-pill)) > div:has(> [data-testid="settings-button"]),
+[role="navigation"][aria-label="Sidebar"][data-collapsed="true"]:not(:has(#gemini-sidebar-user-pill)) > div:last-child {
+  width: 52px !important;
+  height: 48px !important;
+  min-height: 48px !important;
+  max-height: 48px !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 6px 10px !important;
+  box-sizing: border-box !important;
+  transition: none !important;
+}
+
 [role="navigation"][aria-label="Sidebar"][data-collapsed="true"] [data-testid="settings-button"] {
   width: 32px !important;
   height: 32px !important;
@@ -3190,8 +3213,10 @@ div:has(> [role="menu"][data-gemini-conversation-menu]) {
   max-width: 32px !important;
   min-height: 32px !important;
   max-height: 32px !important;
+  padding: 0 !important;
   margin: 0 auto !important;
   align-self: center !important;
+  justify-content: center !important;
 }
 
 #gemini-sidebar-user-pill .gemini-user-text {
@@ -3264,21 +3289,71 @@ div:has(> [role="menu"][data-gemini-conversation-menu]) {
 
 /* Settings button styling */
 [data-testid="settings-button"] {
-  width: 32px !important;
   height: 32px !important;
-  min-width: 32px !important;
   min-height: 32px !important;
-  max-width: 32px !important;
   border-radius: 9999px !important;
   border: none !important;
   background: transparent !important;
   color: var(--gemini-text, #e6e6e6) !important;
-  padding: 0 !important;
   display: flex !important;
   align-items: center !important;
+  transition: background-color 150ms ease, color 150ms ease !important;
+}
+
+/* When user card is present, settings button is a 32x32 trailing icon */
+[role="navigation"][aria-label="Sidebar"]:has(#gemini-sidebar-user-pill) [data-testid="settings-button"] {
+  width: 32px !important;
+  height: 32px !important;
+  min-width: 32px !important;
+  max-width: 32px !important;
+  padding: 0 !important;
   justify-content: center !important;
   margin-left: auto !important;
-  transition: background-color 150ms ease, color 150ms ease !important;
+}
+
+[role="navigation"][aria-label="Sidebar"]:has(#gemini-sidebar-user-pill) [data-testid="settings-button"] > span:last-child {
+  display: none !important;
+}
+
+/* When user card is absent (default state), settings is a full-width Willow nav row */
+[role="navigation"][aria-label="Sidebar"]:not([data-collapsed="true"]):not(:has(#gemini-sidebar-user-pill)) [data-testid="settings-button"] {
+  width: 100% !important;
+  padding: 0 10px 0 6px !important;
+  gap: 12px !important;
+  justify-content: flex-start !important;
+  margin: 0 !important;
+  box-sizing: border-box !important;
+}
+
+[role="navigation"][aria-label="Sidebar"]:not([data-collapsed="true"]):not(:has(#gemini-sidebar-user-pill)) [data-testid="settings-button"] > span:last-child {
+  display: inline-block !important;
+  font-family: var(--gemini-font, "Google Sans Flex", sans-serif) !important;
+  font-variation-settings: var(--gemini-font-axes, "ROND" 0, "slnt" 0, "wdth" 92, "wght" 400) !important;
+  font-size: 13px !important;
+  font-weight: 400 !important;
+  color: inherit !important;
+  line-height: 20px !important;
+  letter-spacing: normal !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+}
+
+/* Collapsed settings button in 52px rail: hide label, center icon */
+[role="navigation"][aria-label="Sidebar"][data-collapsed="true"] [data-testid="settings-button"],
+html[data-sidebar-collapsed="true"] [role="navigation"][aria-label="Sidebar"] [data-testid="settings-button"] {
+  width: 32px !important;
+  height: 32px !important;
+  min-width: 32px !important;
+  max-width: 32px !important;
+  padding: 0 !important;
+  margin: 0 auto !important;
+  justify-content: center !important;
+}
+
+[role="navigation"][aria-label="Sidebar"][data-collapsed="true"] [data-testid="settings-button"] > span:last-child,
+html[data-sidebar-collapsed="true"] [role="navigation"][aria-label="Sidebar"] [data-testid="settings-button"] > span:last-child {
+  display: none !important;
 }
 
 [data-testid="settings-button"]:hover {
@@ -3289,11 +3364,6 @@ div:has(> [role="menu"][data-gemini-conversation-menu]) {
   background-color: var(--gemini-row-pressed, rgba(230, 230, 230, 0.12)) !important;
 }
 
-/* Hide text label "Settings" */
-[data-testid="settings-button"] > span:last-child {
-  display: none !important;
-}
-
 /* Hide host SVG */
 [data-testid="settings-button"] > span:first-child > * {
   display: none !important;
@@ -3302,10 +3372,12 @@ div:has(> [role="menu"][data-gemini-conversation-menu]) {
 [data-testid="settings-button"] > span:first-child {
   width: 20px !important;
   height: 20px !important;
+  min-width: 20px !important;
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
   position: relative !important;
+  flex-shrink: 0 !important;
 }
 
 /* Replace icon with Luminous Symbols "settings" gear matching Willow */

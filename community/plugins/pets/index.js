@@ -1051,6 +1051,23 @@ function petSurface(host, data) {
   }
 
   let isSleeping = false;
+  let autoSnoozeTimer = null;
+  const AUTO_SNOOZE_DELAY_MS = 6 * 60 * 1000; // 6 minutes of inactivity
+
+  function resetAutoSnooze() {
+    if (autoSnoozeTimer) {
+      clearTimeout(autoSnoozeTimer);
+      autoSnoozeTimer = null;
+    }
+    if (isSleeping || working) return;
+    autoSnoozeTimer = setTimeout(() => {
+      if (!isSleeping && !working && !hovering && !nearby && drag === null && !menuOpen) {
+        toggleSleep(true);
+      }
+    }, AUTO_SNOOZE_DELAY_MS);
+  }
+  track(() => { if (autoSnoozeTimer) clearTimeout(autoSnoozeTimer); });
+
   function toggleSleep(force) {
     isSleeping = typeof force === "boolean" ? force : !isSleeping;
     if (isSleeping) {
@@ -1067,6 +1084,7 @@ function petSurface(host, data) {
       emitPetEmotes(["✨", "☀️"]);
       rebuild();
       showBubble("I'm awake and ready! ✨", 3000, "🐾 Companion");
+      resetAutoSnooze();
     }
   }
 
@@ -1085,17 +1103,73 @@ function petSurface(host, data) {
     }, 1500);
   }
 
+  function executePetAction(actionId) {
+    resetAutoSnooze();
+    switch (actionId) {
+      case "trick-wave":
+        if (isSleeping) toggleSleep(false);
+        triggerTrick("waving");
+        playPetChirp("purr");
+        emitPetEmotes(["👋", "✨"]);
+        break;
+      case "trick-jump":
+        if (isSleeping) toggleSleep(false);
+        triggerTrick("jumping");
+        playPetChirp("purr");
+        emitPetEmotes(["⭐", "✨"]);
+        break;
+      case "trick-celebrate":
+        if (isSleeping) toggleSleep(false);
+        triggerTrick("jumping");
+        playPetChirp("celebrate");
+        emitPetEmotes(["🎉", "⭐", "✨", "❤️"]);
+        showBubble("Celebrating with you! 🥳🎉", 4000, "🎉 Party");
+        break;
+      case "trick-review":
+        if (isSleeping) toggleSleep(false);
+        triggerTrick("review");
+        playPetChirp("purr");
+        emitPetEmotes(["🔍", "💡"]);
+        showBubble("Analyzing the code... looking sharp! 🔍", 4000, "🧐 Focus");
+        break;
+      case "toggle-sleep":
+        toggleSleep();
+        break;
+      case "pet-status": {
+        const activeTasks = entries.filter((e) => e.status === "running").length;
+        const unreadTasks = entries.filter((e) => e.status === "unread").length;
+        let statusMsg = "";
+        if (activeTasks > 0) {
+          statusMsg = `${activeTasks} task${activeTasks > 1 ? "s" : ""} actively running! ⚡`;
+        } else if (unreadTasks > 0) {
+          statusMsg = `All quiet! ${unreadTasks} unread thread${unreadTasks > 1 ? "s" : ""} waiting for you. 📬`;
+        } else {
+          statusMsg = "All systems green! Ready for your next idea. 🚀";
+        }
+        showBubble(statusMsg, 5000, "📊 Status");
+        playPetChirp("purr");
+        emitPetEmotes(["📊", "✨"]);
+        break;
+      }
+      case "pet-tip": {
+        const tip = PET_QUOTES[Math.floor(Math.random() * PET_QUOTES.length)];
+        showBubble(tip, 5000, "💡 Companion Tip");
+        playPetChirp("purr");
+        emitPetEmotes(["💡", "✨"]);
+        break;
+      }
+      case "close-pet":
+        host.send({ t: "hide" });
+        break;
+    }
+  }
+
   // Pet right-click context menu
   const petMenu = make("div", "bettergravity-pet-menu");
   petMenu.setAttribute("role", "menu");
   petMenu.setAttribute("aria-label", "Pet");
   petMenu.dataset.petHit = "menu";
   petMenu.hidden = true;
-
-  const closePetItem = make("button", "bettergravity-pet-menu__item", petMenu);
-  closePetItem.type = "button";
-  closePetItem.setAttribute("role", "menuitem");
-  closePetItem.textContent = "Close pet";
   pet.setAttribute("aria-haspopup", "menu");
 
   /* ── Which sheet, and how big ───────────────────────────────────────────*/
@@ -2108,6 +2182,11 @@ function petSurface(host, data) {
     const hit = drag !== null ? pet : badgeDrag !== null ? badge : hitAt(px, py);
     if (desktop) host.setInteractive(menuOpen || hit !== null);
 
+    if (isSleeping && (hit !== null || distanceTo(px, py) <= 40)) {
+      toggleSleep(false);
+    }
+    resetAutoSnooze();
+
     // Over the pet's own surface counts as near it however far the cursor has
     // reached down the stack, which is Ui()'s isPointerSurfaceHovered.
     const threshold = nearby ? PROXIMITY_EXIT_PX : PROXIMITY_ENTER_PX;
@@ -2185,14 +2264,45 @@ function petSurface(host, data) {
     menuOpen = true;
     petMenu.hidden = false;
     pet.setAttribute("aria-expanded", "true");
+
+    petMenu.innerHTML = "";
+    const items = [
+      { id: "trick-wave", label: "Wave", icon: "👋" },
+      { id: "trick-jump", label: "Jump / Flip", icon: "🦘" },
+      { id: "trick-celebrate", label: "Celebrate", icon: "🎉" },
+      { id: "trick-review", label: "Inspect / Think", icon: "🔍" },
+      { id: "toggle-sleep", label: isSleeping ? "Wake Up" : "Nap (Low Power)", icon: isSleeping ? "☀️" : "💤" },
+      { id: "pet-status", label: "Status & Tasks", icon: "📊" },
+      { id: "pet-tip", label: "Helpful Tip", icon: "💡" },
+      { id: "divider" },
+      { id: "close-pet", label: "Close pet", icon: "✕" }
+    ];
+
+    for (const item of items) {
+      if (item.id === "divider") {
+        make("div", "bettergravity-pet-menu-divider", petMenu);
+        continue;
+      }
+      const btn = make("button", "bettergravity-pet-menu__item", petMenu);
+      btn.type = "button";
+      btn.setAttribute("role", "menuitem");
+      btn.innerHTML = `<span class="bettergravity-pet-menu-icon">${item.icon}</span><span>${item.label}</span>`;
+      btn.addEventListener("click", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        closePetMenu();
+        executePetAction(item.id);
+      });
+    }
+
     const rect = petMenu.getBoundingClientRect();
-    petMenu.style.left = `${Math.max(6, Math.min(point.x, window.innerWidth - (rect.width || 200) - 6))}px`;
-    petMenu.style.top = `${Math.max(6, Math.min(point.y, window.innerHeight - (rect.height || 40) - 6))}px`;
+    petMenu.style.left = `${Math.max(6, Math.min(point.x, window.innerWidth - (rect.width || 180) - 6))}px`;
+    petMenu.style.top = `${Math.max(6, Math.min(point.y, window.innerHeight - (rect.height || 260) - 6))}px`;
     if (desktop) {
       host.setInteractive(true);
       host.setFocusable?.(true);
     }
-    closePetItem.focus({ preventScroll: true });
+    petMenu.querySelector("button")?.focus({ preventScroll: true });
   }
 
   on(pet, "contextmenu", event => {
@@ -2204,8 +2314,17 @@ function petSurface(host, data) {
     const point = event.clientX || event.clientY ? { x: event.clientX, y: event.clientY } : { x: x + width, y: y + height / 2 };
     if (desktop) {
       menuRequest = { id: `pet-menu-${++menuSequence}`, point };
-      host.send({ type: "bettergravity:overlay-context-menu", requestId: menuRequest.id,
-        items: [{ id: "close-pet", label: "Close pet" }] });
+      const items = [
+        { id: "trick-wave", label: "Wave 👋" },
+        { id: "trick-jump", label: "Jump / Flip 🦘" },
+        { id: "trick-celebrate", label: "Celebrate 🎉" },
+        { id: "trick-review", label: "Inspect / Think 🔍" },
+        { id: "toggle-sleep", label: isSleeping ? "Wake Up ☀️" : "Nap (Low Power) 💤" },
+        { id: "pet-status", label: "Status & Tasks 📊" },
+        { id: "pet-tip", label: "Helpful Tip 💡" },
+        { id: "close-pet", label: "Close pet ✕" }
+      ];
+      host.send({ type: "bettergravity:overlay-context-menu", requestId: menuRequest.id, items });
     } else showPetMenu(point);
   });
   on(pet, "dblclick", event => {
@@ -2219,12 +2338,6 @@ function petSurface(host, data) {
     speechBubble.hidden = true;
     if (bubbleTimer) clearTimeout(bubbleTimer);
   });
-  on(closePetItem, "click", event => {
-    event.preventDefault();
-    event.stopPropagation();
-    closePetMenu();
-    host.send({ t: "hide" });
-  });
   on(document, "pointerdown", event => {
     if (!menuOpen || petMenu.contains(event.target)) return;
     closePetMenu();
@@ -2233,9 +2346,16 @@ function petSurface(host, data) {
   }, true);
   on(petMenu, "keydown", event => {
     event.stopPropagation();
-    if (["ArrowUp", "ArrowDown", "Home", "End"].includes(event.key)) {
+    const buttons = Array.from(petMenu.querySelectorAll("button"));
+    const currentIndex = buttons.indexOf(document.activeElement);
+    if (event.key === "ArrowDown") {
       event.preventDefault();
-      closePetItem.focus();
+      const nextIndex = (currentIndex + 1) % buttons.length;
+      buttons[nextIndex]?.focus();
+    } else if (event.key === "ArrowUp") {
+      event.preventDefault();
+      const prevIndex = (currentIndex - 1 + buttons.length) % buttons.length;
+      buttons[prevIndex]?.focus();
     } else if (event.key === "Escape" || event.key === "Tab") {
       event.preventDefault();
       closePetMenu(true);
@@ -2280,10 +2400,34 @@ function petSurface(host, data) {
   // `mousemove` rather than `pointermove`, because a forwarded mouse message is
   // what Electron promises to deliver to a click-through window; pointer events
   // are for the drag, which only happens once the window is solid.
-  on(document, "mousemove", (event) => updatePointer(event.clientX, event.clientY), {
+  // Throttled to requestAnimationFrame to eliminate high-poll mouse CPU spikes.
+  let mouseThrottleRaf = null;
+  on(document, "mousemove", (event) => {
+    if (mouseThrottleRaf !== null) return;
+    const cx = event.clientX;
+    const cy = event.clientY;
+    mouseThrottleRaf = requestAnimationFrame(() => {
+      mouseThrottleRaf = null;
+      updatePointer(cx, cy);
+    });
+  }, {
     passive: true
   });
+  track(() => { if (mouseThrottleRaf !== null) cancelAnimationFrame(mouseThrottleRaf); });
+
   on(document, "mouseleave", forgetPointer);
+  on(document, "visibilitychange", () => {
+    if (document.hidden) {
+      clearTimeout(frameTimer);
+      frameTimer = undefined;
+    } else {
+      if (!isSleeping && !looking) {
+        paint();
+        schedule();
+      }
+    }
+  });
+
   on(window, "blur", () => {
     closePetMenu();
     if (drag !== null) endDrag({ pointerId: drag.pointerId }, false);
@@ -2601,9 +2745,19 @@ function petSurface(host, data) {
       emitPetEmotes(["❤️", "💖", "✨"]);
       triggerTrick();
 
-      // Show friendly companion quote / tip
-      const quote = PET_QUOTES[Math.floor(Math.random() * PET_QUOTES.length)];
-      showBubble(quote, 4500);
+      // Show contextual feedback or friendly companion quote
+      if (working) {
+        const workingCheers = [
+          "I'm keeping a close eye on your code! ⚡",
+          "Working hard! Hang tight, cooking something great... 🛠️",
+          "Building away! You've got this! 🚀",
+          "Agent in motion! Watching the progress! 👀"
+        ];
+        showBubble(workingCheers[Math.floor(Math.random() * workingCheers.length)], 4500, "⚡ Active Task");
+      } else {
+        const quote = PET_QUOTES[Math.floor(Math.random() * PET_QUOTES.length)];
+        showBubble(quote, 4500);
+      }
 
       host.send({ t: "poke" });
       if (pointerAt !== null) updatePointer(pointerAt.x, pointerAt.y);
@@ -3104,7 +3258,7 @@ function petSurface(host, data) {
         const request = menuRequest;
         menuRequest = null;
         if (message.unsupported) showPetMenu(request.point);
-        else if (message.id === "close-pet") host.send({ t: "hide" });
+        else if (message.id) executePetAction(message.id);
         return;
       }
 
@@ -3146,7 +3300,12 @@ function petSurface(host, data) {
         }
         case "activity": {
           entries = Array.isArray(message.entries) ? message.entries : [];
-          working = message.working === true || entries.some((entry) => entry.status === "running");
+          const nowWorking = message.working === true || entries.some((entry) => entry.status === "running");
+          if (nowWorking && !working && isSleeping) {
+            toggleSleep(false);
+          }
+          working = nowWorking;
+          resetAutoSnooze();
           renderActivity();
           if (message.celebrate) {
             if (isSleeping) toggleSleep(false);
@@ -3242,6 +3401,7 @@ function petSurface(host, data) {
     // Unconditionally, because refresh() only rebuilds when the state changes and
     // a pet that woke up idle has never had a sequence started at all.
     rebuild();
+    resetAutoSnooze();
 
     // The sensor cannot see into this document — on the desktop it is a window in
     // another process with nothing shared but a message channel. This is the only
