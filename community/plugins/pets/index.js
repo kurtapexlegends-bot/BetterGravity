@@ -3886,38 +3886,53 @@ async function selectLibraryPet(id) {
 
 async function createPet() {
   if (libraryBusy || libraryDisposed) return;
-  const creationPage = libraryPage;
-  let restorePageOnError = false;
   libraryBusy = true;
   libraryCreating = true;
   libraryError = "";
   renderPetLibrary();
   try {
-    if (!plugin.pets) throw new Error("Restart Antigravity to activate pet creation.");
-    await plugin.pets.prepareCreation();
-    if (libraryDisposed || (creationPage && libraryPage !== creationPage)) return;
-    if (!(await newConversation(true))) throw new Error("The new conversation could not be opened.");
-    libraryHref = location.href;
-    const expected = currentId();
-    const current = () => !libraryDisposed && (!creationPage || libraryPage === creationPage) && currentId() === expected && projectlessHome();
-    const field = await waitForComposer(current);
-    if (!field || !current()) throw new Error("The new conversation is no longer selected.");
-    const draft = "value" in field ? field.value : field.textContent;
-    if (draft?.trim()) throw new Error("The new conversation already has a draft. Clear it before creating a pet.");
-    const prompt = "Use the hatch-pet skill to create a pet based on what you know about me. Show me the character and animation previews.";
-    // The contenteditable composer cannot accept insertText while its page is
-    // inert. Restore the conversation before focusing and filling its editor.
+    if (plugin.pets && typeof plugin.pets.prepareCreation === "function") {
+      try { await plugin.pets.prepareCreation(); } catch (err) {
+        plugin.log.warn("prepareCreation error:", err);
+      }
+    }
+
+    // 1. Close the full-screen pet library so the chat conversation view can mount cleanly
     closePetLibrary();
-    restorePageOnError = creationPage !== null;
-    if (!typeInto(field, prompt)) throw new Error("The pet request could not be added to the composer.");
-    // Codex's Create action prefills a projectless chat; the user can add a
-    // description or reference image before sending the request.
     window.BetterGravity?.panel?.close();
-    field.focus();
+
+    // 2. Click the New Conversation button to start a fresh thread
+    const newChatBtn = document.querySelector(NEW_CHAT) || document.querySelector('[data-testid="new-conversation-button"]');
+    if (newChatBtn) {
+      newChatBtn.click();
+    }
+
+    // 3. Fill the composer with the hatch-pet prompt
+    const prompt = "Use the hatch-pet skill to create a pet based on what you know about me. Show me the character and animation previews.";
+    let filled = false;
+    for (let attempt = 0; attempt < 30; attempt++) {
+      if (window.BetterGravityComposer && typeof window.BetterGravityComposer.setPrompt === "function") {
+        filled = await window.BetterGravityComposer.setPrompt(prompt);
+        if (filled) break;
+      }
+      const field = composerField();
+      if (field) {
+        filled = typeInto(field, prompt);
+        if (filled) {
+          field.focus();
+          break;
+        }
+      }
+      await new Promise(r => setTimeout(r, 100));
+    }
+
+    if (!filled) {
+      plugin.log.warn("Could not fill composer automatically after new conversation opened.");
+    }
   } catch (error) {
     if (!libraryDisposed) {
       libraryError = error?.message ?? String(error);
-      if (restorePageOnError) openPetLibrary(false);
+      openPetLibrary(false);
     }
   } finally {
     libraryBusy = false;
@@ -3960,21 +3975,71 @@ Row 9: Confused / looking around (8 frames)
 Row 10: Special companion emote (8 frames)
 Style: crisp 16-bit retro pixel art, high contrast, clean transparent background, no extra surrounding frame.`;
 
+  let copied = false;
   try {
     if (navigator.clipboard?.writeText) {
       await navigator.clipboard.writeText(petSpritePrompt);
+      copied = true;
     }
   } catch {}
 
-  const geminiUrl = `https://gemini.google.com/app?authuser=${encodeURIComponent(activeEmail)}`;
-  if (typeof window !== "undefined" && window.BetterGravityBrowser?.open) {
-    await window.BetterGravityBrowser.open(geminiUrl);
-  } else {
-    window.open(geminiUrl, "_blank");
+  if (!copied) {
+    try {
+      const ta = document.createElement("textarea");
+      ta.value = petSpritePrompt;
+      ta.style.position = "fixed";
+      ta.style.opacity = "0";
+      document.body.appendChild(ta);
+      ta.focus();
+      ta.select();
+      copied = document.execCommand("copy");
+      ta.remove();
+    } catch {}
   }
 
-  const noticeText = `✨ Pet generation prompt copied! Using Gemini Web account: ${activeEmail} (${activePlan}). Paste the prompt in Gemini Web to generate, then drop the image into your Pets folder.`;
+  const geminiUrl = `https://gemini.google.com/app?authuser=${encodeURIComponent(activeEmail)}`;
+  let opened = false;
+
+  // 1. Native shell open in default browser (Chrome/Edge with user's signed-in Google account)
+  try {
+    if (window.electronNative && typeof window.electronNative.openExternal === "function") {
+      window.electronNative.openExternal(geminiUrl);
+      opened = true;
+    }
+  } catch {}
+
+  // 2. In-built browser if active
+  if (!opened && typeof window !== "undefined" && window.BetterGravityBrowser && typeof window.BetterGravityBrowser.open === "function") {
+    try {
+      await window.BetterGravityBrowser.open(geminiUrl);
+      if (window.BetterGravityBrowser.isOpen?.()) opened = true;
+    } catch {}
+  }
+
+  // 3. Web anchor fallback
+  if (!opened) {
+    try {
+      const a = document.createElement("a");
+      a.href = geminiUrl;
+      a.target = "_blank";
+      a.rel = "noopener noreferrer";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      opened = true;
+    } catch {
+      window.open(geminiUrl, "_blank");
+      opened = true;
+    }
+  }
+
+  const noticeText = copied
+    ? `✨ Pet sprite prompt copied to clipboard! Opening Gemini Web with ${activeEmail} (${activePlan}). Paste the prompt in Gemini to generate, then drop the image into your Pets folder.`
+    : `✨ Opening Gemini Web for ${activeEmail} (${activePlan}).`;
   tellPet(noticeText, 8000, "✨ Gemini Web");
+
+  notice = noticeText;
+  renderPetLibrary();
 }
 
 function renderPetLibrary() {

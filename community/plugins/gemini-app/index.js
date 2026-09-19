@@ -4328,20 +4328,28 @@ function ensureScheduledTasksRow(block) {
 }
 
 function openGeminiWeb(customUrl) {
-  const email = (typeof userAccountProfile !== "undefined" && userAccountProfile?.email) ? userAccountProfile.email : (DEFAULT_ACCOUNT.email || "acostayashica@gmail.com");
-  const url = customUrl || (email ? `https://gemini.google.com/app?authuser=${encodeURIComponent(email)}` : "https://gemini.google.com");
+  let activeEmail = (typeof userAccountProfile !== "undefined" && userAccountProfile?.email) ? userAccountProfile.email : (DEFAULT_ACCOUNT.email || "kurtgpro2@gmail.com");
+  try {
+    const savedEmail = localStorage.getItem("bettergravity_active_account");
+    if (savedEmail) activeEmail = savedEmail;
+  } catch {}
+  const url = customUrl || (activeEmail ? `https://gemini.google.com/app?authuser=${encodeURIComponent(activeEmail)}` : "https://gemini.google.com");
+
+  // 1. In-built browser if active
   if (typeof window !== "undefined" && window.BetterGravityBrowser && typeof window.BetterGravityBrowser.open === "function") {
     try {
       window.BetterGravityBrowser.open(url);
-      return;
+      if (window.BetterGravityBrowser.isOpen?.()) return;
     } catch {}
   }
+  // 2. Electron native shell in default browser
   try {
-    if (typeof plugin?.shell?.openExternal === "function") {
-      plugin.shell.openExternal(url);
+    if (window.electronNative && typeof window.electronNative.openExternal === "function") {
+      window.electronNative.openExternal(url);
       return;
     }
   } catch {}
+  // 3. Fallback
   try {
     const a = document.createElement("a");
     a.href = url;
