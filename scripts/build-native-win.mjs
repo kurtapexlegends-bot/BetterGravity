@@ -9,7 +9,8 @@ const lightPublishDir = resolve(outDir, "windows-light");
 
 mkdirSync(outDir, { recursive: true });
 
-// Ensure patcher CLI is freshly bundled
+// Ensure runtime and patcher CLI are freshly bundled
+execSync("node build.mjs", { cwd: resolve(workspace, "packages/runtime"), stdio: "inherit" });
 execSync("node packages/patcher/build-cli.mjs", { cwd: workspace, stdio: "inherit" });
 
 const patcherCliSrc = resolve(workspace, "packages/patcher/dist/native/patcher-cli.cjs");
@@ -19,12 +20,55 @@ if (existsSync(patcherCliSrc)) {
 }
 
 // Ensure runtime bundles are synced to installer-windows Patcher directory
-const electronRuntimeSrc = resolve(workspace, "apps/installer/dist-electron/runtime");
 const windowsRuntimeDest = resolve(workspace, "apps/installer-windows/Patcher/runtime");
-if (existsSync(electronRuntimeSrc)) {
-  mkdirSync(windowsRuntimeDest, { recursive: true });
-  cpSync(electronRuntimeSrc, windowsRuntimeDest, { recursive: true, force: true });
+mkdirSync(windowsRuntimeDest, { recursive: true });
+
+const runtimeMainSrc = resolve(workspace, "packages/runtime/dist/main.cjs");
+const runtimePreloadSrc = resolve(workspace, "packages/runtime/dist/preload.cjs");
+const runtimeRepairSrc = resolve(workspace, "packages/patcher/dist/native/repair.cjs");
+const runtimeOverlaySrc = resolve(workspace, "packages/runtime/dist/overlay.html");
+
+if (existsSync(runtimeMainSrc)) cpSync(runtimeMainSrc, resolve(windowsRuntimeDest, "main.cjs"), { force: true });
+if (existsSync(runtimePreloadSrc)) cpSync(runtimePreloadSrc, resolve(windowsRuntimeDest, "preload.cjs"), { force: true });
+if (existsSync(runtimeRepairSrc)) cpSync(runtimeRepairSrc, resolve(windowsRuntimeDest, "repair.cjs"), { force: true });
+if (existsSync(runtimeOverlaySrc)) cpSync(runtimeOverlaySrc, resolve(windowsRuntimeDest, "overlay.html"), { force: true });
+
+// Generate Patcher manifest.json with fresh SHA-256 hashes
+const { createHash } = await import("node:crypto");
+const { readFileSync, writeFileSync } = await import("node:fs");
+
+function getSha256(file) {
+  return createHash("sha256").update(readFileSync(file)).digest("hex");
 }
+
+const pkg = JSON.parse(readFileSync(resolve(workspace, "package.json"), "utf8"));
+const manifest = {
+  version: pkg.version,
+  generatedAt: new Date().toISOString(),
+  files: {
+    "patcher-cli.cjs": {
+      path: "apps/installer-windows/Patcher/patcher-cli.cjs",
+      sha256: getSha256(patcherCliDest)
+    },
+    "runtime/main.cjs": {
+      path: "apps/installer-windows/Patcher/runtime/main.cjs",
+      sha256: getSha256(resolve(windowsRuntimeDest, "main.cjs"))
+    },
+    "runtime/preload.cjs": {
+      path: "apps/installer-windows/Patcher/runtime/preload.cjs",
+      sha256: getSha256(resolve(windowsRuntimeDest, "preload.cjs"))
+    },
+    "runtime/repair.cjs": {
+      path: "apps/installer-windows/Patcher/runtime/repair.cjs",
+      sha256: getSha256(resolve(windowsRuntimeDest, "repair.cjs"))
+    },
+    "runtime/overlay.html": {
+      path: "apps/installer-windows/Patcher/runtime/overlay.html",
+      sha256: getSha256(resolve(windowsRuntimeDest, "overlay.html"))
+    }
+  }
+};
+writeFileSync(resolve(workspace, "apps/installer-windows/Patcher/manifest.json"), JSON.stringify(manifest, null, 2) + "\n");
 
 // 1. Build self-contained single-file executable
 execSync(

@@ -7,6 +7,7 @@ interface FakeWindow {
   setFocusable: ReturnType<typeof vi.fn>;
   isFocusable(): boolean;
   setIgnoreMouseEvents: ReturnType<typeof vi.fn>;
+  setBounds: ReturnType<typeof vi.fn>;
   focus: ReturnType<typeof vi.fn>;
   showInactive: ReturnType<typeof vi.fn>;
   webContents: {
@@ -48,8 +49,10 @@ vi.mock("electron", () => ({
     setAlwaysOnTop = vi.fn();
     setVisibleOnAllWorkspaces = vi.fn();
     setIgnoreMouseEvents = vi.fn();
+    setBounds = vi.fn();
     on = vi.fn();
     loadURL = vi.fn(async () => undefined);
+    loadFile = vi.fn(async () => undefined);
     getContentBounds = vi.fn(() => ({ x: 0, y: 0, width: 1920, height: 1080 }));
     webContents = { setWindowOpenHandler: vi.fn(), on: vi.fn(), once: vi.fn(), send: vi.fn(), isDestroyed: () => false, getZoomFactor: vi.fn(() => 1) };
 
@@ -64,9 +67,20 @@ vi.mock("electron", () => ({
   },
   screen: {
     getPrimaryDisplay: () => ({
+      id: 1,
       workArea: { x: 0, y: 0, width: 1920, height: 1080 },
       scaleFactor: 1
     }),
+    getDisplayNearestPoint: vi.fn(() => ({
+      id: 1,
+      workArea: { x: 0, y: 0, width: 1920, height: 1080 },
+      scaleFactor: 1
+    })),
+    getAllDisplays: vi.fn(() => [{
+      id: 1,
+      workArea: { x: 0, y: 0, width: 1920, height: 1080 },
+      scaleFactor: 1
+    }]),
     getCursorScreenPoint: () => { state.cursorReads(); return state.cursor; },
     on: vi.fn()
   }
@@ -105,6 +119,7 @@ describe("desktop overlay native context menu", () => {
   function attach(): FakeWindow {
     const window = open(true);
     window.webContents.once.mock.calls.find(call => call[0] === "dom-ready")![1]();
+    overlay.attached(window.webContents as unknown as Electron.WebContents);
     return window;
   }
 
@@ -164,6 +179,7 @@ describe("desktop overlay native context menu", () => {
 describe("desktop overlay keyboard focus", () => {
   it("opens without taking keyboard focus from Antigravity", () => {
     const window = open();
+    expect(window.options["backgroundColor"]).toBe("#00000000");
     expect(window.options["focusable"]).toBe(false);
     expect(window.options["show"]).toBe(false);
     expect(window.focus).not.toHaveBeenCalled();
@@ -300,7 +316,8 @@ describe("desktop overlay app activation", () => {
 describe("desktop overlay pointer recovery", () => {
   function ready(window: FakeWindow): void {
     const callback = window.webContents.once.mock.calls.find(([name]) => name === "dom-ready")?.[1];
-    callback();
+    callback?.();
+    overlay.attached(window.webContents as unknown as Electron.WebContents);
   }
 
   const samples = (window: FakeWindow) => window.webContents.send.mock.calls
@@ -356,5 +373,33 @@ describe("desktop overlay pointer recovery", () => {
     gone();
     expect(vi.getTimerCount()).toBe(0);
     expect(overlay.status()).toEqual({ open: false });
+  });
+
+  it("migrates overlay window bounds across screens when dragging", async () => {
+    const window = open();
+    ready(window);
+    overlay.toPage({ type: "bettergravity:overlay-drag-state", dragging: true });
+
+    // Mock moving cursor to a second display
+    const { screen } = await import("electron");
+    (screen.getDisplayNearestPoint as unknown as ReturnType<typeof vi.fn>).mockReturnValueOnce({
+      id: 2,
+      workArea: { x: 1920, y: 0, width: 3440, height: 1410 },
+      scaleFactor: 1
+    });
+
+    state.cursor = { x: 2500, y: 500 };
+    vi.advanceTimersByTime(25);
+
+    expect(window.setBounds).toHaveBeenCalledWith({ x: 1920, y: 0, width: 3440, height: 1410 });
+    const switched = window.webContents.send.mock.calls
+      .map(([, msg]) => msg)
+      .find(msg => msg?.type === "bettergravity:overlay-display-switched");
+    expect(switched).toMatchObject({
+      type: "bettergravity:overlay-display-switched",
+      bounds: { x: 1920, y: 0, width: 3440, height: 1410 },
+      cursorX: 2500,
+      cursorY: 500
+    });
   });
 });

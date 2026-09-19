@@ -3685,7 +3685,7 @@ var import_node_url = require("node:url");
 var import_node_path3 = __toESM(require("node:path"), 1);
 
 // packages/shared/src/index.ts
-var BETTERGRAVITY_VERSION = "2.0.2";
+var BETTERGRAVITY_VERSION = "3.0.0";
 var SUPPORTED_HOST_MAJOR = 2;
 function isSupportedHostVersion(version) {
   if (typeof version !== "string") return false;
@@ -4055,7 +4055,7 @@ async function closeAntigravity(installationPath, onProgress) {
 }
 
 // packages/patcher/src/native/index.ts
-var RUNTIME_FILES = ["main.cjs", "preload.cjs", "repair.cjs"];
+var RUNTIME_FILES = ["main.cjs", "preload.cjs", "repair.cjs", "overlay.html"];
 var MAX_RETAINED_BACKUPS = 5;
 function inspectInstallation(installationPath) {
   if (isAntigravityIde(installationPath)) {

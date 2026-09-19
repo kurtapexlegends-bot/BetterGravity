@@ -1,6 +1,12 @@
+import fs from "node:fs";
+import path from "node:path";
 import { BrowserWindow, Menu, screen, type Rectangle } from "electron";
 import { CHANNEL, OVERLAY_ARGUMENT, type OverlayBounds, type OverlayStatus, type OverlaySurface } from "../protocol.js";
 import { logger } from "./logger.js";
+
+const TRANSPARENT_PAGE = `data:text/html;charset=utf-8,${encodeURIComponent(
+  "<!DOCTYPE html><html><head><style>html,body{margin:0;padding:0;width:100%;height:100%;overflow:hidden;background:transparent!important;}</style></head><body></body></html>"
+)}`;
 
 /**
  * A window on the desktop rather than in the page.
@@ -29,6 +35,8 @@ interface Live {
   attached: boolean;
   interactive: boolean;
   focusable: boolean;
+  displayId?: number;
+  dragging?: boolean;
 }
 
 function boundsOf(display: Electron.Display): OverlayBounds {
@@ -49,6 +57,7 @@ export class OverlayWindow {
   private live: Live | undefined;
 
   private pointerTimer: NodeJS.Timeout | undefined;
+  private attachTimer: NodeJS.Timeout | undefined;
   private contextMenu: { menu: Menu; live: Live; finish(id: string | null): void } | undefined;
 
   private listeners = new Set<(status: OverlayStatus) => void>();
@@ -65,7 +74,10 @@ export class OverlayWindow {
   status(): OverlayStatus {
     const live = this.live;
     if (!live || live.window.isDestroyed()) return { open: false };
-    return { open: true, bounds: boundsOf(displayFor(live.surface.display)) };
+    const current = live.displayId !== undefined && typeof screen.getAllDisplays === "function"
+      ? screen.getAllDisplays().find(d => d.id === live.displayId)
+      : undefined;
+    return { open: true, bounds: boundsOf(current ?? displayFor(live.surface.display)) };
   }
 
   /**
@@ -116,6 +128,7 @@ export class OverlayWindow {
           contextIsolation: true,
           nodeIntegration: false,
           sandbox: false,
+          preload: path.join(__dirname, "preload.cjs"),
           additionalArguments: [OVERLAY_ARGUMENT]
         }
       });
@@ -126,9 +139,23 @@ export class OverlayWindow {
 
     const live: Live = {
       window, owner, surface, attached: false,
-      interactive: surface.interactive === true, focusable: false
+      interactive: surface.interactive === true, focusable: false,
+      displayId: display.id
     };
     this.live = live;
+
+    if (this.attachTimer !== undefined) {
+      clearTimeout(this.attachTimer);
+      this.attachTimer = undefined;
+    }
+    const timer = setTimeout(() => {
+      if (this.live === live && !live.attached) {
+        logger.info(`Overlay surface script timed out before attaching for ${owner}. Closing window.`);
+        this.close();
+      }
+    }, 3000);
+    timer.unref?.();
+    this.attachTimer = timer;
 
     // "floating" rather than "screen-saver": high enough to sit over ordinary
     // windows, low enough that a screen lock or a system dialog still wins.
@@ -142,22 +169,24 @@ export class OverlayWindow {
 
     window.webContents.setWindowOpenHandler(() => ({ action: "deny" }));
     window.webContents.on("will-navigate", (event, url) => {
-      if (url !== "about:blank") event.preventDefault();
+      if (url !== "about:blank" && !url.startsWith("data:text/html") && !url.includes("overlay.html")) event.preventDefault();
     });
 
     window.webContents.once("dom-ready", () => {
       if (window.isDestroyed() || this.live !== live) return;
-      live.attached = true;
       window.webContents.send(CHANNEL.overlaySurface, surface);
-      window.showInactive();
       this.startPointerTracking(live);
-      this.announce();
     });
 
     const gone = () => {
       if (this.live === live) {
+        if (this.attachTimer !== undefined) {
+          clearTimeout(this.attachTimer);
+          this.attachTimer = undefined;
+        }
         this.stopPointerTracking();
         this.live = undefined;
+        if (!live.window.isDestroyed()) live.window.destroy();
         this.announce();
       }
     };
@@ -178,10 +207,14 @@ export class OverlayWindow {
       }
     }
 
-    // about:blank rather than a file: the document is the plugin's to build, and
-    // a blank page carries no CSP to fight and no asset to keep in step with the
-    // rest of the runtime.
-    window.loadURL("about:blank").catch((error: unknown) => {
+    // Load an intrinsically transparent HTML document so Chromium never paints
+    // a default opaque or dark background before the surface script executes.
+    const overlayHtml = path.join(__dirname, "overlay.html");
+    const loadPromise = fs.existsSync(overlayHtml)
+      ? window.loadFile(overlayHtml)
+      : window.loadURL(TRANSPARENT_PAGE);
+
+    loadPromise.catch((error: unknown) => {
       logger.error("The overlay window could not load.", error);
       gone();
     });
@@ -192,6 +225,10 @@ export class OverlayWindow {
   }
 
   close(): OverlayStatus {
+    if (this.attachTimer !== undefined) {
+      clearTimeout(this.attachTimer);
+      this.attachTimer = undefined;
+    }
     this.closeContextMenu();
     this.stopPointerTracking();
     const live = this.live;
@@ -199,6 +236,20 @@ export class OverlayWindow {
     if (live && !live.window.isDestroyed()) live.window.destroy();
     if (live) this.announce();
     return { open: false };
+  }
+
+  /** Called when the renderer acknowledges the surface script has attached. */
+  attached(contents: Electron.WebContents): void {
+    const live = this.live;
+    if (!live || live.window.isDestroyed() || live.window.webContents.id !== contents.id) return;
+    if (live.attached) return;
+    live.attached = true;
+    if (this.attachTimer !== undefined) {
+      clearTimeout(this.attachTimer);
+      this.attachTimer = undefined;
+    }
+    live.window.showInactive();
+    this.announce();
   }
 
   /** True when a message came from the overlay window rather than a page. */
@@ -273,6 +324,29 @@ export class OverlayWindow {
       }
       try {
         const cursor = screen.getCursorScreenPoint();
+
+        // While dragging across multiple displays, hop the overlay window to the active display
+        if (live.dragging && typeof screen.getDisplayNearestPoint === "function") {
+          const targetDisplay = screen.getDisplayNearestPoint(cursor);
+          if (targetDisplay && live.displayId !== undefined && targetDisplay.id !== live.displayId) {
+            live.displayId = targetDisplay.id;
+            if (typeof live.window.setBounds === "function") {
+              live.window.setBounds(targetDisplay.workArea);
+            }
+            const bounds = boundsOf(targetDisplay);
+            if (live.attached) {
+              live.window.webContents.send(CHANNEL.overlayStatus, { open: true, bounds });
+              live.window.webContents.send(CHANNEL.overlayMessage, {
+                type: "bettergravity:overlay-display-switched",
+                bounds,
+                cursorX: cursor.x,
+                cursorY: cursor.y
+              });
+            }
+            this.announce();
+          }
+        }
+
         const bounds = live.window.getContentBounds();
         const zoom = live.window.webContents.getZoomFactor();
         if (!Number.isFinite(zoom) || zoom <= 0) return;
@@ -288,7 +362,7 @@ export class OverlayWindow {
         // Display reconfiguration can temporarily make a native cursor read fail.
       }
     };
-    const timer = setInterval(sample, 50);
+    const timer = setInterval(sample, 25);
     timer.unref();
     this.pointerTimer = timer;
     sample();
@@ -310,6 +384,14 @@ export class OverlayWindow {
   toPage(message: unknown): void {
     const page = this.page;
     if (!page || page.isDestroyed()) return;
+    if (message !== null && typeof message === "object" &&
+      "type" in message && message.type === "bettergravity:overlay-drag-state") {
+      const live = this.live;
+      if (live) {
+        live.dragging = (message as { dragging?: boolean }).dragging === true;
+      }
+      return;
+    }
     if (message !== null && typeof message === "object" &&
       "type" in message && message.type === "bettergravity:overlay-context-menu") {
       this.showContextMenu(message);
@@ -386,9 +468,14 @@ export class OverlayWindow {
     const resize = () => {
       const live = this.live;
       if (!live || live.window.isDestroyed()) return;
-      const display = displayFor(live.surface.display);
+      const current = live.displayId !== undefined && typeof screen.getAllDisplays === "function"
+        ? screen.getAllDisplays().find(d => d.id === live.displayId)
+        : undefined;
+      const display = current ?? displayFor(live.surface.display);
       const area: Rectangle = display.workArea;
-      live.window.setBounds(area);
+      if (typeof live.window.setBounds === "function") {
+        live.window.setBounds(area);
+      }
       if (live.attached) live.window.webContents.send(CHANNEL.overlayStatus, this.status());
       this.announce();
     };

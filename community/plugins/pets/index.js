@@ -2652,6 +2652,7 @@ function petSurface(host, data) {
     // A held pet does not look around, so the pose has to come off now.
     paint();
     refresh();
+    if (desktop) host.send({ type: "bettergravity:overlay-drag-state", dragging: true });
   });
 
   on(
@@ -2697,6 +2698,7 @@ function petSurface(host, data) {
 
     const held = drag;
     drag = null;
+    if (desktop) host.send({ type: "bettergravity:overlay-drag-state", dragging: false });
     // Codex clears the transient here, so the pet stops running the instant it is
     // let go and flies through the air as whatever the agent is doing.
     transient = null;
@@ -3245,11 +3247,33 @@ function petSurface(host, data) {
     host.onMessage((message) => {
       if (message === null || typeof message !== "object") return;
 
+      // While dragging across multiple screens, the window hops between monitors.
+      if (message.type === "bettergravity:overlay-display-switched") {
+        if (drag !== null && message.bounds && Number.isFinite(message.cursorX) && Number.isFinite(message.cursorY)) {
+          const localX = message.cursorX - message.bounds.x;
+          const localY = message.cursorY - message.bounds.y;
+          drag.x = localX;
+          drag.y = localY;
+          place(localX - drag.grabX, localY - drag.grabY);
+          refresh();
+        }
+        return;
+      }
+
       // The native window also samples the desktop cursor. This recovers hover
       // and click-through state when Windows stops forwarding mousemove events.
       if (message.type === "bettergravity:overlay-pointer") {
         if (desktop && Number.isFinite(message.x) && Number.isFinite(message.y)) {
-          updatePointer(message.x, message.y);
+          if (drag !== null) {
+            drag.samples = prune([...drag.samples, { x: message.x, y: message.y, timeMs: performance.now() }]);
+            drag.hasMoved = true;
+            drag.x = message.x;
+            drag.y = message.y;
+            place(message.x - drag.grabX, message.y - drag.grabY);
+            refresh();
+          } else {
+            updatePointer(message.x, message.y);
+          }
         }
         return;
       }
@@ -3629,7 +3653,7 @@ const settings = plugin.settings.define({
     label: "Where it lives",
     description:
       "On the desktop, in a window of its own, the way Codex does it — so it stays with you when Antigravity is behind something else. Inside the window if your system will not give it one.",
-    default: "desktop",
+    default: typeof navigator !== "undefined" && navigator.userAgent.includes("Windows") ? "window" : "desktop",
     options: [
       { value: "desktop", label: "On the desktop" },
       { value: "window", label: "Inside Antigravity" }
@@ -5735,6 +5759,12 @@ const HELLO_TIMEOUT_MS = 4000;
 
 /** The pet on the desktop, or null when the window could not be opened. */
 async function desktopSurface(data) {
+  // On Windows, frameless transparent desktop overlays can experience DWM surface issues.
+  // Unless the user explicitly configured "desktop" in settings, keep the pet inside the window.
+  if (typeof navigator !== "undefined" && navigator.userAgent.includes("Windows") && settings.home !== "desktop") {
+    return null;
+  }
+
   // Nothing in here may throw. `plugin.overlay` is the newest thing in the
   // plugin API, so a BetterGravity that predates it has no `overlay` on the
   // context at all — and a pet in the window is worth much more than an
@@ -5783,7 +5813,7 @@ async function desktopSurface(data) {
     off();
     trouble = "the desktop window opened but no pet appeared in it";
     plugin.log.warn(`no desktop window: ${trouble}`);
-    handle.close();
+    try { handle.close(); } catch {}
     return null;
   }
 
@@ -6420,8 +6450,10 @@ async function start() {
 
   const data = { config: configOf(), entries: activity, working, at: position, activityPillsVisible, badgeCorner };
 
+  const isWindows = typeof navigator !== "undefined" && navigator.userAgent.includes("Windows");
+  const wantsDesktop = settings.home === "desktop";
   const next =
-    settings.home === "window"
+    (!wantsDesktop || (isWindows && !wantsDesktop))
       ? windowSurface(data)
       : ((await desktopSurface(data)) ?? windowSurface(data));
 

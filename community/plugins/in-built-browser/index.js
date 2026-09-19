@@ -533,7 +533,8 @@ function activeConversationContext() {
   const id = location.pathname.match(/\/c\/([^/]+)/)?.[1];
   const conversation = document.querySelector('[data-testid="conversation-view"]');
   // These full-page views retain /c/:id while covering the conversation.
-  if (document.body?.matches?.(".bettergravity-pets-open, .gemini-skills-open") || conversation?.closest("[data-pet-page-hidden], [data-gemini-skills-hidden]")) return null;
+  if (document.body?.matches?.(".bettergravity-pets-open, .gemini-skills-open") || conversation?.closest?.("[data-pet-page-hidden], [data-gemini-skills-hidden]")) return null;
+  if (conversation && conversation.checkVisibility && !conversation.checkVisibility({ checkVisibilityCSS: true })) return null;
   if (id) return id;
   if (document.querySelector('[data-testid="agent-input-box"], [data-testid="composer-input"]')) return "home";
   return null;
@@ -1605,11 +1606,18 @@ function unmount() {
 
 const conversationObserver = new MutationObserver(syncContext);
 const viewObserver = new MutationObserver(syncContext);
-if (document.body) {
-  viewObserver.observe(document.body, { attributes: true, attributeFilter: ["class"] });
-} else {
+function bindViewObserver() {
+  const target = document.body || document.documentElement;
+  if (target) {
+    viewObserver.observe(target, { attributes: true, attributeFilter: ["class"] });
+  }
+}
+bindViewObserver();
+if (typeof document !== "undefined" && !document.body) {
   document.addEventListener("DOMContentLoaded", () => {
-    if (document.body) viewObserver.observe(document.body, { attributes: true, attributeFilter: ["class"] });
+    viewObserver.disconnect();
+    bindViewObserver();
+    syncContext();
   }, { once: true });
 }
 syncContext();
