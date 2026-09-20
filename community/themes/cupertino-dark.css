@@ -1,0 +1,603 @@
+/**
+ * @name        Cupertino Dark
+ * @description Masterclass Apple Pro & Space Black aesthetics for BetterGravity: Continuous squircle curvature, obsidian glass materials, specular chamfers, floating inspector wells, and tactile spring physics.
+ * @author      BetterGravity Contributors
+ * @version     1.2.0
+ * @source      https://github.com/YashjitPal/BetterGravity
+ */
+
+/* ==========================================================================
+   1. Apple Studio Space Black Design Tokens
+   ========================================================================== */
+:root {
+  /* True Deep Obsidian Canvas & Surfaces */
+  --apple-canvas: #09090b;
+  --apple-sidebar: #09090b;
+  --apple-surface: #121216;
+  --apple-surface-elevated: rgba(20, 20, 25, 0.82);
+  --apple-surface-overlay: rgba(26, 26, 32, 0.94);
+  --apple-card: rgba(18, 18, 22, 0.78);
+  --apple-bubble: rgba(26, 26, 32, 0.88);
+
+  /* Specular Hairlines & Glass Chamfers */
+  --apple-border: rgba(255, 255, 255, 0.07);
+  --apple-border-subtle: rgba(255, 255, 255, 0.04);
+  --apple-border-hover: rgba(255, 255, 255, 0.12);
+  --apple-specular: inset 0 1px 0 0 rgba(255, 255, 255, 0.10);
+  --apple-specular-prominent: inset 0 1px 0 0 rgba(255, 255, 255, 0.18);
+  --apple-specular-bright: inset 0 1px 0 0 rgba(255, 255, 255, 0.35);
+  --apple-divider: rgba(255, 255, 255, 0.06);
+
+  /* Apple Pro Accents */
+  --apple-blue: #0a84ff;
+  --apple-blue-gradient: linear-gradient(180deg, #1a8eff 0%, #0071e3 100%);
+  --apple-blue-hover: #0071e3;
+  --apple-blue-glow: rgba(10, 132, 255, 0.22);
+  --apple-blue-subtle: rgba(10, 132, 255, 0.14);
+
+  /* High-Signal Typography Colors */
+  --apple-label: #f5f5f7;
+  --apple-secondary-label: rgba(235, 235, 245, 0.62);
+  --apple-tertiary-label: rgba(235, 235, 245, 0.36);
+
+  /* Interactive States */
+  --apple-hover-wash: rgba(255, 255, 255, 0.05);
+  --apple-active-wash: rgba(255, 255, 255, 0.09);
+  --apple-selected-row: rgba(255, 255, 255, 0.11);
+
+  /* BetterGravity & Antigravity Semantic Mappings */
+  --background: var(--apple-canvas) !important;
+  --foreground: var(--apple-label) !important;
+  --primary: var(--apple-blue) !important;
+  --primary-foreground: #ffffff !important;
+  --secondary: var(--apple-surface) !important;
+  --secondary-foreground: var(--apple-label) !important;
+  --muted: #0c0c0f !important;
+  --muted-foreground: var(--apple-secondary-label) !important;
+  --border: var(--apple-border) !important;
+  --card: var(--apple-card) !important;
+  --card-border: var(--apple-border) !important;
+  --sidebar: var(--apple-sidebar) !important;
+  --sidebar-secondary: #131317 !important;
+  --sidebar-muted: var(--apple-secondary-label) !important;
+  --link: var(--apple-blue) !important;
+  --focus-ring-color: transparent !important;
+
+  /* Gemini Plugin Variable Alignment */
+  --gemini-font: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "SF Pro", -apple-system-subheadline, system-ui, sans-serif !important;
+  --gemini-page-bg: var(--apple-canvas) !important;
+  --gemini-surface: var(--apple-sidebar) !important;
+  --gemini-surface-hover: var(--apple-hover-wash) !important;
+  --gemini-composer-bg: var(--apple-surface-elevated) !important;
+  --gemini-send-bg: var(--apple-blue) !important;
+  --gemini-send-bg-hover: var(--apple-blue-hover) !important;
+  --gemini-bubble-bg: var(--apple-bubble) !important;
+  --gemini-switch-track: #0b0b0e !important;
+  --gemini-switch-slider: rgba(255, 255, 255, 0.12) !important;
+  --gemini-separator: var(--apple-divider) !important;
+  --gemini-menu-divider: var(--apple-divider) !important;
+  --gemini-rule: var(--apple-divider) !important;
+  --gemini-selection-bg: var(--apple-blue-subtle) !important;
+}
+
+/* ==========================================================================
+   2. Typography & Optical Hierarchy (Safeguarding Icon Glyphs)
+   ========================================================================== */
+body,
+button,
+input,
+textarea,
+select,
+.font-sans,
+[class*="text-"] {
+  font-family: var(--gemini-font);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Apple Pro Headings with Precise Optical Tracking */
+h1, h2, h3, .text-xl, .text-2xl, .text-3xl {
+  letter-spacing: -0.02em;
+  font-weight: 600;
+  color: var(--apple-label);
+}
+
+/* SF Mono for Code and Tokens */
+code,
+pre,
+kbd,
+samp,
+.font-mono {
+  font-family: "SF Mono", SFMono-Regular, Menlo, Monaco, Consolas, "Courier New", monospace !important;
+  font-size: 0.9em;
+}
+
+/* Native Selection Color */
+::selection {
+  background: var(--apple-blue-subtle) !important;
+  color: #ffffff !important;
+}
+
+/* ==========================================================================
+   3. Window Frame & Specular Lighting
+   ========================================================================== */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0 0 auto 0;
+  height: 1px;
+  z-index: 2147483000;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.10) 20%,
+    rgba(255, 255, 255, 0.18) 50%,
+    rgba(255, 255, 255, 0.10) 80%,
+    transparent 100%
+  );
+  pointer-events: none;
+}
+
+/* Titlebar & Window Edge Integration */
+header,
+div:has(> div > [data-testid="window-controls"]) {
+  background: var(--apple-canvas) !important;
+  border-bottom: 1px solid var(--apple-divider) !important;
+}
+
+/* ==========================================================================
+   4. macOS Floating Slim Scrollbars
+   ========================================================================== */
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  border: 1px solid transparent;
+  border-radius: 9999px;
+  background-clip: content-box;
+  background-color: rgba(255, 255, 255, 0.15);
+  transition: background-color 150ms ease;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(255, 255, 255, 0.35);
+}
+
+/* ==========================================================================
+   5. Sidebar & Navigation (Floating Squircles & Seamless Backgrounds)
+   ========================================================================== */
+[role="navigation"][aria-label="Sidebar"] {
+  background-color: var(--apple-sidebar) !important;
+  border-right: 1px solid var(--apple-divider) !important;
+}
+
+/* Remove all ugly rectangular patch backgrounds on sticky headers / section banners */
+[role="navigation"][aria-label="Sidebar"] .bg-sidebar,
+[role="navigation"][aria-label="Sidebar"] div[class*="bg-sidebar"],
+[role="navigation"][aria-label="Sidebar"] button[class*="bg-sidebar"],
+[role="navigation"][aria-label="Sidebar"] .sticky {
+  background-color: transparent !important;
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+/* Re-tint top scroller fade so it dissolves into true black */
+[role="navigation"][aria-label="Sidebar"] #gemini-top-fade {
+  background: linear-gradient(to bottom, var(--apple-canvas) 15%, transparent) !important;
+}
+
+/* Apple macOS Section Headers (PINNED CONVERSATIONS, SIDEPROJECTS) */
+[role="navigation"][aria-label="Sidebar"] h2,
+[role="navigation"][aria-label="Sidebar"] h3,
+[role="navigation"][aria-label="Sidebar"] [class*="text-xs"][class*="font-semibold"],
+[role="navigation"][aria-label="Sidebar"] [class*="text-xs"][class*="tracking-"] {
+  font-size: 10.5px !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.08em !important;
+  text-transform: uppercase !important;
+  color: var(--apple-tertiary-label) !important;
+  padding-left: 12px !important;
+  padding-top: 14px !important;
+  padding-bottom: 4px !important;
+}
+
+/* Conversation List Rows: Floating Inset Squircles */
+[role="navigation"][aria-label="Sidebar"] [data-testid="conversation-row-sidebar"],
+div[data-testid="conversation-row-sidebar"],
+[role="navigation"][aria-label="Sidebar"] a[role="link"],
+[role="navigation"][aria-label="Sidebar"] [data-testid*="conversation-item"],
+[role="navigation"][aria-label="Sidebar"] li[role="treeitem"] {
+  width: calc(100% - 16px) !important;
+  margin: 1px 8px !important;
+  border-radius: 9px !important;
+  padding: 6px 10px !important;
+  box-sizing: border-box !important;
+  border: 1px solid transparent !important;
+  transition: background-color 100ms ease, color 100ms ease, border-color 100ms ease !important;
+}
+
+[role="navigation"][aria-label="Sidebar"] [data-testid="conversation-row-sidebar"]:hover:not([data-selected="true"]),
+[role="navigation"][aria-label="Sidebar"] a[role="link"]:hover:not([aria-current="page"]),
+[role="navigation"][aria-label="Sidebar"] [data-testid*="conversation-item"]:hover:not([data-selected="true"]) {
+  background-color: var(--apple-hover-wash) !important;
+}
+
+/* Active / Selected Sidebar Item (Symmetric Apple Frosted Capsule) */
+[role="navigation"][aria-label="Sidebar"] div[data-testid="conversation-row-sidebar"][data-selected="true"],
+div[data-testid="conversation-row-sidebar"][data-selected="true"],
+[role="navigation"][aria-label="Sidebar"] a[aria-current="page"],
+[role="navigation"][aria-label="Sidebar"] [aria-selected="true"],
+[role="navigation"][aria-label="Sidebar"] [data-selected="true"] {
+  background-color: var(--apple-selected-row) !important;
+  border: 1px solid rgba(255, 255, 255, 0.07) !important;
+  box-shadow: var(--apple-specular) !important;
+  color: #ffffff !important;
+  font-weight: 500 !important;
+}
+
+/* Top Nav Action Items */
+[role="navigation"][aria-label="Sidebar"] [data-testid="new-conversation-button"],
+[role="navigation"][aria-label="Sidebar"] [data-testid="history-button"],
+[role="navigation"][aria-label="Sidebar"] #gemini-skills-button,
+[role="navigation"][aria-label="Sidebar"] #gemini-scheduled-tasks-button,
+[role="navigation"][aria-label="Sidebar"] #gemini-browser-button,
+[role="navigation"][aria-label="Sidebar"] #gemini-new-project-button,
+[role="navigation"][aria-label="Sidebar"] #gemini-display-options-button {
+  border-radius: 9px !important;
+  margin: 1px 8px !important;
+  width: calc(100% - 16px) !important;
+  box-sizing: border-box !important;
+  transition: background-color 120ms ease, transform 90ms ease !important;
+}
+
+[role="navigation"][aria-label="Sidebar"] [data-testid="new-conversation-button"]:hover,
+[role="navigation"][aria-label="Sidebar"] [data-testid="history-button"]:hover,
+[role="navigation"][aria-label="Sidebar"] #gemini-skills-button:hover,
+[role="navigation"][aria-label="Sidebar"] #gemini-scheduled-tasks-button:hover,
+[role="navigation"][aria-label="Sidebar"] #gemini-browser-button:hover,
+[role="navigation"][aria-label="Sidebar"] #gemini-new-project-button:hover,
+[role="navigation"][aria-label="Sidebar"] #gemini-display-options-button:hover {
+  background-color: var(--apple-hover-wash) !important;
+}
+
+[role="navigation"][aria-label="Sidebar"] [data-testid="new-conversation-button"]:active {
+  transform: scale(0.98);
+}
+
+/* Chat / Work Segmented Control Switch */
+#gemini-experience-switch [data-gemini-experience-track] {
+  background-color: var(--gemini-switch-track) !important;
+  border: 1px solid rgba(255, 255, 255, 0.06) !important;
+  border-radius: 9999px !important;
+}
+
+#gemini-experience-switch [data-gemini-experience-slider] {
+  background-color: var(--gemini-switch-slider) !important;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.5), var(--apple-specular) !important;
+  border-radius: 9999px !important;
+}
+
+/* Settings Button (Bottom Right of Sidebar) */
+[data-testid="settings-button"] {
+  border-radius: 9999px !important;
+  background: rgba(255, 255, 255, 0.05) !important;
+  border: 1px solid rgba(255, 255, 255, 0.07) !important;
+  box-shadow: var(--apple-specular) !important;
+  transition: background-color 140ms ease, transform 100ms ease !important;
+}
+
+[data-testid="settings-button"]:hover {
+  background: rgba(255, 255, 255, 0.10) !important;
+  border-color: rgba(255, 255, 255, 0.12) !important;
+}
+
+[data-testid="settings-button"]:active {
+  transform: scale(0.94) !important;
+}
+
+/* ==========================================================================
+   6. Prompt Composer (Floating Obsidian Glass Capsule)
+   ========================================================================== */
+[data-testid="agent-input-box"] {
+  outline: none !important;
+  padding-bottom: 8px !important;
+  --tw-ring-offset-shadow: none !important;
+  --tw-ring-shadow: none !important;
+}
+
+/* Inner Composer Card */
+[data-testid="agent-input-box"] > .rounded-2xl.bg-card-border > .bg-card:not([data-mention-menu]),
+[data-testid="agent-input-box"] .bg-card:not([data-mention-menu]) {
+  background: var(--apple-surface-elevated) !important;
+  backdrop-filter: blur(50px) saturate(190%) !important;
+  -webkit-backdrop-filter: blur(50px) saturate(190%) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  border-radius: 24px !important;
+  box-shadow:
+    var(--apple-specular-prominent),
+    0 20px 50px -10px rgba(0, 0, 0, 0.85),
+    0 4px 12px rgba(0, 0, 0, 0.5) !important;
+  transition: border-color 200ms ease, box-shadow 200ms ease !important;
+}
+
+/* Focus State: Specular Edge & Quiet Ambient Glow */
+[data-testid="agent-input-box"]:focus-within > .rounded-2xl.bg-card-border > .bg-card:not([data-mention-menu]),
+[data-testid="agent-input-box"]:focus-within .bg-card:not([data-mention-menu]) {
+  border-color: rgba(255, 255, 255, 0.16) !important;
+  box-shadow:
+    var(--apple-specular-prominent),
+    0 0 0 1px rgba(255, 255, 255, 0.08),
+    0 0 28px rgba(10, 132, 255, 0.15),
+    0 24px 60px -10px rgba(0, 0, 0, 0.95) !important;
+  outline: none !important;
+  --tw-ring-offset-shadow: none !important;
+  --tw-ring-shadow: none !important;
+}
+
+[data-testid="agent-input-box"]:focus,
+[data-testid="agent-input-box"]:focus-visible,
+[data-testid="agent-input-box"]:focus-within {
+  outline: none !important;
+  --tw-ring-offset-shadow: none !important;
+  --tw-ring-shadow: none !important;
+}
+
+/* Plus Button Inside Composer */
+[data-testid="agent-input-box"] button[aria-label="Add context"] {
+  border-radius: 9999px !important;
+  background-color: rgba(255, 255, 255, 0.06) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  box-shadow: var(--apple-specular) !important;
+  color: var(--apple-secondary-label) !important;
+  transition: background-color 120ms ease, transform 90ms ease, color 120ms ease !important;
+}
+
+[data-testid="agent-input-box"] button[aria-label="Add context"]:hover {
+  background-color: rgba(255, 255, 255, 0.11) !important;
+  color: #ffffff !important;
+}
+
+[data-testid="agent-input-box"] button[aria-label="Add context"]:active {
+  transform: scale(0.92) !important;
+}
+
+/* Model Selector & Context Badges */
+[data-testid="model-selector-trigger"],
+[data-testid="side-question-toolbar-button"],
+[data-testid="agent-input-box"] button[class*="rounded-full"] {
+  border-radius: 9999px !important;
+  background-color: rgba(255, 255, 255, 0.05) !important;
+  border: 1px solid rgba(255, 255, 255, 0.07) !important;
+  box-shadow: var(--apple-specular) !important;
+  color: var(--apple-secondary-label) !important;
+  font-size: 12.5px !important;
+  font-weight: 500 !important;
+  transition: background-color 120ms ease, border-color 120ms ease, color 120ms ease !important;
+}
+
+[data-testid="model-selector-trigger"]:hover,
+[data-testid="side-question-toolbar-button"]:hover,
+[data-testid="agent-input-box"] button[class*="rounded-full"]:hover {
+  background-color: rgba(255, 255, 255, 0.09) !important;
+  border-color: rgba(255, 255, 255, 0.12) !important;
+  color: #ffffff !important;
+}
+
+/* Token Counter Pill */
+[data-testid="agent-input-box"] .gemini-composer-meta {
+  color: var(--apple-tertiary-label) !important;
+  font-size: 12px !important;
+  font-weight: 500 !important;
+}
+
+/* ==========================================================================
+   7. Send Action Button (Tactile Apple Action Disc)
+   ========================================================================== */
+/* Active state: Gradient Apple Blue with Specular Sheen */
+[data-testid="send-button"]:not(:disabled):not([disabled]):not([aria-disabled="true"]) {
+  background: var(--apple-blue-gradient) !important;
+  color: #ffffff !important;
+  border: 1px solid rgba(255, 255, 255, 0.22) !important;
+  border-radius: 9999px !important;
+  box-shadow:
+    var(--apple-specular-bright),
+    0 2px 10px rgba(10, 132, 255, 0.45) !important;
+  opacity: 1 !important;
+  cursor: pointer !important;
+  transition: transform 90ms cubic-bezier(0.2, 0, 0, 1), filter 140ms ease !important;
+}
+
+[data-testid="send-button"]:not(:disabled):not([disabled]):not([aria-disabled="true"]):hover {
+  filter: brightness(1.12) !important;
+}
+
+[data-testid="send-button"]:not(:disabled):not([disabled]):not([aria-disabled="true"]):active {
+  transform: scale(0.92) !important;
+}
+
+[data-testid="send-button"]:not(:disabled):not([disabled]):not([aria-disabled="true"]) svg {
+  stroke: #ffffff !important;
+  color: #ffffff !important;
+}
+
+/* Disabled state: Sleek Matte Capsule */
+[data-testid="send-button"]:disabled,
+[data-testid="send-button"][disabled],
+[data-testid="send-button"][aria-disabled="true"] {
+  background-color: rgba(255, 255, 255, 0.04) !important;
+  color: rgba(255, 255, 255, 0.20) !important;
+  border: 1px solid rgba(255, 255, 255, 0.04) !important;
+  border-radius: 9999px !important;
+  box-shadow: none !important;
+  opacity: 0.55 !important;
+  cursor: not-allowed !important;
+}
+
+[data-testid="send-button"]:disabled svg,
+[data-testid="send-button"][disabled] svg,
+[data-testid="send-button"][aria-disabled="true"] svg {
+  stroke: rgba(255, 255, 255, 0.22) !important;
+  color: rgba(255, 255, 255, 0.22) !important;
+}
+
+/* ==========================================================================
+   8. Conversation Stream, Sent Message Bubble & Review Cards
+   ========================================================================== */
+/* User Sent Message Bubble: Translucent Apple Dark Glass Pill */
+[data-testid="user-input-step"] > [data-testid="lifted-context-menu-trigger"] > .bg-card {
+  background: var(--apple-bubble) !important;
+  backdrop-filter: blur(30px) saturate(170%) !important;
+  -webkit-backdrop-filter: blur(30px) saturate(170%) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  border-radius: 20px !important;
+  padding: 14px 20px !important;
+  box-shadow:
+    var(--apple-specular),
+    0 6px 24px rgba(0, 0, 0, 0.45) !important;
+}
+
+/* User Message Attachments / Thumbnails */
+[data-testid="user-input-step"] img,
+.willow-bubble-clip img,
+[data-testid="lifted-context-menu-trigger"] img {
+  border-radius: 12px !important;
+  border: 1px solid rgba(255, 255, 255, 0.10) !important;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4) !important;
+}
+
+/* Bubble Toggle Control */
+.willow-bubble-toggle-pill {
+  background: rgba(255, 255, 255, 0.08) !important;
+  border-radius: 9999px !important;
+}
+
+/* Status / Notice Banners (e.g. "User cancelled agent execution") */
+[data-testid="conversation-view"] .text-muted-foreground,
+[data-testid="conversation-view"] div:has(> svg + span:contains("cancelled")) {
+  color: var(--apple-secondary-label) !important;
+  font-size: 13px !important;
+}
+
+/* Changed Files Review Card (.files-changed-header) */
+.files-changed-header {
+  background: rgba(20, 20, 25, 0.82) !important;
+  backdrop-filter: blur(32px) saturate(170%) !important;
+  -webkit-backdrop-filter: blur(32px) saturate(170%) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  border-radius: 16px !important;
+  box-shadow:
+    var(--apple-specular),
+    0 8px 28px rgba(0, 0, 0, 0.5) !important;
+  padding: 14px 20px !important;
+  min-height: 72px !important;
+  height: auto !important;
+  transition: background-color 150ms ease, border-color 150ms ease !important;
+}
+
+.files-changed-header:hover {
+  background: rgba(28, 28, 34, 0.90) !important;
+  border-color: rgba(255, 255, 255, 0.12) !important;
+}
+
+/* Review Action Pill Button */
+.files-changed-header .review-button {
+  height: 38px !important;
+  min-height: 38px !important;
+  padding: 0 20px !important;
+  border-radius: 9999px !important;
+  background: var(--apple-blue-gradient) !important;
+  border: 1px solid rgba(255, 255, 255, 0.25) !important;
+  box-shadow:
+    var(--apple-specular-bright),
+    0 2px 8px rgba(10, 132, 255, 0.4) !important;
+  color: #ffffff !important;
+  font-weight: 500 !important;
+  font-size: 14px !important;
+  letter-spacing: -0.01em !important;
+  transition: filter 120ms ease, transform 90ms ease !important;
+}
+
+.files-changed-header .review-button:hover {
+  filter: brightness(1.12) !important;
+}
+
+.files-changed-header .review-button:active {
+  transform: scale(0.95) !important;
+}
+
+/* Step & Artifact Cards in Assistant Turns */
+[data-testid*="artifact"],
+[class*="artifact"],
+[data-testid="conversation-view"] .border-border,
+[data-testid="conversation-view"] div[class*="rounded-lg"][class*="border"] {
+  background-color: var(--apple-card) !important;
+  backdrop-filter: blur(24px) saturate(160%) !important;
+  -webkit-backdrop-filter: blur(24px) saturate(160%) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  border-radius: 14px !important;
+  box-shadow:
+    var(--apple-specular),
+    0 4px 18px rgba(0, 0, 0, 0.4) !important;
+}
+
+/* ==========================================================================
+   9. Menus, Popovers, & Dialogs (macOS Translucent HUD Material)
+   ========================================================================== */
+[role="dialog"],
+[role="menu"],
+[data-radix-popper-content-wrapper] > div,
+[data-radix-menu-content] {
+  background-color: var(--apple-surface-overlay) !important;
+  backdrop-filter: blur(40px) saturate(180%) !important;
+  -webkit-backdrop-filter: blur(40px) saturate(180%) !important;
+  border: 1px solid rgba(255, 255, 255, 0.10) !important;
+  border-radius: 12px !important;
+  box-shadow:
+    var(--apple-specular-prominent),
+    0 20px 50px rgba(0, 0, 0, 0.65),
+    0 4px 12px rgba(0, 0, 0, 0.35) !important;
+}
+
+/* Menu items */
+[role="menuitem"],
+[role="option"] {
+  border-radius: 6px !important;
+  transition: background-color 100ms ease, color 100ms ease !important;
+}
+
+[role="menuitem"]:hover,
+[role="menuitem"]:focus,
+[role="option"]:hover,
+[role="option"]:focus,
+[role="menuitem"][data-highlighted] {
+  background-color: var(--apple-blue) !important;
+  color: #ffffff !important;
+}
+
+/* ==========================================================================
+   10. Code Blocks & Output Blocks
+   ========================================================================== */
+pre,
+.prose pre,
+[class*="code-block"] {
+  background-color: #0c0c0f !important;
+  border: 1px solid rgba(255, 255, 255, 0.07) !important;
+  border-radius: 12px !important;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.5) !important;
+}
+
+/* Inline code tag */
+:not(pre) > code {
+  background-color: rgba(255, 255, 255, 0.07) !important;
+  border: 1px solid rgba(255, 255, 255, 0.06) !important;
+  border-radius: 5px !important;
+  padding: 0.15em 0.35em !important;
+  color: #ff7b72 !important;
+}
