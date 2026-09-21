@@ -218,7 +218,7 @@ div:has(> div > [data-testid="window-controls"]) {
   background: linear-gradient(to bottom, var(--apple-canvas) 15%, transparent) !important;
 }
 
-/* Apple macOS Section Headers (PINNED CONVERSATIONS, PROJECTS, RECENTS) */
+/* Apple macOS Section Headers (PINNED CONVERSATIONS, PROJECTS, RECENTS, SHORTCUTS) */
 [role="navigation"][aria-label="Sidebar"] h2,
 [role="navigation"][aria-label="Sidebar"] h3,
 [role="navigation"][aria-label="Sidebar"] [class*="text-xs"][class*="font-semibold"],
@@ -229,8 +229,76 @@ div:has(> div > [data-testid="window-controls"]) {
   text-transform: uppercase !important;
   color: var(--apple-tertiary-label) !important;
   padding-left: 14px !important;
-  padding-top: 16px !important;
+  padding-top: 14px !important;
   padding-bottom: 4px !important;
+}
+
+/* Collapsible Shortcuts Section Header */
+[role="navigation"][aria-label="Sidebar"] #gemini-scroll-nav-header,
+[role="navigation"][aria-label="Sidebar"] .gemini-nav-section-header,
+.gemini-nav-section-header {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  width: calc(100% - 16px) !important;
+  margin: 8px 8px 2px 8px !important;
+  padding: 6px 8px !important;
+  box-sizing: border-box !important;
+  font-size: 11px !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.08em !important;
+  text-transform: uppercase !important;
+  color: var(--apple-tertiary-label) !important;
+  cursor: pointer !important;
+  user-select: none !important;
+  border-radius: 6px !important;
+  transition: color 140ms var(--apple-ease-smooth), background-color 140ms var(--apple-ease-smooth) !important;
+}
+
+[role="navigation"][aria-label="Sidebar"] #gemini-scroll-nav-header:hover,
+[role="navigation"][aria-label="Sidebar"] .gemini-nav-section-header:hover,
+.gemini-nav-section-header:hover {
+  color: var(--apple-secondary-label) !important;
+  background-color: rgba(255, 255, 255, 0.04) !important;
+}
+
+[role="navigation"][aria-label="Sidebar"] .gemini-nav-section-chevron,
+.gemini-nav-section-chevron {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 14px !important;
+  height: 14px !important;
+  min-width: 14px !important;
+  min-height: 14px !important;
+  color: inherit !important;
+  stroke: currentColor !important;
+  fill: none !important;
+  flex-shrink: 0 !important;
+  pointer-events: none !important;
+  transition: transform 200ms var(--apple-ease-spring) !important;
+}
+
+[role="navigation"][aria-label="Sidebar"] #gemini-scroll-nav-header[data-collapsed="true"] .gemini-nav-section-chevron,
+[role="navigation"][aria-label="Sidebar"] .gemini-nav-section-header[data-collapsed="true"] .gemini-nav-section-chevron,
+.gemini-nav-section-header[data-collapsed="true"] .gemini-nav-section-chevron {
+  transform: rotate(-90deg) !important;
+}
+
+#gemini-scroll-nav {
+  overflow: hidden;
+  transition: opacity 180ms var(--apple-ease-smooth) !important;
+}
+
+[role="navigation"][aria-label="Sidebar"] #gemini-scroll-nav[data-collapsed="true"],
+#gemini-scroll-nav[data-collapsed="true"] {
+  display: none !important;
+  height: 0 !important;
+  max-height: 0 !important;
+  overflow: hidden !important;
+  padding: 0 !important;
+  margin: 0 !important;
 }
 
 /* Conversation List Rows: Floating Inset Squircles */
@@ -885,7 +953,47 @@ div:has(> pre) button[aria-label*="Copy"]:active,
 [data-testid="conversation-view"] ~ [data-testid="aux-sidebar"] {
   background-color: var(--apple-canvas) !important;
   border-left: 1px solid var(--apple-divider) !important;
-  transition: width 260ms var(--apple-ease-liquid) !important;
+  position: relative !important;
+}
+
+[data-testid="aux-sidebar"]:not([hidden]):not([data-aux-pane-open="false"]),
+.pane[data-aux-pane-open="true"],
+[data-testid="conversation-view"] ~ [data-testid="aux-sidebar"]:not([hidden]) {
+  min-width: 320px !important;
+}
+
+/* Interactive Split Zone / Resizer Handle */
+[data-testid="aux-sidebar"]::before,
+[data-panel-resize-handle-id],
+.cursor-col-resize {
+  transition:
+    background-color 150ms var(--apple-ease-smooth),
+    box-shadow 150ms var(--apple-ease-smooth) !important;
+}
+
+[data-testid="aux-sidebar"]::before {
+  content: "" !important;
+  position: absolute !important;
+  top: 0 !important;
+  bottom: 0 !important;
+  left: -2px !important;
+  width: 4px !important;
+  cursor: col-resize !important;
+  z-index: 40 !important;
+  background: transparent !important;
+}
+
+[data-testid="aux-sidebar"]:hover::before,
+[data-panel-resize-handle-id]:hover,
+.cursor-col-resize:hover {
+  background-color: rgba(10, 132, 255, 0.45) !important;
+  box-shadow: 0 0 8px rgba(10, 132, 255, 0.35) !important;
+}
+
+[data-panel-resize-handle-id][data-resize-handle-state="drag"],
+.cursor-col-resize:active {
+  background-color: var(--apple-blue) !important;
+  box-shadow: 0 0 12px rgba(10, 132, 255, 0.6) !important;
 }
 
 /* Auxiliary Toolbar Header */
@@ -931,6 +1039,66 @@ div:has(> pre) button[aria-label*="Copy"]:active,
   box-shadow: var(--apple-specular) !important;
   border: 1px solid rgba(255, 255, 255, 0.09) !important;
   color: #ffffff !important;
+}
+
+/* Auxiliary Segmented Tab Dock Container */
+[data-testid="aux-sidebar"] header nav,
+[data-testid="aux-sidebar"] [role="tablist"],
+[data-testid="aux-sidebar-header"] nav {
+  background: rgba(0, 0, 0, 0.28) !important;
+  border: 1px solid rgba(255, 255, 255, 0.06) !important;
+  border-radius: 10px !important;
+  padding: 3px !important;
+  gap: 3px !important;
+}
+
+/* Auxiliary Overview Cards & Content Containers */
+[data-testid="aux-sidebar"] .card,
+[data-testid="aux-sidebar"] [class*="card"]:not([data-mention-menu]),
+[data-testid="aux-sidebar"] section {
+  background-color: var(--apple-surface-elevated) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  border-radius: 12px !important;
+  box-shadow: var(--apple-specular) !important;
+}
+
+/* Review Diffs Tinting in Auxiliary Pane */
+[data-testid="aux-sidebar"] .diff-added,
+[data-testid="aux-sidebar"] [data-diff-type="add"],
+[data-testid="aux-sidebar"] tr:has(td.blob-code-addition) {
+  background-color: rgba(50, 215, 75, 0.12) !important;
+}
+
+[data-testid="aux-sidebar"] .diff-removed,
+[data-testid="aux-sidebar"] [data-diff-type="delete"],
+[data-testid="aux-sidebar"] tr:has(td.blob-code-deletion) {
+  background-color: rgba(255, 69, 58, 0.12) !important;
+}
+
+/* Ensure diffs, code, and text inside auxiliary pane never wrap per character */
+[data-testid="aux-sidebar"] pre,
+[data-testid="aux-sidebar"] code,
+[data-testid="aux-sidebar"] [class*="diff"],
+[data-testid="aux-sidebar"] .blob-code,
+[data-testid="aux-sidebar"] tr,
+[data-testid="aux-sidebar"] td {
+  white-space: pre !important;
+  word-break: normal !important;
+  overflow-wrap: normal !important;
+}
+
+[data-testid="aux-sidebar"] .overflow-x-auto,
+[data-testid="aux-sidebar"] div:has(> table),
+[data-testid="aux-sidebar"] pre {
+  overflow-x: auto !important;
+}
+
+/* Terminal & Console inside Auxiliary Pane */
+[data-testid="aux-sidebar"] .terminal,
+[data-testid="aux-sidebar"] .xterm,
+[data-testid="aux-sidebar"] [class*="terminal"] {
+  background-color: #060609 !important;
+  border-radius: 10px !important;
 }
 
 /* In-Built Browser Root & Surface Integration */
@@ -1289,4 +1457,321 @@ input,
 select {
   touch-action: manipulation;
 }
+
+/* ==========================================================================
+   18. Tooltips (Apple Dynamic Island Micro-Capsule)
+   ========================================================================== */
+[data-radix-tooltip-content],
+[role="tooltip"],
+[data-willow-tooltip],
+.tooltip {
+  background: rgba(16, 16, 22, 0.94) !important;
+  backdrop-filter: blur(24px) !important;
+  -webkit-backdrop-filter: blur(24px) !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  border-radius: 8px !important;
+  box-shadow:
+    var(--apple-specular-prominent),
+    0 8px 24px rgba(0, 0, 0, 0.70),
+    0 2px 6px rgba(0, 0, 0, 0.40) !important;
+  color: #ffffff !important;
+  font-size: 12px !important;
+  font-weight: 500 !important;
+  padding: 5px 10px !important;
+  letter-spacing: -0.01em !important;
+  animation: apple-island-pop 160ms var(--apple-ease-spring) !important;
+  z-index: 100 !important;
+}
+
+/* ==========================================================================
+   19. Mention Menu & Slash Command Typeahead (macOS Floating HUD Glass)
+   ========================================================================== */
+[data-mention-menu],
+[data-testid="mention-menu"],
+[data-testid="mention-popup"],
+.mention-menu {
+  background-color: var(--apple-surface-overlay) !important;
+  backdrop-filter: var(--apple-glass-blur) !important;
+  -webkit-backdrop-filter: var(--apple-glass-blur) !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  border-radius: 16px !important;
+  box-shadow:
+    var(--apple-specular-prominent),
+    0 24px 60px rgba(0, 0, 0, 0.75),
+    0 6px 18px rgba(0, 0, 0, 0.45) !important;
+  animation: apple-dialog-pop 180ms var(--apple-ease-spring) !important;
+}
+
+[data-mention-menu] [role="option"],
+.mention-menu [role="option"] {
+  border-radius: 8px !important;
+  transition:
+    background-color 100ms var(--apple-ease-smooth),
+    color 100ms var(--apple-ease-smooth),
+    transform 80ms var(--apple-ease-spring) !important;
+}
+
+[data-mention-menu] [role="option"]:hover,
+[data-mention-menu] [role="option"][data-highlighted],
+[data-mention-menu] [role="option"][aria-selected="true"],
+.mention-menu [role="option"]:hover,
+.mention-menu [role="option"][aria-selected="true"] {
+  background-color: var(--apple-blue) !important;
+  color: #ffffff !important;
+}
+
+[data-mention-menu] [role="option"]:active,
+.mention-menu [role="option"]:active {
+  transform: scale(0.97) !important;
+}
+
+/* ==========================================================================
+   20. Settings Screen, Modals & Inset Squircles
+   ========================================================================== */
+[data-testid="settings-dialog"],
+[data-testid="settings-modal"],
+.settings-modal {
+  background-color: var(--apple-surface-overlay) !important;
+  backdrop-filter: var(--apple-glass-blur) !important;
+  -webkit-backdrop-filter: var(--apple-glass-blur) !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  border-radius: 20px !important;
+  box-shadow:
+    var(--apple-specular-prominent),
+    0 32px 80px rgba(0, 0, 0, 0.85) !important;
+}
+
+/* Inset squircle nav items in settings sidebar */
+[data-testid^="settings-nav-item-"],
+.settings-nav-item {
+  border-radius: 10px !important;
+  transition:
+    background-color 140ms var(--apple-ease-smooth),
+    color 140ms var(--apple-ease-smooth),
+    transform 120ms var(--apple-ease-spring) !important;
+}
+
+[data-testid^="settings-nav-item-"]:hover,
+.settings-nav-item:hover {
+  background-color: var(--apple-hover-wash) !important;
+  color: #ffffff !important;
+}
+
+[data-testid^="settings-nav-item-"][data-active="true"],
+[data-testid^="settings-nav-item-"][aria-selected="true"],
+.settings-nav-item.active {
+  background-color: var(--apple-selected-row) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  box-shadow: var(--apple-specular) !important;
+  color: #ffffff !important;
+}
+
+[data-testid="settings-content"] .card,
+[data-testid="settings-content"] section,
+.settings-card {
+  background-color: var(--apple-surface-elevated) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  border-radius: 14px !important;
+  box-shadow: var(--apple-specular) !important;
+}
+
+/* ==========================================================================
+   21. Willow Dialogs, Option Cards & Action Pills
+   ========================================================================== */
+.willow-gdlg-backdrop {
+  backdrop-filter: blur(16px) !important;
+  -webkit-backdrop-filter: blur(16px) !important;
+  background: rgba(0, 0, 0, 0.65) !important;
+}
+
+.willow-gdlg-surface {
+  background: var(--apple-surface-overlay) !important;
+  backdrop-filter: var(--apple-glass-blur) !important;
+  -webkit-backdrop-filter: var(--apple-glass-blur) !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  border-radius: 20px !important;
+  box-shadow:
+    var(--apple-specular-prominent),
+    0 32px 80px rgba(0, 0, 0, 0.85),
+    0 8px 24px rgba(0, 0, 0, 0.50) !important;
+}
+
+.willow-gdlg-title {
+  color: var(--apple-label) !important;
+  font-weight: 600 !important;
+  letter-spacing: -0.02em !important;
+}
+
+.willow-gdlg-field__outline {
+  border: 1px solid rgba(255, 255, 255, 0.10) !important;
+  border-radius: 10px !important;
+  background-color: rgba(255, 255, 255, 0.04) !important;
+  box-shadow: var(--apple-specular) !important;
+  transition:
+    border-color 180ms var(--apple-ease-spring),
+    box-shadow 180ms var(--apple-ease-spring),
+    background-color 150ms var(--apple-ease-smooth) !important;
+}
+
+.willow-gdlg-field:hover .willow-gdlg-field__outline {
+  border-color: rgba(255, 255, 255, 0.16) !important;
+  background-color: rgba(255, 255, 255, 0.06) !important;
+}
+
+.willow-gdlg-field:focus-within .willow-gdlg-field__outline {
+  border-color: rgba(10, 132, 255, 0.80) !important;
+  background-color: rgba(255, 255, 255, 0.07) !important;
+  box-shadow:
+    var(--apple-specular-prominent),
+    0 0 0 2px rgba(10, 132, 255, 0.36),
+    0 0 18px rgba(10, 132, 255, 0.18) !important;
+}
+
+.willow-gdlg-option-card {
+  border-radius: 14px !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  background-color: rgba(255, 255, 255, 0.035) !important;
+  box-shadow: var(--apple-specular) !important;
+  transition:
+    background-color 150ms var(--apple-ease-smooth),
+    border-color 150ms var(--apple-ease-smooth),
+    transform var(--apple-rebound-duration) var(--apple-ease-spring),
+    box-shadow 150ms var(--apple-ease-smooth) !important;
+}
+
+.willow-gdlg-option-card:hover {
+  background-color: var(--apple-hover-wash) !important;
+  border-color: rgba(255, 255, 255, 0.14) !important;
+  transform: translateY(-1px) !important;
+  box-shadow: var(--apple-specular-prominent), 0 6px 20px rgba(0, 0, 0, 0.35) !important;
+}
+
+.willow-gdlg-option-card:active {
+  transform: scale(0.97) !important;
+  transition: transform var(--apple-press-duration) var(--apple-ease-squish) !important;
+}
+
+.willow-gdlg-pill {
+  border-radius: 9999px !important;
+  font-weight: 500 !important;
+  transition:
+    background-color 140ms var(--apple-ease-smooth),
+    border-color 140ms var(--apple-ease-smooth),
+    transform var(--apple-rebound-duration) var(--apple-ease-spring),
+    box-shadow 140ms var(--apple-ease-smooth) !important;
+}
+
+.willow-gdlg-pill:not(:disabled):hover {
+  transform: translateY(-0.5px) !important;
+}
+
+.willow-gdlg-pill:not(:disabled):active {
+  transform: scale(0.93) !important;
+  transition: transform var(--apple-press-duration) var(--apple-ease-squish) !important;
+}
+
+/* ==========================================================================
+   22. Universal Selection Highlight & Floating Quote Popover
+   ========================================================================== */
+::selection {
+  background-color: rgba(10, 132, 255, 0.45) !important;
+  color: #ffffff !important;
+}
+
+/* Floating Selection Quote Popover ("Quote Ctrl+L") */
+[data-testid*="quote"],
+button:has(> span:contains("Quote")),
+div:has(> button:contains("Quote")),
+[class*="quote-button"],
+[class*="floating-quote"],
+div[style*="position: fixed"]:has(> button),
+div[style*="position: absolute"]:has(> button:has-text("Quote")) {
+  background: rgba(16, 16, 22, 0.94) !important;
+  backdrop-filter: var(--apple-glass-blur) !important;
+  -webkit-backdrop-filter: var(--apple-glass-blur) !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  border-radius: 9999px !important;
+  box-shadow:
+    var(--apple-specular-prominent),
+    0 8px 24px rgba(0, 0, 0, 0.70),
+    0 2px 6px rgba(0, 0, 0, 0.40) !important;
+  color: #ffffff !important;
+  font-family: var(--gemini-font, system-ui, sans-serif) !important;
+  font-size: 12px !important;
+  font-weight: 500 !important;
+  padding: 4px 12px !important;
+  animation: apple-island-pop 160ms var(--apple-ease-spring) !important;
+  transition:
+    background-color 140ms var(--apple-ease-smooth),
+    transform 120ms var(--apple-ease-spring) !important;
+}
+
+[data-testid*="quote"]:hover,
+button:has(> span:contains("Quote")):hover,
+[class*="quote-button"]:hover {
+  background-color: rgba(255, 255, 255, 0.14) !important;
+  color: #ffffff !important;
+  transform: translateY(-0.5px) !important;
+}
+
+[data-testid*="quote"]:active,
+button:has(> span:contains("Quote")):active,
+[class*="quote-button"]:active {
+  transform: scale(0.94) !important;
+}
+
+/* ==========================================================================
+   23. Gemini Web Titlebar Button & Header Spacing
+   ========================================================================== */
+#gemini-web-header-btn,
+.gemini-titlebar-btn {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  height: 28px !important;
+  padding: 0 10px !important;
+  border-radius: 9999px !important;
+  background: rgba(255, 255, 255, 0.06) !important;
+  color: #e3e3e3 !important;
+  border: 1px solid rgba(255, 255, 255, 0.10) !important;
+  font-family: var(--gemini-font, system-ui, sans-serif) !important;
+  font-size: 12px !important;
+  font-weight: 500 !important;
+  cursor: pointer !important;
+  margin-left: 10px !important;
+  margin-right: 6px !important;
+  flex-shrink: 0 !important;
+  white-space: nowrap !important;
+  box-shadow: var(--apple-specular) !important;
+  transition:
+    background-color 140ms var(--apple-ease-smooth),
+    border-color 140ms var(--apple-ease-smooth),
+    transform var(--apple-rebound-duration) var(--apple-ease-spring) !important;
+}
+
+#gemini-web-header-btn:hover,
+.gemini-titlebar-btn:hover {
+  background: rgba(255, 255, 255, 0.12) !important;
+  border-color: rgba(255, 255, 255, 0.16) !important;
+  color: #ffffff !important;
+}
+
+#gemini-web-header-btn:active,
+.gemini-titlebar-btn:active {
+  transform: scale(0.95) !important;
+}
+
+/* Titlebar layout spacing so breadcrumbs and titles never collide */
+div.justify-between:has(#gemini-web-header-btn),
+header:has(#gemini-web-header-btn) {
+  gap: 12px !important;
+}
+
+div.justify-between > div:first-child,
+header > div:first-child {
+  min-width: 0 !important;
+  overflow: hidden !important;
+}
+
+
 

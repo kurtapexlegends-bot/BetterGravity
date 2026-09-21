@@ -4983,7 +4983,7 @@ function ensureBrowserRow(block) {
   if (!row) {
     row = navRow('gemini-browser-button');
     row.innerHTML = `<span class="icon-box">${BROWSER_ICON_SVG}</span><span class="truncate">Browser</span>`;
-    row.title = "Open In-Built Browser";
+    row.setAttribute('aria-label', 'Browser');
     row.addEventListener('click', (e) => {
       e.preventDefault();
       closeOpenCustomViews();
@@ -5014,9 +5014,8 @@ function ensureBrowserRow(block) {
 
 function isPinnedTopNavItem(node) {
   if (!node || node.nodeType !== 1) return true;
-  if (node.id === 'gemini-scroll-nav') return true;
+  if (node.id === 'gemini-scroll-nav' || node.id === 'gemini-scroll-nav-header') return true;
   if (node.matches('[data-testid="new-conversation-button"]') || node.querySelector?.('[data-testid="new-conversation-button"]')) return true;
-  if (node.matches('[data-testid="history-button"]') || node.querySelector?.('[data-testid="history-button"]')) return true;
   if (node.matches(AUTOMATIONS_SELECTOR) || node.querySelector?.(AUTOMATIONS_SELECTOR)) return true;
   return false;
 }
@@ -5067,8 +5066,8 @@ function ensureScrollNav() {
     .map((id) => document.getElementById(id))
     .filter((row) => row && row.parentElement === block);
 
-  // Global rule: only New Conversation and History remain pinned at the top.
-  // Any other items in topNav (such as plugin buttons) are adopted into the scroll block.
+  // Global rule: only New Conversation remains permanently pinned at the top.
+  // History and other items in topNav are adopted into the collapsible scroll block.
   const unpinnedTopNavItems = topNav
     ? Array.from(topNav.children).filter((child) => !isPinnedTopNavItem(child))
     : [];
@@ -5110,22 +5109,74 @@ function ensureScrollNav() {
     }
   }
 
+  // Collapsible section header for shortcuts
+  let header = document.getElementById('gemini-scroll-nav-header');
+  if (!header) {
+    header = document.createElement('div');
+    header.id = 'gemini-scroll-nav-header';
+    header.className = 'gemini-nav-section-header';
+    header.setAttribute('role', 'button');
+    header.setAttribute('tabindex', '0');
+    header.setAttribute('aria-label', 'Toggle shortcuts');
+    header.innerHTML = `
+      <span class="gemini-nav-section-title">Shortcuts</span>
+      <svg class="gemini-nav-section-chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="6 9 12 15 18 9"></polyline>
+      </svg>
+    `;
+    header.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const next = header.getAttribute('data-collapsed') !== 'true';
+      header.setAttribute('data-collapsed', String(next));
+      block.setAttribute('data-collapsed', String(next));
+      block.style.display = next ? 'none' : 'flex';
+      try {
+        localStorage.setItem('bettergravity-shortcuts-collapsed', String(next));
+      } catch {}
+    });
+  }
+
+  let isShortcutsCollapsed = false;
+  try {
+    isShortcutsCollapsed = localStorage.getItem('bettergravity-shortcuts-collapsed') === 'true';
+  } catch {}
+  header.setAttribute('data-collapsed', String(isShortcutsCollapsed));
+  block.setAttribute('data-collapsed', String(isShortcutsCollapsed));
+  block.style.display = isShortcutsCollapsed ? 'none' : 'flex';
+
   // Every write from here down is guarded, because the observers that call this
   // watch the nodes it writes to, and a `replaceChildren` or an `insertBefore`
   // that changes nothing still reports a mutation. That is a loop.
-  const wanted = [...topRows, ...adoptedPluginItems, ...bottomRows];
+  const historyRow = adoptedPluginItems.find((i) => i.matches?.('[data-testid="history-button"]') || i.querySelector?.('[data-testid="history-button"]')) ||
+                     document.querySelector('[data-testid="history-button"]');
+  const nonHistoryAdopted = adoptedPluginItems.filter((i) => i !== historyRow && !i.contains(historyRow));
+  const wanted = [
+    ...(historyRow && (historyRow.parentElement === block || unpinnedTopNavItems.includes(historyRow)) ? [historyRow] : []),
+    ...topRows,
+    ...nonHistoryAdopted,
+    ...bottomRows
+  ].filter(Boolean);
+
   const current = [...block.children];
   if (wanted.length !== current.length || wanted.some((row, i) => current[i] !== row)) {
     block.replaceChildren(...wanted);
   }
 
   if (collapsed) {
+    header.style.display = 'none';
     if (topNav && block.parentElement !== topNav) {
       topNav.appendChild(block);
     }
   } else {
-    if (scroller && scroller.firstChild !== block) {
-      scroller.insertBefore(block, scroller.firstChild);
+    header.style.removeProperty('display');
+    if (scroller) {
+      if (scroller.firstChild !== header) {
+        scroller.insertBefore(header, scroller.firstChild);
+      }
+      if (header.nextSibling !== block) {
+        header.after(block);
+      }
     }
   }
 

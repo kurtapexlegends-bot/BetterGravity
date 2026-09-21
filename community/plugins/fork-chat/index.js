@@ -1058,7 +1058,7 @@ function setupObservers() {
     if (needsScan) {
       scheduleScan();
     }
-  }, 2500);
+  }, 600);
 
   const onVisibilityChange = () => {
     if (typeof document !== "undefined" && !document.hidden) {
