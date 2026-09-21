@@ -67,3 +67,9 @@ backup*.cmd
 
 # Plugin runtime signal files
 interrupt.signal
+
+# Local scratch and extracted files
+Apply-BetterGravity.bat
+bootstrap.asar
+main.js
+make-bootstrap.cjs

@@ -178,8 +178,9 @@ export function readAccountProfile(homeDirectory: string): AccountProfile {
         if (entryEmail) accountsSet.add(entryEmail.toLowerCase());
       }
       const wanted = email?.toLowerCase();
-      const chosen = wanted ? entries.find(e => text(e, "email")?.toLowerCase() === wanted) : entries[0];
-      if (chosen && (!email || text(chosen, "email")?.toLowerCase() === email.toLowerCase())) {
+      const matched = wanted ? entries.find(e => text(e, "email")?.toLowerCase() === wanted) : undefined;
+      const chosen = matched || entries[0];
+      if (chosen) {
         fullName = fullName ?? text(chosen, "full_name");
         firstName = firstName ?? text(chosen, "given_name") ?? fullName?.split(/\s+/)[0];
         if (!email) email = text(chosen, "email");

@@ -29,6 +29,8 @@ export interface SourcePatch {
    */
   readonly find: string;
   readonly replace: readonly SourceReplacement[];
+  /** When false, individual replacements in this patch can apply even if others fail. Defaults to true. */
+  readonly atomic?: boolean;
 }
 
 export interface PluginPatches {
@@ -88,19 +90,19 @@ export function applySourcePatches(source: string, sets: readonly PluginPatches[
           expression = compile(replacement.match, replacement.all === true);
         } catch (error) {
           failures.push({ pluginId, kind: "invalid", reason: `invalid match${where}: ${error instanceof Error ? error.message : String(error)}` });
-          pluginFailed = true;
+          if (patch.atomic !== false) pluginFailed = true;
           continue;
         }
 
         const matches = candidate.match(expression);
         if (!matches) {
           failures.push({ pluginId, kind: "match", reason: `no match${where} for ${JSON.stringify(replacement.match.slice(0, 60))}` });
-          pluginFailed = true;
+          if (patch.atomic !== false) pluginFailed = true;
           continue;
         }
         if (replacement.all === true && matches.length > MAX_REPLACEMENTS) {
           failures.push({ pluginId, kind: "excessive", reason: `refused${where}: ${matches.length} matches exceeds the ${MAX_REPLACEMENTS} limit.` });
-          pluginFailed = true;
+          if (patch.atomic !== false) pluginFailed = true;
           continue;
         }
 
@@ -136,7 +138,7 @@ export function readPatches(pluginId: string, manifest: unknown): PluginPatches 
   const patches: SourcePatch[] = [];
   for (const entry of declared) {
     if (!entry || typeof entry !== "object") continue;
-    const candidate = entry as { find?: unknown; replace?: unknown };
+    const candidate = entry as { find?: unknown; replace?: unknown; atomic?: unknown };
     if (typeof candidate.find !== "string") continue;
 
     const replacements: SourceReplacement[] = [];
@@ -147,7 +149,13 @@ export function readPatches(pluginId: string, manifest: unknown): PluginPatches 
       replacements.push({ match: item.match, with: item.with, ...(item.all === true ? { all: true } : {}) });
     }
 
-    if (replacements.length > 0) patches.push({ find: candidate.find, replace: replacements });
+    if (replacements.length > 0) {
+      patches.push({
+        find: candidate.find,
+        replace: replacements,
+        ...(candidate.atomic === false ? { atomic: false } : {})
+      });
+    }
   }
 
   return patches.length > 0 ? { pluginId, patches } : undefined;

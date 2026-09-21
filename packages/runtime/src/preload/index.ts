@@ -163,6 +163,7 @@ const bridge: RuntimeBridge = {
   onOverlayMessage: (listener) => {
     overlayMessageListeners.add(listener);
   },
+  capturePage: (rect) => ipcRenderer.invoke(CHANNEL.capturePage, rect),
   log: (message) => report(message),
   onStateChanged: (listener) => {
     stateListeners.add(listener);

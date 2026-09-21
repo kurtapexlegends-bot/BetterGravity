@@ -264,6 +264,17 @@ function registerChannels(
   ipcMain.handle(CHANNEL.removeAccount, (_event, email: string) => removeAccount(app.getPath("home"), email));
   ipcMain.handle(CHANNEL.getContextMetrics, (_event, id?: string) => readContextMetrics(id));
   ipcMain.handle(CHANNEL.compactContext, (_event, id?: string) => compactContextSession(id));
+  ipcMain.handle(CHANNEL.capturePage, async (event, rect?: Electron.Rectangle) => {
+    const win = BrowserWindow.fromWebContents(event.sender);
+    if (!win) return null;
+    try {
+      const image = await win.webContents.capturePage(rect);
+      return image.toDataURL();
+    } catch (err) {
+      logger.error("capturePage failed", err);
+      return null;
+    }
+  });
 
   // Adding or deleting content changes what is on disk, so each one answers with
   // the rebuilt state; the watcher would otherwise race the reply.
@@ -396,9 +407,8 @@ export function activate(context: RuntimeContext): void {
 
   // Intercept second-instance to make sure it NEVER focuses an invisible overlay window!
   app.on("second-instance", () => {
-    const editors = BrowserWindow.getAllWindows().filter((w) => !isHelperWindow(w));
-    if (editors.length > 0) {
-      const mainWin = editors[0];
+    const mainWin = BrowserWindow.getAllWindows().find((w) => !isHelperWindow(w));
+    if (mainWin) {
       if (mainWin.isMinimized()) mainWin.restore();
       mainWin.show();
       mainWin.focus();

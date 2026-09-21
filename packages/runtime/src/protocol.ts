@@ -55,6 +55,7 @@ export const CHANNEL = {
   overlayAttached: "bettergravity:overlay-attached",
   getContextMetrics: "bettergravity:get-context-metrics",
   compactContext: "bettergravity:compact-context",
+  capturePage: "bettergravity:capture-page",
   log: "bettergravity:log"
 } as const;
 
