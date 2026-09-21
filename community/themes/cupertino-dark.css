@@ -1,8 +1,8 @@
 /**
  * @name        Cupertino Dark
- * @description Masterclass Apple Pro & Space Black aesthetics for BetterGravity: Continuous squircle curvature, obsidian glass materials, specular chamfers, floating inspector wells, and tactile spring physics.
+ * @description Masterclass Apple Pro & Space Black aesthetics for BetterGravity: Continuous squircle curvature, obsidian glass materials, specular chamfers, floating inspector wells, iOS 18 / macOS Sequoia tactile physics, and liquid spring rebound.
  * @author      BetterGravity Contributors
- * @version     1.4.0
+ * @version     1.5.0
  * @source      https://github.com/YashjitPal/BetterGravity
  */
 
@@ -18,6 +18,11 @@
   --apple-ease-squish: cubic-bezier(0.32, 1.35, 0.64, 1);
   --apple-ease-enter: cubic-bezier(0, 0, 0.2, 1);
   --apple-ease-exit: cubic-bezier(0.4, 0, 1, 1);
+
+  /* Micro-Interaction Timings (Apple HIG Lightning-Press & Buttery Rebound) */
+  --apple-press-duration: 55ms;
+  --apple-rebound-duration: 220ms;
+  --apple-lift-duration: 160ms;
 
   /* True Deep Obsidian Canvas & Surfaces */
   --apple-canvas: #000000;
@@ -314,12 +319,19 @@ div[data-testid="conversation-row-sidebar"][data-selected="true"],
   transform: scale(0.96) !important;
 }
 
-/* Chat / Work Segmented Control Switch */
+/* Chat / Work Segmented Control Switch (Sliding Apple Glass Capsule) */
 #gemini-experience-switch [data-gemini-experience-track] {
   background-color: var(--gemini-switch-track) !important;
   border: 1px solid rgba(255, 255, 255, 0.08) !important;
   border-radius: 9999px !important;
   box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.6) !important;
+  user-select: none !important;
+  touch-action: pan-y !important;
+  cursor: grab !important;
+}
+
+#gemini-experience-switch [data-gemini-experience-track]:active {
+  cursor: grabbing !important;
 }
 
 #gemini-experience-switch [data-gemini-experience-slider] {
@@ -329,7 +341,8 @@ div[data-testid="conversation-row-sidebar"][data-selected="true"],
   border: 1px solid rgba(255, 255, 255, 0.10) !important;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5), var(--apple-specular) !important;
   border-radius: 9999px !important;
-  transition: transform 220ms var(--apple-ease-spring) !important;
+  will-change: left, transform;
+  transition: left 240ms var(--apple-ease-spring), width 240ms var(--apple-ease-spring), transform 220ms var(--apple-ease-spring) !important;
 }
 
 /* Settings Button (Bottom Right of Sidebar) */
@@ -644,6 +657,109 @@ div[data-testid="conversation-row-sidebar"][data-selected="true"],
   border-color: rgba(255, 255, 255, 0.12) !important;
 }
 
+/* Floating Turn Action Bar (Apple Frosted Capsule Dock) */
+[data-gemini-turn-actions="true"],
+.user-input-buttons-container {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  width: auto !important;
+}
+
+[data-gemini-turn-actions="true"] > .flex.min-w-0,
+.user-input-buttons-container > .flex.min-w-0,
+[data-testid="turn-action-bar"] {
+  display: inline-flex !important;
+  width: fit-content !important;
+  max-width: max-content !important;
+  align-items: center !important;
+  gap: 2px !important;
+  background: rgba(22, 22, 28, 0.72) !important;
+  backdrop-filter: var(--apple-glass-blur-subtle) !important;
+  -webkit-backdrop-filter: var(--apple-glass-blur-subtle) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  border-radius: 9999px !important;
+  padding: 2px 4px !important;
+  box-shadow:
+    var(--apple-specular),
+    0 4px 16px rgba(0, 0, 0, 0.35) !important;
+  margin-top: 4px !important;
+  margin-left: 0 !important;
+  will-change: transform, opacity;
+  transition: opacity 160ms var(--apple-ease-smooth), transform 160ms var(--apple-ease-spring) !important;
+}
+
+/* Individual Turn Action Buttons (Floating Apple Glass Discs) */
+[data-gemini-turn-actions="true"] button,
+.user-input-buttons-container button,
+[data-testid="turn-action-bar"] button,
+button[aria-label="Good response"],
+button[aria-label="Bad response"],
+button[aria-label="Copy"],
+button[aria-label="Fork Conversation"],
+button[aria-label="Edit"],
+button[aria-label="Retry"],
+button[data-testid="revert-button"],
+button[data-fork-chat-btn] {
+  width: 28px !important;
+  height: 28px !important;
+  min-width: 28px !important;
+  min-height: 28px !important;
+  padding: 0 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  border-radius: 9999px !important;
+  background: transparent !important;
+  border: 1px solid transparent !important;
+  color: var(--apple-secondary-label) !important;
+  box-sizing: border-box !important;
+  transition:
+    transform var(--apple-rebound-duration) var(--apple-ease-spring),
+    background-color 140ms var(--apple-ease-smooth),
+    border-color 140ms var(--apple-ease-smooth),
+    color 140ms var(--apple-ease-smooth),
+    box-shadow 140ms var(--apple-ease-smooth) !important;
+}
+
+[data-gemini-turn-actions="true"] button:hover,
+.user-input-buttons-container button:hover,
+[data-testid="turn-action-bar"] button:hover,
+button[aria-label="Good response"]:hover,
+button[aria-label="Bad response"]:hover,
+button[aria-label="Copy"]:hover,
+button[aria-label="Fork Conversation"]:hover,
+button[aria-label="Edit"]:hover,
+button[aria-label="Retry"]:hover,
+button[data-testid="revert-button"]:hover,
+button[data-fork-chat-btn]:hover {
+  background-color: rgba(255, 255, 255, 0.12) !important;
+  border-color: rgba(255, 255, 255, 0.10) !important;
+  box-shadow: var(--apple-specular) !important;
+  color: #ffffff !important;
+  transform: translateY(-1px) !important;
+  will-change: transform;
+}
+
+[data-gemini-turn-actions="true"] button:active,
+.user-input-buttons-container button:active,
+[data-testid="turn-action-bar"] button:active,
+button[aria-label="Good response"]:active,
+button[aria-label="Bad response"]:active,
+button[aria-label="Copy"]:active,
+button[aria-label="Fork Conversation"]:active,
+button[aria-label="Edit"]:active,
+button[aria-label="Retry"]:active,
+button[data-testid="revert-button"]:active,
+button[data-fork-chat-btn]:active {
+  transform: scale(0.90) translateY(0) !important;
+  background-color: rgba(255, 255, 255, 0.18) !important;
+  transition: transform var(--apple-press-duration) var(--apple-ease-squish) !important;
+  will-change: transform;
+}
+
 /* ==========================================================================
    9. Menus, Popovers, & Dialogs (macOS Translucent HUD Material)
    ========================================================================== */
@@ -687,15 +803,69 @@ div[data-testid="conversation-row-sidebar"][data-selected="true"],
 }
 
 /* ==========================================================================
-   10. Code Blocks & Output Blocks
+   10. Code Blocks & Output Blocks (macOS Sequoia Obsidian Glass Terminal)
    ========================================================================== */
 pre,
 .prose pre,
 [class*="code-block"] {
   background-color: #08080b !important;
-  border: 1px solid rgba(255, 255, 255, 0.07) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
   border-radius: 14px !important;
-  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.6) !important;
+  box-shadow:
+    var(--apple-specular),
+    inset 0 1px 4px rgba(0, 0, 0, 0.65),
+    0 4px 18px rgba(0, 0, 0, 0.40) !important;
+  position: relative !important;
+  overflow: hidden !important;
+}
+
+/* Code Block Header Bar */
+.code-block-header,
+pre > div:first-child:has(button),
+div:has(> pre) > div:first-child:has(button) {
+  background: rgba(255, 255, 255, 0.035) !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06) !important;
+  padding: 6px 12px !important;
+}
+
+/* Code Block Copy Button (Floating Glass Pill) */
+pre button,
+[class*="code-block"] button,
+div:has(> pre) button[aria-label*="Copy"],
+.code-block-header button {
+  border-radius: 9999px !important;
+  background: rgba(255, 255, 255, 0.06) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  box-shadow: var(--apple-specular) !important;
+  color: var(--apple-secondary-label) !important;
+  font-size: 11.5px !important;
+  font-weight: 500 !important;
+  padding: 3px 10px !important;
+  will-change: transform, background-color;
+  transition:
+    transform var(--apple-rebound-duration) var(--apple-ease-spring),
+    background-color 140ms var(--apple-ease-smooth),
+    color 140ms var(--apple-ease-smooth),
+    box-shadow 140ms var(--apple-ease-smooth) !important;
+}
+
+pre button:hover,
+[class*="code-block"] button:hover,
+div:has(> pre) button[aria-label*="Copy"]:hover,
+.code-block-header button:hover {
+  background: rgba(255, 255, 255, 0.12) !important;
+  border-color: rgba(255, 255, 255, 0.12) !important;
+  color: #ffffff !important;
+  transform: translateY(-1px) !important;
+}
+
+pre button:active,
+[class*="code-block"] button:active,
+div:has(> pre) button[aria-label*="Copy"]:active,
+.code-block-header button:active {
+  transform: scale(0.92) !important;
+  background-color: rgba(255, 255, 255, 0.18) !important;
+  transition: transform var(--apple-press-duration) var(--apple-ease-squish) !important;
 }
 
 /* Inline code tag */
@@ -799,11 +969,24 @@ pre,
 @keyframes apple-dialog-pop {
   0% {
     opacity: 0;
-    transform: scale(0.95) translateY(3px);
+    transform: scale(0.95) translateY(4px);
   }
   100% {
     opacity: 1;
     transform: scale(1) translateY(0);
+  }
+}
+
+@keyframes apple-island-pop {
+  0% {
+    opacity: 0;
+    transform: scale(0.88) translateY(-8px);
+    filter: blur(4px);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+    filter: blur(0);
   }
 }
 
@@ -813,3 +996,297 @@ pre,
   animation: apple-dialog-pop 180ms var(--apple-ease-spring) !important;
   transform-origin: center top !important;
 }
+
+/* ==========================================================================
+   13. Universal Apple HIG Tactile Squish & Spring Physics
+   ========================================================================== */
+/* Universal interactive button spring transitions */
+button,
+[role="button"],
+.btn,
+a[role="button"] {
+  transition:
+    transform var(--apple-rebound-duration) var(--apple-ease-spring),
+    background-color 150ms var(--apple-ease-smooth),
+    border-color 150ms var(--apple-ease-smooth),
+    box-shadow var(--apple-rebound-duration) var(--apple-ease-spring),
+    filter 150ms var(--apple-ease-smooth) !important;
+}
+
+/* Layer promotion on demand (prevents global GPU layer bloat) */
+button:hover,
+button:active,
+[role="button"]:hover,
+[role="button"]:active,
+.btn:hover,
+.btn:active,
+a[role="button"]:hover,
+a[role="button"]:active {
+  will-change: transform;
+}
+
+/* Tactile Squish on Active Press (Instant Response, Spring Rebound) */
+button:active:not(:disabled):not([disabled]):not([aria-disabled="true"]),
+[role="button"]:active:not([aria-disabled="true"]),
+.btn:active,
+a[role="button"]:active {
+  transform: scale(0.96) !important;
+  transition:
+    transform var(--apple-press-duration) var(--apple-ease-squish),
+    background-color var(--apple-press-duration) ease-out,
+    filter var(--apple-press-duration) ease-out !important;
+}
+
+/* Circular & Compact Icon Buttons (Deeper Tactile Squish) */
+button:has(> svg:only-child):hover,
+button:has(> svg:only-child):active,
+button[class*="rounded-full"]:hover,
+button[class*="rounded-full"]:active,
+button[class*="w-6"]:hover,
+button[class*="w-6"]:active,
+button[class*="w-7"]:hover,
+button[class*="w-7"]:active,
+button[class*="w-8"]:hover,
+button[class*="w-8"]:active,
+button[class*="h-6"]:hover,
+button[class*="h-6"]:active,
+button[class*="h-7"]:hover,
+button[class*="h-7"]:active,
+button[class*="h-8"]:hover,
+button[class*="h-8"]:active,
+[data-testid*="toggle"]:hover,
+[data-testid*="toggle"]:active,
+[data-testid*="close"]:hover,
+[data-testid*="close"]:active,
+.bg-browser-icon:hover,
+.bg-browser-icon:active {
+  will-change: transform;
+}
+
+button:has(> svg:only-child):active:not(:disabled):not([disabled]):not([aria-disabled="true"]),
+button[class*="rounded-full"]:active:not(:disabled):not([disabled]):not([aria-disabled="true"]),
+button[class*="w-6"]:active:not(:disabled):not([disabled]):not([aria-disabled="true"]),
+button[class*="w-7"]:active:not(:disabled):not([disabled]):not([aria-disabled="true"]),
+button[class*="w-8"]:active:not(:disabled):not([disabled]):not([aria-disabled="true"]),
+button[class*="h-6"]:active:not(:disabled):not([disabled]):not([aria-disabled="true"]),
+button[class*="h-7"]:active:not(:disabled):not([disabled]):not([aria-disabled="true"]),
+button[class*="h-8"]:active:not(:disabled):not([disabled]):not([aria-disabled="true"]),
+[data-testid*="toggle"]:active:not([aria-disabled="true"]),
+[data-testid*="close"]:active:not([aria-disabled="true"]),
+.bg-browser-icon:active {
+  transform: scale(0.91) !important;
+  filter: brightness(0.92) !important;
+  transition: transform var(--apple-press-duration) var(--apple-ease-squish) !important;
+}
+
+/* Sidebar Toggle Capsule Button */
+[data-testid="sidebar-toggle"] {
+  border-radius: 8px !important;
+  will-change: transform, background-color;
+  transition:
+    transform var(--apple-rebound-duration) var(--apple-ease-spring),
+    background-color 150ms var(--apple-ease-smooth) !important;
+}
+
+[data-testid="sidebar-toggle"]:hover {
+  background-color: var(--apple-hover-wash) !important;
+}
+
+[data-testid="sidebar-toggle"]:active {
+  transform: scale(0.91) !important;
+  transition: transform var(--apple-press-duration) var(--apple-ease-squish) !important;
+}
+
+/* ==========================================================================
+   14. iOS 18 Switch Physics & Specular Glass Form Controls
+   ========================================================================== */
+/* Switch Tracks */
+input[type="checkbox"][role="switch"],
+button[role="switch"],
+.switchBase,
+[data-state="checked"][role="switch"],
+[data-state="unchecked"][role="switch"] {
+  border-radius: 9999px !important;
+  box-sizing: border-box !important;
+  will-change: background-color, border-color, box-shadow;
+  transition:
+    background-color 220ms var(--apple-ease-spring),
+    border-color 220ms var(--apple-ease-spring),
+    box-shadow 220ms var(--apple-ease-spring) !important;
+}
+
+/* Switch Track: Off State */
+input[type="checkbox"][role="switch"]:not(:checked),
+button[role="switch"][aria-checked="false"],
+button[role="switch"][data-state="unchecked"],
+.switchBase:not(.bg-primary) {
+  background-color: rgba(255, 255, 255, 0.12) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.5) !important;
+}
+
+/* Switch Track: On State (Apple Blue / Green Gradient) */
+input[type="checkbox"][role="switch"]:checked,
+button[role="switch"][aria-checked="true"],
+button[role="switch"][data-state="checked"],
+.switchBase.bg-primary {
+  background: var(--apple-blue-gradient) !important;
+  border: 1px solid rgba(255, 255, 255, 0.22) !important;
+  box-shadow:
+    var(--apple-specular-prominent),
+    0 2px 10px rgba(10, 132, 255, 0.40) !important;
+}
+
+/* Switch Thumbs */
+.switchThumb,
+button[role="switch"] > span,
+[data-radix-switch-thumb] {
+  border-radius: 9999px !important;
+  background-color: #ffffff !important;
+  box-shadow:
+    0 2px 6px rgba(0, 0, 0, 0.42),
+    0 0 1px rgba(0, 0, 0, 0.25) !important;
+  will-change: transform;
+  transition: transform 220ms var(--apple-ease-spring) !important;
+}
+
+/* iOS Switch Active Tactile Stretch */
+button[role="switch"]:active > span,
+.switchBase:active .switchThumb,
+[data-radix-switch-thumb]:active {
+  transform: scaleX(1.16) !important;
+  transition: transform 60ms cubic-bezier(0.32, 1.35, 0.64, 1) !important;
+}
+
+/* Form Inputs, Search Fields, & Textareas (Floating Obsidian Wells) */
+input[type="text"],
+input[type="search"],
+input[type="password"],
+input[type="email"],
+textarea,
+select,
+.input {
+  background-color: rgba(255, 255, 255, 0.05) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  border-radius: 10px !important;
+  box-shadow: var(--apple-specular) !important;
+  color: var(--apple-label) !important;
+  will-change: border-color, box-shadow;
+  transition:
+    border-color 180ms var(--apple-ease-spring),
+    box-shadow 180ms var(--apple-ease-spring),
+    background-color 150ms var(--apple-ease-smooth) !important;
+}
+
+input[type="text"]:hover,
+input[type="search"]:hover,
+input[type="password"]:hover,
+input[type="email"]:hover,
+textarea:hover,
+select:hover {
+  border-color: rgba(255, 255, 255, 0.12) !important;
+  background-color: rgba(255, 255, 255, 0.07) !important;
+}
+
+input[type="text"]:focus,
+input[type="search"]:focus,
+input[type="password"]:focus,
+input[type="email"]:focus,
+textarea:focus,
+select:focus {
+  border-color: rgba(10, 132, 255, 0.80) !important;
+  background-color: rgba(255, 255, 255, 0.08) !important;
+  box-shadow:
+    var(--apple-specular-prominent),
+    0 0 0 2px rgba(10, 132, 255, 0.36),
+    0 0 20px rgba(10, 132, 255, 0.16) !important;
+  outline: none !important;
+}
+
+/* ==========================================================================
+   15. iOS Dynamic Island Floating HUD & Toasts
+   ========================================================================== */
+.toast,
+[data-testid*="toast"],
+[data-radix-toast-announce],
+.toast-viewport > div {
+  border-radius: 22px !important;
+  background: rgba(16, 16, 22, 0.94) !important;
+  backdrop-filter: var(--apple-glass-blur) !important;
+  -webkit-backdrop-filter: var(--apple-glass-blur) !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  box-shadow:
+    var(--apple-specular-prominent),
+    0 20px 48px -6px rgba(0, 0, 0, 0.88),
+    0 6px 18px rgba(0, 0, 0, 0.5) !important;
+  animation: apple-island-pop 260ms var(--apple-ease-spring) !important;
+}
+
+/* ==========================================================================
+   16. In-Built Browser & Auxiliary Pane Controls
+   ========================================================================== */
+.bg-browser-icon,
+.bg-browser-button,
+[data-testid*="browser-button"] {
+  border-radius: 8px !important;
+  will-change: transform, background-color;
+  transition:
+    transform var(--apple-rebound-duration) var(--apple-ease-spring),
+    background-color 140ms var(--apple-ease-smooth),
+    color 140ms var(--apple-ease-smooth) !important;
+}
+
+.bg-browser-icon:hover,
+.bg-browser-button:hover,
+[data-testid*="browser-button"]:hover {
+  background-color: var(--apple-hover-wash) !important;
+}
+
+.bg-browser-icon:active,
+.bg-browser-button:active,
+[data-testid*="browser-button"]:active {
+  transform: scale(0.91) !important;
+  transition: transform var(--apple-press-duration) var(--apple-ease-squish) !important;
+}
+
+/* In-Built Browser Safari Style Tabs */
+.bg-browser-tab {
+  border-radius: 8px 8px 0 0 !important;
+  transition:
+    background-color 140ms var(--apple-ease-smooth),
+    border-color 140ms var(--apple-ease-smooth) !important;
+}
+
+.bg-browser-tab:hover {
+  background-color: var(--apple-hover-wash) !important;
+}
+
+.bg-browser-tab[data-active="true"] {
+  background-color: var(--apple-surface-elevated) !important;
+  border-top: 1px solid rgba(255, 255, 255, 0.12) !important;
+  box-shadow: var(--apple-specular) !important;
+}
+
+/* ==========================================================================
+   17. Momentum Scrolling & Kinetic Responsiveness
+   ========================================================================== */
+html,
+body,
+main,
+[data-testid="conversation-view"],
+[role="navigation"],
+.overflow-y-auto,
+.overflow-x-auto,
+pre {
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
+}
+
+button,
+[role="button"],
+a,
+input,
+select {
+  touch-action: manipulation;
+}
+
