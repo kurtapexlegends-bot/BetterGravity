@@ -1263,7 +1263,7 @@ async function refreshContextMetrics() {
 }
 
 // Keep context metrics, prompt box layout, and account profile in sync automatically
-setInterval(() => {
+const contextMetricsTicker = setInterval(() => {
   if (document.hidden) return;
   applyPromptBoxPatch();
   ensureComposerMeta();
@@ -1272,9 +1272,10 @@ setInterval(() => {
     refreshContextMetrics();
   }
 }, 3000);
+plugin.onDispose(() => clearInterval(contextMetricsTicker));
 
 if (typeof document !== "undefined") {
-  document.addEventListener("visibilitychange", () => {
+  const onVisibilityChange = () => {
     if (!document.hidden) {
       applyPromptBoxPatch();
       ensureComposerMeta();
@@ -1283,7 +1284,9 @@ if (typeof document !== "undefined") {
         refreshContextMetrics();
       }
     }
-  });
+  };
+  document.addEventListener("visibilitychange", onVisibilityChange);
+  plugin.onDispose(() => document.removeEventListener("visibilitychange", onVisibilityChange));
 }
 
 function getConversationContextMetrics(forceRefresh = false) {
@@ -1358,6 +1361,7 @@ function ensureComposerMeta(boxOrPill) {
     meta.style.display = 'inline-flex';
 
     updateComposerMeta(meta);
+    ensureSnipButton(box, meta);
   } catch (err) {
     console.debug("[BetterGravity] Error in ensureComposerMeta:", err);
   }
@@ -2242,11 +2246,29 @@ plugin.dom.observe(INPUT_BOX, (box) => {
   ensureComposerMeta(box);
 });
 
-plugin.dom.observe('[role="menu"]:has([data-testid="model-selector-effort-group"]), [role="menu"]:has([data-model-base]), [data-testid="model-selector-panel"]', (panel) => {
-  panel.setAttribute('data-testid', 'model-selector-panel');
-  panel.classList.add('gemini-model-selector-panel');
-  enhanceModelSelectorPanel(panel);
+plugin.dom.observe('[data-testid="model-selector-panel"], [role="menu"]', (panel) => {
+  if (panel.hasAttribute('data-nested') || panel.closest('[data-nested]')) return;
+  const isModelPanel = () => panel.getAttribute('data-testid') === 'model-selector-panel' ||
+    Boolean(panel.querySelector('[data-testid="model-selector-effort-group"], [data-model-base]'));
+
+  let initialized = false;
+  const initPanel = () => {
+    if (initialized) return true;
+    if (!isModelPanel()) return false;
+    initialized = true;
+    panel.setAttribute('data-testid', 'model-selector-panel');
+    panel.classList.add('gemini-model-selector-panel');
+    enhanceModelSelectorPanel(panel);
+    return true;
+  };
+
+  initPanel();
+
   const observer = new MutationObserver((mutations) => {
+    if (!initialized) {
+      if (initPanel()) observer.takeRecords();
+      return;
+    }
     if (isEnhancingModelPanel) return;
     const hasExternalChanges = mutations.some(m =>
       Array.from(m.addedNodes).some(n => n instanceof Element && !n.classList?.contains('gemini-model-limit-tag') && !n.classList?.contains('gemini-usage-stats'))
@@ -2331,11 +2353,18 @@ plugin.dom.observe(NEW_CONV_SELECTOR, (btn) => {
 const WILLOW_SIDEBAR_EXPANDED_WIDTH = "288px";
 const WILLOW_SIDEBAR_COLLAPSED_WIDTH = "52px";
 const WILLOW_SIDEBAR_TRANSITION = "width 300ms cubic-bezier(0.2, 0, 0, 1), height 300ms cubic-bezier(0.2, 0, 0, 1)";
-const TOGGLE_SELECTOR = '.absolute.top-0 button[data-testid="sidebar-toggle"], button[data-testid="sidebar-toggle"][aria-label="Toggle Sidebar"]';
+const TOGGLE_SELECTOR = 'button[data-testid="sidebar-toggle"]';
+
+let expansionLockUntil = 0;
+let collapseLockUntil = 0;
+let navigatingConversationUntil = 0;
+let isInternalToggleAction = false;
 
 function isSidebarCollapsed() {
-  const toggle = document.querySelector('.absolute.top-0 button[data-testid="sidebar-toggle"]') ||
-                 document.querySelector(TOGGLE_SELECTOR);
+  if (Date.now() < expansionLockUntil) return false;
+  if (Date.now() < collapseLockUntil) return true;
+
+  const toggle = document.querySelector(TOGGLE_SELECTOR);
   if (toggle && toggle.hasAttribute("aria-expanded")) {
     return toggle.getAttribute("aria-expanded") === "false";
   }
@@ -2347,6 +2376,8 @@ let isEnforcingSidebarGeometry = false;
 
 function enforceSidebarGeometry(grandParent, collapsed) {
   if (!grandParent || isEnforcingSidebarGeometry) return;
+  if (collapsed && Date.now() < expansionLockUntil) return;
+  if (!collapsed && Date.now() < collapseLockUntil) return;
   isEnforcingSidebarGeometry = true;
   try {
     const targetWidth = collapsed ? WILLOW_SIDEBAR_COLLAPSED_WIDTH : WILLOW_SIDEBAR_EXPANDED_WIDTH;
@@ -2449,11 +2480,20 @@ function ensureSidebarHeader(sidebar, collapsed) {
     logoBtn.addEventListener("click", () => {
       const sb = document.querySelector(SIDEBAR_SELECTOR);
       if (sb && sb.getAttribute("data-collapsed") === "true") {
+        collapseLockUntil = 0;
+        expansionLockUntil = Date.now() + 500;
         sb.setAttribute("data-collapsed", "false");
         const gp = sb.parentElement?.parentElement;
         if (gp) enforceSidebarGeometry(gp, false);
         const toggle = document.querySelector(TOGGLE_SELECTOR);
-        if (toggle) toggle.click();
+        if (toggle) {
+          isInternalToggleAction = true;
+          try {
+            toggle.click();
+          } finally {
+            isInternalToggleAction = false;
+          }
+        }
       }
     });
     header.prepend(logoBtn);
@@ -2561,6 +2601,14 @@ function syncSidebarState(sidebar) {
   ensureExperienceSwitch(sidebar);
   ensureScrollNav();
   updateSidebarItemsState(sidebar, collapsed);
+
+  if (!collapsed) {
+    const scroller = sidebar.querySelector(LIST_SELECTOR) || document.querySelector(LIST_SELECTOR);
+    if (scroller) {
+      reorganizePinnedItems(scroller);
+      triggerListRerender();
+    }
+  }
 }
 
 
@@ -2585,6 +2633,10 @@ const EXPERIENCES = [
 ];
 
 const conversationProjectMap = new Map();
+
+var listRerenderDispatcher = null;
+var isRerenderingList = false;
+var lastListRerenderTime = 0;
 
 const EXPERIENCE_STORAGE_KEY = "bettergravity-experience";
 
@@ -3466,6 +3518,246 @@ async function setComposerPromptText(text, submit = false) {
 
 if (typeof window !== 'undefined') {
   window.BetterGravityComposer = { setPrompt: setComposerPromptText };
+}
+
+// ---------------------------------------------------------------------------
+// Codex Feature 2: 1-Click Desktop Screen Snipping in Composer
+// ---------------------------------------------------------------------------
+
+let activeSnipOverlay = null;
+
+function ensureSnipButton(box, anchor) {
+  if (!box) return;
+  let btn = box.querySelector('[data-testid="composer-snip-button"]');
+  if (!btn) {
+    btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'gemini-composer-snip-btn';
+    btn.setAttribute('data-testid', 'composer-snip-button');
+    btn.setAttribute('aria-label', 'Snip screen to composer');
+    btn.title = 'Snip Screen (1-click capture to composer)';
+    btn.innerHTML = `
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M6 2v4M18 2v4M2 6h4M2 18h4M22 6h-4M22 18h-4M6 22v-4M18 22v-4"></path>
+        <rect x="7" y="7" width="10" height="10" rx="1.5"></rect>
+      </svg>
+    `;
+    btn.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      startScreenSnip();
+    });
+    if (anchor && anchor.parentElement) {
+      anchor.parentElement.insertBefore(btn, anchor.nextElementSibling);
+    } else {
+      const card = box.querySelector('.rounded-2xl.bg-card-border > .bg-card') || box;
+      card.appendChild(btn);
+    }
+  }
+}
+
+function showSnipToast(msg) {
+  const old = document.querySelector('.gemini-snip-toast');
+  if (old) old.remove();
+  const toast = document.createElement('div');
+  toast.className = 'gemini-snip-toast';
+  toast.innerHTML = `
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M20 6L9 17l-5-5"></path>
+    </svg>
+    <span>${msg}</span>
+  `;
+  document.body.appendChild(toast);
+  setTimeout(() => {
+    toast.style.transition = 'opacity 200ms ease';
+    toast.style.opacity = '0';
+    setTimeout(() => toast.remove(), 220);
+  }, 2500);
+}
+
+async function attachImageBlobToComposer(blob) {
+  if (!blob) return false;
+  try {
+    if (typeof navigator !== 'undefined' && navigator.clipboard && typeof ClipboardItem !== 'undefined') {
+      await navigator.clipboard.write([new ClipboardItem({ [blob.type || 'image/png']: blob })]);
+    }
+  } catch {}
+
+  const box = document.querySelector(INPUT_BOX) || document.querySelector('[data-testid="composer-input"]')?.closest('.group\\/pane') || document;
+  let target = box.querySelector('[contenteditable="true"]') || box.querySelector('textarea, input[type="text"]');
+  if (!target) {
+    for (const node of box.querySelectorAll('[contenteditable]')) {
+      if (node.isContentEditable) { target = node; break; }
+    }
+  }
+  if (!target) target = document.activeElement;
+
+  try {
+    const file = new File([blob], `snip-${Date.now()}.png`, { type: blob.type || 'image/png' });
+    const dataTransfer = new DataTransfer();
+    dataTransfer.items.add(file);
+    const pasteEvent = new ClipboardEvent('paste', {
+      clipboardData: dataTransfer,
+      bubbles: true,
+      cancelable: true
+    });
+    if (target) {
+      target.focus();
+      target.dispatchEvent(pasteEvent);
+    }
+    showSnipToast('Screen snip attached to composer');
+    return true;
+  } catch (err) {
+    console.debug('[BetterGravity] Attach snip error:', err);
+    return false;
+  }
+}
+
+function startScreenSnip() {
+  if (activeSnipOverlay) return;
+
+  const overlay = document.createElement('div');
+  overlay.id = 'gemini-screen-snipper';
+  overlay.innerHTML = `
+    <div class="gemini-snip-hint">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="12" cy="12" r="10"></circle>
+        <line x1="12" y1="8" x2="12" y2="12"></line>
+        <line x1="12" y1="16" x2="12.01" y2="16"></line>
+      </svg>
+      <span>Click and drag to snip area &bull; Press <strong>Esc</strong> to cancel</span>
+    </div>
+    <div class="gemini-snip-selection" style="display: none;"></div>
+  `;
+  document.body.appendChild(overlay);
+  activeSnipOverlay = overlay;
+
+  const selectionBox = overlay.querySelector('.gemini-snip-selection');
+  let isDragging = false;
+  let startX = 0;
+  let startY = 0;
+  let currentRect = { x: 0, y: 0, width: 0, height: 0 };
+
+  const closeSnip = () => {
+    window.removeEventListener('keydown', onKeyDown);
+    if (overlay && overlay.isConnected) overlay.remove();
+    activeSnipOverlay = null;
+  };
+
+  const onKeyDown = (e) => {
+    if (e.key === 'Escape') {
+      e.preventDefault();
+      closeSnip();
+    }
+  };
+  window.addEventListener('keydown', onKeyDown);
+
+  overlay.addEventListener('mousedown', (e) => {
+    if (e.button !== 0) return;
+    isDragging = true;
+    startX = e.clientX;
+    startY = e.clientY;
+    currentRect = { x: startX, y: startY, width: 0, height: 0 };
+    selectionBox.style.display = 'block';
+    selectionBox.style.left = `${startX}px`;
+    selectionBox.style.top = `${startY}px`;
+    selectionBox.style.width = '0px';
+    selectionBox.style.height = '0px';
+  });
+
+  overlay.addEventListener('mousemove', (e) => {
+    if (!isDragging) return;
+    const x = Math.min(e.clientX, startX);
+    const y = Math.min(e.clientY, startY);
+    const width = Math.abs(e.clientX - startX);
+    const height = Math.abs(e.clientY - startY);
+    currentRect = { x, y, width, height };
+    selectionBox.style.left = `${x}px`;
+    selectionBox.style.top = `${y}px`;
+    selectionBox.style.width = `${width}px`;
+    selectionBox.style.height = `${height}px`;
+  });
+
+  overlay.addEventListener('mouseup', async () => {
+    if (!isDragging) return;
+    isDragging = false;
+    const rect = { ...currentRect };
+    closeSnip();
+
+    if (rect.width < 10 || rect.height < 10) {
+      return;
+    }
+
+    // Wait 2 animation frames to ensure overlay is completely removed from the compositor
+    await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+
+    try {
+      const bridge = typeof window !== 'undefined' ? window.__betterGravityBridge : null;
+      if (bridge && typeof bridge.capturePage === 'function') {
+        const dataUrl = await bridge.capturePage({
+          x: Math.max(0, Math.round(rect.x)),
+          y: Math.max(0, Math.round(rect.y)),
+          width: Math.max(1, Math.round(rect.width)),
+          height: Math.max(1, Math.round(rect.height))
+        });
+        if (dataUrl) {
+          const res = await fetch(dataUrl);
+          const blob = await res.blob();
+          await attachImageBlobToComposer(blob);
+          return;
+        }
+      }
+
+      // Fallback: Web mediaDevices display capture if bridge is pending app restart
+      if (typeof navigator !== 'undefined' && navigator.mediaDevices?.getDisplayMedia) {
+        try {
+          const stream = await navigator.mediaDevices.getDisplayMedia({
+            video: { displaySurface: 'window' },
+            audio: false
+          });
+          const video = document.createElement('video');
+          video.srcObject = stream;
+          await new Promise((resolve) => {
+            video.onloadedmetadata = () => video.play().then(resolve).catch(resolve);
+          });
+          await new Promise((r) => setTimeout(r, 80));
+
+          const canvas = document.createElement('canvas');
+          canvas.width = rect.width;
+          canvas.height = rect.height;
+          const ctx = canvas.getContext('2d');
+          if (ctx) {
+            const scaleX = video.videoWidth / (window.innerWidth || 1);
+            const scaleY = video.videoHeight / (window.innerHeight || 1);
+            ctx.drawImage(
+              video,
+              rect.x * scaleX,
+              rect.y * scaleY,
+              rect.width * scaleX,
+              rect.height * scaleY,
+              0,
+              0,
+              rect.width,
+              rect.height
+            );
+          }
+          stream.getTracks().forEach((t) => t.stop());
+          const blob = await new Promise((resolve) => canvas.toBlob(resolve, 'image/png'));
+          if (blob) {
+            await attachImageBlobToComposer(blob);
+            return;
+          }
+        } catch (mediaErr) {
+          console.debug('[BetterGravity] getDisplayMedia fallback error:', mediaErr);
+        }
+      }
+
+      showSnipToast('Please restart Antigravity to activate screen capture');
+    } catch (err) {
+      console.debug('[BetterGravity] Capture error:', err);
+      showSnipToast('Capture failed: ' + (err?.message || 'unknown error'));
+    }
+  });
 }
 
 const ANTIGRAVITY_BUILTIN_SKILLS = [
@@ -4814,10 +5106,25 @@ plugin.dom.observe(`${SIDEBAR_SELECTOR} > div.shrink-0.flex.items-center`, (head
 plugin.dom.observe(TOGGLE_SELECTOR, (toggle) => {
   const sidebar = document.querySelector(SIDEBAR_SELECTOR);
   if (sidebar) syncSidebarState(sidebar);
-  listenToElement(toggle, "click", () => {
+  listenToElement(toggle, "click", (e) => {
+    const isSynthetic = !e.isTrusted && !isInternalToggleAction;
+    const isCurrentlyCollapsed = isSidebarCollapsed();
+    if (isSynthetic && !isCurrentlyCollapsed && Date.now() < navigatingConversationUntil && (typeof window === 'undefined' || window.innerWidth >= 900)) {
+      e.preventDefault();
+      e.stopImmediatePropagation();
+      return;
+    }
+
     const sb = document.querySelector(SIDEBAR_SELECTOR);
     if (sb) {
       const willCollapse = toggle.getAttribute("aria-expanded") !== "false";
+      if (willCollapse) {
+        expansionLockUntil = 0;
+        collapseLockUntil = Date.now() + 500;
+      } else {
+        collapseLockUntil = 0;
+        expansionLockUntil = Date.now() + 500;
+      }
       sb.setAttribute("data-collapsed", String(willCollapse));
       document.documentElement.setAttribute("data-sidebar-collapsed", String(willCollapse));
       const grandParent = sb.parentElement?.parentElement;
@@ -4826,10 +5133,23 @@ plugin.dom.observe(TOGGLE_SELECTOR, (toggle) => {
     }
   });
   const toggleObserver = new MutationObserver(() => {
+    if (toggle.hasAttribute("aria-expanded")) {
+      const isExpandedAttr = toggle.getAttribute("aria-expanded") === "true";
+      if (isExpandedAttr && expansionLockUntil) {
+        expansionLockUntil = 0;
+      } else if (!isExpandedAttr && collapseLockUntil) {
+        collapseLockUntil = 0;
+      }
+      if (!isExpandedAttr && Date.now() < expansionLockUntil) {
+        isInternalToggleAction = true;
+        try { toggle.click(); } finally { isInternalToggleAction = false; }
+        return;
+      }
+    }
     const sb = document.querySelector(SIDEBAR_SELECTOR);
     if (sb) syncSidebarState(sb);
   });
-  toggleObserver.observe(toggle, { attributes: true, attributeFilter: ["aria-expanded", "class"] });
+  toggleObserver.observe(toggle, { attributes: true, attributeFilter: ["aria-expanded"] });
   remember(toggle, toggleObserver);
 });
 
@@ -5102,6 +5422,29 @@ function cleanHeaderActions(btn) {
       const hasPlus = b.querySelector('svg.lucide-plus, svg[class*="plus"], path[d*="M12 5"], path[d*="m12 5"], path[d*="M5 12"], path[d*="m5 12"], path[d*="12 5"], path[d*="5 12"]');
       const label = ((b.getAttribute('aria-label') || '') + ' ' + (b.getAttribute('title') || '')).toLowerCase();
       const isPlus = hasPlus || /new|add|chat|conv|plus/.test(label);
+      if (isPlus && !b.dataset.geminiPlusBound) {
+        b.dataset.geminiPlusBound = "true";
+        b.addEventListener('click', () => {
+          let pid = '';
+          let curr = plugin.react.getFiber(b);
+          while (curr) {
+            const p = curr.memoizedProps?.sectionId || curr.memoizedProps?.projectId || curr.memoizedProps?.item?.id;
+            if (p) {
+              pid = String(p).replace(/^header-/, '');
+              break;
+            }
+            curr = curr.return;
+          }
+          if (pid) {
+            setLastSelectedProjectId(pid);
+            const fn = getGoToNewConversation();
+            if (typeof fn === 'function') {
+              try { fn(pid); return; } catch {}
+            }
+            spaNavigate(pid);
+          }
+        });
+      }
       if (!isPlus) {
         if (b.style.display !== 'none') {
           b.style.setProperty('display', 'none', 'important');
@@ -5491,28 +5834,23 @@ function readProjectMap(cJb) {
   }
 }
 
-let listRerenderDispatcher = null;
-let isRerenderingList = false;
-let lastListRerenderTime = 0;
-
 function triggerListRerender() {
   const now = Date.now();
   if (isRerenderingList || (now - lastListRerenderTime < 50)) return;
   isRerenderingList = true;
   lastListRerenderTime = now;
   try {
-    if (typeof listRerenderDispatcher === 'function') {
-      listRerenderDispatcher();
-      return;
-    }
     const scroller = document.querySelector(LIST_SELECTOR);
-    if (!scroller) return;
-    reorganizePinnedItems(scroller);
+    if (scroller) {
+      reorganizePinnedItems(scroller);
+    }
     if (typeof listRerenderDispatcher === 'function') {
       listRerenderDispatcher();
       return;
     }
-    scroller.dispatchEvent(new Event('scroll'));
+    if (scroller) {
+      scroller.dispatchEvent(new Event('scroll'));
+    }
   } finally {
     setTimeout(() => { isRerenderingList = false; }, 50);
   }
@@ -5703,13 +6041,37 @@ function wrapItems(fiber) {
   const original = isMemo ? fiber.type.type : fiber.type;
   if (typeof original !== 'function' || original[ORIGINAL]) return;
 
+  const extractDispatcher = (targetFiber) => {
+    for (let curr = targetFiber; curr; curr = curr.return) {
+      const props = curr.memoizedProps;
+      if (typeof props?.onHoverGroupId === 'function') {
+        const fn = props.onHoverGroupId;
+        return () => {
+          try {
+            fn('__gemini_refresh__' + Date.now());
+            setTimeout(() => {
+              try { fn(null); } catch {}
+            }, 0);
+          } catch {}
+        };
+      }
+    }
+    return null;
+  };
+
+  const initialDispatcher = extractDispatcher(fiber);
+  if (initialDispatcher) {
+    listRerenderDispatcher = initialDispatcher;
+  }
+
   const wrapper = function (props, secondArg) {
     if (typeof props?.onHoverGroupId === 'function') {
+      const fn = props.onHoverGroupId;
       listRerenderDispatcher = () => {
         try {
-          props.onHoverGroupId('__gemini_refresh__');
+          fn('__gemini_refresh__' + Date.now());
           setTimeout(() => {
-            try { props.onHoverGroupId(null); } catch {}
+            try { fn(null); } catch {}
           }, 0);
         } catch {}
       };
@@ -5735,6 +6097,9 @@ function wrapItems(fiber) {
   if (wrappedFibers.size >= 512) {
     for (const ref of wrappedFibers) if (!ref.deref()) wrappedFibers.delete(ref);
   }
+  queueMicrotask(() => {
+    triggerListRerender();
+  });
 }
 
 function unwrapItems() {
@@ -5812,7 +6177,7 @@ plugin.dom.observe('[data-testid="conversation-list-sidebar"]', (scroller) => {
 });
 
 listenToPage(document, 'click', (e) => {
-  const projCard = e.target.closest('button[data-project-card="true"], .group\\/headerbtn');
+  const projCard = e.target.closest('button[data-project-card="true"], .group\\/headerbtn, .group\\/header, div[class*="group/header"]');
   if (projCard) {
     const fiber = plugin.react.getFiber(projCard);
     let curr = fiber;
@@ -5829,6 +6194,11 @@ listenToPage(document, 'click', (e) => {
 
   const convRow = e.target.closest('[data-testid="conversation-row-sidebar"]');
   if (convRow) {
+    if (!isSidebarCollapsed() && (typeof window === 'undefined' || window.innerWidth >= 900)) {
+      collapseLockUntil = 0;
+      expansionLockUntil = Date.now() + 1500;
+      navigatingConversationUntil = Date.now() + 1500;
+    }
     const fiber = plugin.react.getFiber(convRow);
     let curr = fiber;
     while (curr) {
@@ -5841,6 +6211,16 @@ listenToPage(document, 'click', (e) => {
         break;
       }
       curr = curr.return;
+    }
+    const currentExp = getStoredExperience();
+    if (currentExp === 'chat') {
+      const pill = document.querySelector('#gemini-experience-switch');
+      if (pill && pill.dataset.geminiExperience !== 'chat') {
+        markExperience(pill, 'chat', false);
+      }
+      if (document.documentElement.getAttribute('data-gemini-experience') !== 'chat') {
+        document.documentElement.setAttribute('data-gemini-experience', 'chat');
+      }
     }
     const targetScroller = document.querySelector(LIST_SELECTOR);
     if (targetScroller) {
@@ -5857,46 +6237,59 @@ listenToPage(document, 'click', (e) => {
 }, true);
 
 listenToPage(window, 'keydown', (e) => {
+  if ((e.ctrlKey || e.metaKey) && (e.key === 'b' || e.key === 'B')) {
+    if (isSidebarCollapsed()) {
+      collapseLockUntil = 0;
+      expansionLockUntil = Date.now() + 500;
+    } else {
+      expansionLockUntil = 0;
+      collapseLockUntil = Date.now() + 500;
+    }
+  }
   if ((e.ctrlKey || e.metaKey) && e.shiftKey && (e.key === 'O' || e.key === 'o')) {
     handleNewConversationActivation(e);
   }
 }, true);
 
-listenToPage(window, 'popstate', () => {
-  checkUrlForProjectSwitch();
-  const scroller = document.querySelector(LIST_SELECTOR);
-  if (scroller) {
-    reorganizePinnedItems(scroller);
-    triggerListRerender();
-  }
-});
-listenToPage(window, 'hashchange', () => {
-  checkUrlForProjectSwitch();
-  const scroller = document.querySelector(LIST_SELECTOR);
-  if (scroller) {
-    reorganizePinnedItems(scroller);
-    triggerListRerender();
-  }
-});
+// Intercept pushState, replaceState, popstate & hashchange for 0ms instantaneous route tracking
+let lastCheckedUrl = '';
 
-// Intercept pushState & replaceState for 0ms instantaneous route tracking with clean disposal
+function handleRouteChange() {
+  const currentUrl = window.location.href;
+  if (currentUrl === lastCheckedUrl) return;
+  lastCheckedUrl = currentUrl;
+  try { checkUrlForProjectSwitch(); } catch {}
+  try { scheduleAutoHeal(); } catch {}
+  try {
+    const currentExp = getStoredExperience();
+    if (currentExp === 'chat') {
+      const pill = document.querySelector('#gemini-experience-switch');
+      if (pill && pill.dataset.geminiExperience !== 'chat') {
+        markExperience(pill, 'chat', false);
+      }
+      if (document.documentElement.getAttribute('data-gemini-experience') !== 'chat') {
+        document.documentElement.setAttribute('data-gemini-experience', 'chat');
+      }
+    }
+    const scroller = document.querySelector(LIST_SELECTOR);
+    if (scroller) {
+      scheduleSidebarPass(scroller);
+      reorganizePinnedItems(scroller);
+      triggerListRerender();
+    }
+  } catch {}
+}
+
+listenToPage(window, 'popstate', handleRouteChange);
+listenToPage(window, 'hashchange', handleRouteChange);
+
 if (typeof history !== "undefined") {
   try {
     const rawPushState = history.__bettergravity_raw_pushState || history.pushState;
     history.__bettergravity_raw_pushState = rawPushState;
     history.pushState = function(...args) {
       const ret = rawPushState.apply(this, args);
-      try { checkUrlForProjectSwitch(); } catch {}
-      try { scheduleAutoHeal(); } catch {}
-      try {
-        requestAnimationFrame(() => {
-          const scroller = document.querySelector(LIST_SELECTOR);
-          if (scroller) {
-            reorganizePinnedItems(scroller);
-            triggerListRerender();
-          }
-        });
-      } catch {}
+      handleRouteChange();
       return ret;
     };
     plugin.onDispose(() => {
@@ -5911,17 +6304,7 @@ if (typeof history !== "undefined") {
     history.__bettergravity_raw_replaceState = rawReplaceState;
     history.replaceState = function(...args) {
       const ret = rawReplaceState.apply(this, args);
-      try { checkUrlForProjectSwitch(); } catch {}
-      try { scheduleAutoHeal(); } catch {}
-      try {
-        requestAnimationFrame(() => {
-          const scroller = document.querySelector(LIST_SELECTOR);
-          if (scroller) {
-            reorganizePinnedItems(scroller);
-            triggerListRerender();
-          }
-        });
-      } catch {}
+      handleRouteChange();
       return ret;
     };
     plugin.onDispose(() => {
@@ -5934,13 +6317,10 @@ if (typeof history !== "undefined") {
   } catch {}
 }
 
-let lastCheckedUrl = '';
 const urlTicker = window.setInterval(() => {
   if (document.hidden) return;
   if (window.location.href !== lastCheckedUrl) {
-    lastCheckedUrl = window.location.href;
-    checkUrlForProjectSwitch();
-    scheduleAutoHeal();
+    handleRouteChange();
   }
 }, 3000);
 
@@ -8524,9 +8904,6 @@ function sanitizeSearchWildcards(root) {
 
 plugin.dom.observe(SEARCH_ROW_SELECTOR, (row) => {
   sanitizeSearchWildcardRow(row);
-  const obs = new MutationObserver(() => sanitizeSearchWildcardRow(row));
-  obs.observe(row, { childList: true, characterData: true, subtree: true });
-  remember(row, { disconnect: () => obs.disconnect() });
 });
 
 /*
@@ -8567,6 +8944,7 @@ function scanTurnMutations(records) {
   return touched;
 }
 
+// ---------------------------------------------------------------------------
 plugin.dom.observe(CONV_VIEW_SELECTOR, (view) => {
   if (view.style.display === 'block') {
     view.style.display = '';
@@ -8816,7 +9194,11 @@ function setupUserMessageBubble(step) {
     const measure = () => {
       if (!active || !flex1.isConnected || !textContent.isConnected) return;
       resetScroll();
+      const clientRectHeight = typeof textContent.getBoundingClientRect === 'function'
+        ? (textContent.getBoundingClientRect()?.height || 0)
+        : 0;
       const height = Math.max(
+        clientRectHeight,
         textContent.scrollHeight || 0,
         clampTarget.scrollHeight || 0,
         flex1.scrollHeight || 0
@@ -12471,6 +12853,8 @@ plugin.onDispose(() => {
   cancelSentPromptGlide();
   document.getElementById("gemini-skills-button")?.remove();
   for (const el of document.querySelectorAll(".gemini-context-ring-wrap, .gemini-context-popover, .gemini-model-limit-tag, .gemini-effort-slider-card, .gemini-usage-stats")) el.remove();
+  if (activeSnipOverlay) activeSnipOverlay.remove();
+  for (const el of document.querySelectorAll('.gemini-composer-snip-btn, #gemini-screen-snipper, .gemini-snip-toast')) el.remove();
   const s = document.getElementById("gemini-theme-dynamic-styles");
   if (s) s.remove();
 });

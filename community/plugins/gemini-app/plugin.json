@@ -72,6 +72,7 @@
     {
       "note": "Reuse the native artifact, upload, and command-palette projections when revisiting an unchanged artifact list. Each projection owns a separate cache with weak array keys and at most four recent lists. Entry identity, URI, timestamp object/fields, ordering, and workspace are checked before reuse. The original mapping, filtering, sorting, icons, error handling, and React hook order stay intact. Each complete component replacement includes its own cache so a version mismatch cannot leave an undefined helper.",
       "find": "Failed to get ARI for artifact:",
+      "atomic": false,
       "replace": [
         {
           "match": "(var \\w+=)(\\(\\)=>\\{var (\\w+)=\\w+\\(\\);\\3=\\w+\\(\\3\\);var (\\w+)=\\w+\\(\\3,\\w+\\),(\\w+)=\\w+\\(\\);return\\(0,\\w+\\.useMemo\\)\\()(\\(\\)=>\\4\\?\\4\\.map\\(\\w+=>\\{try\\{var \\w+=\\w+\\(\\w+\\.artifactAbsoluteUri,\\5\\)\\}catch\\{console\\.error\\(\"Failed to get ARI for artifact:\",\\w+\\.artifactAbsoluteUri\\);return\\}[\\s\\S]{1,350}?\\}\\)\\.filter\\(\\w+=>\\w+!==void 0\\):\\[\\])(,\\[\\4,\\5\\]\\)\\})",

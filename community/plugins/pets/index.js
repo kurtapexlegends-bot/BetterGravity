@@ -1170,6 +1170,11 @@ function petSurface(host, data) {
   petMenu.setAttribute("aria-label", "Pet");
   petMenu.dataset.petHit = "menu";
   petMenu.hidden = true;
+
+  const closePetItem = make("button", "bettergravity-pet-menu__item", petMenu);
+  closePetItem.type = "button";
+  closePetItem.setAttribute("role", "menuitem");
+  closePetItem.textContent = "Close pet";
   pet.setAttribute("aria-haspopup", "menu");
 
   /* ── Which sheet, and how big ───────────────────────────────────────────*/
@@ -2264,45 +2269,14 @@ function petSurface(host, data) {
     menuOpen = true;
     petMenu.hidden = false;
     pet.setAttribute("aria-expanded", "true");
-
-    petMenu.innerHTML = "";
-    const items = [
-      { id: "trick-wave", label: "Wave", icon: "👋" },
-      { id: "trick-jump", label: "Jump / Flip", icon: "🦘" },
-      { id: "trick-celebrate", label: "Celebrate", icon: "🎉" },
-      { id: "trick-review", label: "Inspect / Think", icon: "🔍" },
-      { id: "toggle-sleep", label: isSleeping ? "Wake Up" : "Nap (Low Power)", icon: isSleeping ? "☀️" : "💤" },
-      { id: "pet-status", label: "Status & Tasks", icon: "📊" },
-      { id: "pet-tip", label: "Helpful Tip", icon: "💡" },
-      { id: "divider" },
-      { id: "close-pet", label: "Close pet", icon: "✕" }
-    ];
-
-    for (const item of items) {
-      if (item.id === "divider") {
-        make("div", "bettergravity-pet-menu-divider", petMenu);
-        continue;
-      }
-      const btn = make("button", "bettergravity-pet-menu__item", petMenu);
-      btn.type = "button";
-      btn.setAttribute("role", "menuitem");
-      btn.innerHTML = `<span class="bettergravity-pet-menu-icon">${item.icon}</span><span>${item.label}</span>`;
-      btn.addEventListener("click", (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        closePetMenu();
-        executePetAction(item.id);
-      });
-    }
-
     const rect = petMenu.getBoundingClientRect();
-    petMenu.style.left = `${Math.max(6, Math.min(point.x, window.innerWidth - (rect.width || 180) - 6))}px`;
-    petMenu.style.top = `${Math.max(6, Math.min(point.y, window.innerHeight - (rect.height || 260) - 6))}px`;
+    petMenu.style.left = `${Math.max(6, Math.min(point.x, window.innerWidth - (rect.width || 200) - 6))}px`;
+    petMenu.style.top = `${Math.max(6, Math.min(point.y, window.innerHeight - (rect.height || 40) - 6))}px`;
     if (desktop) {
       host.setInteractive(true);
       host.setFocusable?.(true);
     }
-    petMenu.querySelector("button")?.focus({ preventScroll: true });
+    closePetItem.focus({ preventScroll: true });
   }
 
   on(pet, "contextmenu", event => {
@@ -2314,17 +2288,8 @@ function petSurface(host, data) {
     const point = event.clientX || event.clientY ? { x: event.clientX, y: event.clientY } : { x: x + width, y: y + height / 2 };
     if (desktop) {
       menuRequest = { id: `pet-menu-${++menuSequence}`, point };
-      const items = [
-        { id: "trick-wave", label: "Wave 👋" },
-        { id: "trick-jump", label: "Jump / Flip 🦘" },
-        { id: "trick-celebrate", label: "Celebrate 🎉" },
-        { id: "trick-review", label: "Inspect / Think 🔍" },
-        { id: "toggle-sleep", label: isSleeping ? "Wake Up ☀️" : "Nap (Low Power) 💤" },
-        { id: "pet-status", label: "Status & Tasks 📊" },
-        { id: "pet-tip", label: "Helpful Tip 💡" },
-        { id: "close-pet", label: "Close pet ✕" }
-      ];
-      host.send({ type: "bettergravity:overlay-context-menu", requestId: menuRequest.id, items });
+      host.send({ type: "bettergravity:overlay-context-menu", requestId: menuRequest.id,
+        items: [{ id: "close-pet", label: "Close pet" }] });
     } else showPetMenu(point);
   });
   on(pet, "dblclick", event => {
@@ -2338,6 +2303,12 @@ function petSurface(host, data) {
     speechBubble.hidden = true;
     if (bubbleTimer) clearTimeout(bubbleTimer);
   });
+  on(closePetItem, "click", event => {
+    event.preventDefault();
+    event.stopPropagation();
+    closePetMenu();
+    host.send({ t: "hide" });
+  });
   on(document, "pointerdown", event => {
     if (!menuOpen || petMenu.contains(event.target)) return;
     closePetMenu();
@@ -2346,16 +2317,9 @@ function petSurface(host, data) {
   }, true);
   on(petMenu, "keydown", event => {
     event.stopPropagation();
-    const buttons = Array.from(petMenu.querySelectorAll("button"));
-    const currentIndex = buttons.indexOf(document.activeElement);
-    if (event.key === "ArrowDown") {
+    if (["ArrowUp", "ArrowDown", "Home", "End"].includes(event.key)) {
       event.preventDefault();
-      const nextIndex = (currentIndex + 1) % buttons.length;
-      buttons[nextIndex]?.focus();
-    } else if (event.key === "ArrowUp") {
-      event.preventDefault();
-      const prevIndex = (currentIndex - 1 + buttons.length) % buttons.length;
-      buttons[prevIndex]?.focus();
+      closePetItem.focus();
     } else if (event.key === "Escape" || event.key === "Tab") {
       event.preventDefault();
       closePetMenu(true);
@@ -2400,20 +2364,9 @@ function petSurface(host, data) {
   // `mousemove` rather than `pointermove`, because a forwarded mouse message is
   // what Electron promises to deliver to a click-through window; pointer events
   // are for the drag, which only happens once the window is solid.
-  // Throttled to requestAnimationFrame to eliminate high-poll mouse CPU spikes.
-  let mouseThrottleRaf = null;
-  on(document, "mousemove", (event) => {
-    if (mouseThrottleRaf !== null) return;
-    const cx = event.clientX;
-    const cy = event.clientY;
-    mouseThrottleRaf = requestAnimationFrame(() => {
-      mouseThrottleRaf = null;
-      updatePointer(cx, cy);
-    });
-  }, {
+  on(document, "mousemove", (event) => updatePointer(event.clientX, event.clientY), {
     passive: true
   });
-  track(() => { if (mouseThrottleRaf !== null) cancelAnimationFrame(mouseThrottleRaf); });
 
   on(document, "mouseleave", forgetPointer);
   on(document, "visibilitychange", () => {
@@ -3282,7 +3235,7 @@ function petSurface(host, data) {
         const request = menuRequest;
         menuRequest = null;
         if (message.unsupported) showPetMenu(request.point);
-        else if (message.id) executePetAction(message.id);
+        else if (message.id === "close-pet") host.send({ t: "hide" });
         return;
       }
 
@@ -4076,10 +4029,10 @@ async function createPet() {
   renderPetLibrary();
   try {
     if (plugin.pets && typeof plugin.pets.prepareCreation === "function") {
-      try { await plugin.pets.prepareCreation(); } catch (err) {
-        plugin.log.warn("prepareCreation error:", err);
-      }
+      await plugin.pets.prepareCreation();
     }
+
+    if (libraryDisposed || !libraryPage) return;
 
     // 1. Close the full-screen pet library so the chat conversation view can mount cleanly
     closePetLibrary();
@@ -4095,12 +4048,16 @@ async function createPet() {
     const prompt = "Use the hatch-pet skill to create a pet based on what you know about me. Show me the character and animation previews.";
     let filled = false;
     for (let attempt = 0; attempt < 30; attempt++) {
-      if (window.BetterGravityComposer && typeof window.BetterGravityComposer.setPrompt === "function") {
-        filled = await window.BetterGravityComposer.setPrompt(prompt);
-        if (filled) break;
-      }
       const field = composerField();
       if (field) {
+        const currentVal = field instanceof HTMLTextAreaElement || field instanceof HTMLInputElement ? field.value : field.textContent;
+        if (currentVal && currentVal.trim().length > 0) {
+          throw new Error("The new conversation already has a draft.");
+        }
+        if (window.BetterGravityComposer && typeof window.BetterGravityComposer.setPrompt === "function") {
+          filled = await window.BetterGravityComposer.setPrompt(prompt);
+          if (filled) break;
+        }
         filled = typeInto(field, prompt);
         if (filled) {
           field.focus();
@@ -4293,8 +4250,10 @@ function renderPetLibrary() {
   refresh.title = "Refresh pets";
   refresh.append(libraryIcon("refresh"));
   refresh.disabled = libraryBusy;
-  actions.append(create, createWeb, folder, visibility, refresh);
-  libraryRoot.append(actions, renderPetPreview());
+  actions.append(create, folder, visibility, refresh);
+  const secondaryActions = libraryElement("div", "bettergravity-pet-library__actions-secondary");
+  secondaryActions.append(createWeb);
+  libraryRoot.append(actions, secondaryActions, renderPetPreview());
   if (notice) {
     const message = libraryElement("p", "bettergravity-pet-library__notice", notice);
     message.setAttribute("role", libraryError ? "alert" : "status");

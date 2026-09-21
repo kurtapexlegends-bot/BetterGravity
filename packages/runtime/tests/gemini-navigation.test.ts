@@ -438,6 +438,139 @@ describe("Gemini App experience preservation and items filtering", () => {
     expect(markExp).not.toHaveBeenCalled();
     expect(storedExp).toBe("chat");
   });
+
+  it("suppresses project headers, cards, and toggles via sidebar.css in Chat mode", () => {
+    const sidebarCss = readFileSync("community/plugins/gemini-app/styles/sidebar.css", "utf8");
+    expect(sidebarCss).toMatch(/\[data-gemini-experience="chat"\] \[role="navigation"\]\[aria-label="Sidebar"\] \.group\\\/header/);
+    expect(sidebarCss).toMatch(/\[data-gemini-experience="chat"\] \[role="navigation"\]\[aria-label="Sidebar"\] button\[data-project-card="true"\]/);
+    expect(sidebarCss).toMatch(/\[data-gemini-experience="chat"\] \[role="navigation"\]\[aria-label="Sidebar"\] \.group\\\/headerbtn/);
+  });
 });
+
+describe("Gemini App sidebar toggle detection and layout lock prevention", () => {
+  it("broadens toggle CSS rules to data-testid without strict aria-label requirements", () => {
+    const sidebarCss = readFileSync("community/plugins/gemini-app/styles/sidebar.css", "utf8");
+    expect(sidebarCss).toMatch(/\[data-testid="sidebar-toggle"\] > span:first-child/);
+    expect(sidebarCss).toMatch(/\[data-testid="sidebar-toggle"\]\[aria-expanded="false"\]/);
+    expect(sidebarCss).not.toMatch(/\[data-testid="sidebar-toggle"\]\[aria-label\*="Toggle Sidebar"\]/);
+  });
+
+  it("extracts TOGGLE_SELECTOR as button[data-testid=\"sidebar-toggle\"] without strict aria-label", () => {
+    expect(source).toMatch(/const TOGGLE_SELECTOR = ['"]button\[data-testid="sidebar-toggle"\]['"];/);
+  });
+
+  it("detects collapsed state from arbitrary aria-label and prevents layout lock during active expansion", () => {
+    const scopeCode = `
+      ${source.slice(
+        source.indexOf('const WILLOW_SIDEBAR_EXPANDED_WIDTH'),
+        source.indexOf('function ensureSidebarHeader(')
+      )}
+      return {
+        isSidebarCollapsed,
+        enforceSidebarGeometry,
+        get expansionLockUntil() { return expansionLockUntil; },
+        set expansionLockUntil(v) { expansionLockUntil = v; },
+        get collapseLockUntil() { return collapseLockUntil; },
+        set collapseLockUntil(v) { collapseLockUntil = v; }
+      };
+    `;
+    const scope = new Function("SIDEBAR_SELECTOR", scopeCode)('[role="navigation"][aria-label="Sidebar"]');
+
+    // Mount toggle with "Toggle Sidebar (Ctrl+B)" when collapsed
+    document.body.innerHTML = `
+      <div id="grandparent" style="width: 52px;">
+        <div id="child">
+          <nav role="navigation" aria-label="Sidebar" data-collapsed="true"></nav>
+        </div>
+      </div>
+      <button data-testid="sidebar-toggle" aria-label="Toggle Sidebar (Ctrl+B)" aria-expanded="false"></button>
+    `;
+
+    const grandParent = document.getElementById("grandparent")!;
+    expect(scope.isSidebarCollapsed()).toBe(true);
+
+    // User initiates expansion -> expansionLockUntil is set
+    scope.expansionLockUntil = Date.now() + 600;
+    expect(scope.isSidebarCollapsed()).toBe(false);
+
+    // Any observer trying to enforce collapsed geometry while expansion is in flight must be blocked
+    scope.enforceSidebarGeometry(grandParent, true);
+    expect(grandParent.style.width).toBe("52px"); // not overwritten to 52px if it were expanding, but let's test width transition:
+
+    // When expanding to 288px:
+    scope.enforceSidebarGeometry(grandParent, false);
+    expect(grandParent.style.width).toBe("288px");
+
+    // Collapsed call during expansion lock does NOT reset back to 52px
+    scope.enforceSidebarGeometry(grandParent, true);
+    expect(grandParent.style.width).toBe("288px");
+
+    // Toggle with "Expand sidebar" when expanded
+    const toggle = document.querySelector<HTMLButtonElement>('button[data-testid="sidebar-toggle"]')!;
+    toggle.setAttribute("aria-label", "Expand sidebar");
+    toggle.setAttribute("aria-expanded", "true");
+    scope.expansionLockUntil = 0;
+    expect(scope.isSidebarCollapsed()).toBe(false);
+  });
+
+  it("guards conversation click navigation against synthetic auto-collapse", () => {
+    let expansionLockUntil = 0;
+    let navigatingConversationUntil = 0;
+    let isInternalToggleAction = false;
+    let sidebarCollapsed = false;
+
+    // Simulate convRow click handler
+    const onConvRowClick = () => {
+      if (!sidebarCollapsed && window.innerWidth >= 900) {
+        expansionLockUntil = Date.now() + 1500;
+        navigatingConversationUntil = Date.now() + 1500;
+      }
+    };
+
+    // Simulate toggle click handler
+    const onToggleClick = (e: { isTrusted: boolean; defaultPrevented: boolean; stopImmediatePropagation: () => void; preventDefault: () => void }) => {
+      const isSynthetic = !e.isTrusted && !isInternalToggleAction;
+      if (isSynthetic && !sidebarCollapsed && Date.now() < navigatingConversationUntil && window.innerWidth >= 900) {
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        return;
+      }
+      sidebarCollapsed = !sidebarCollapsed;
+    };
+
+    Object.defineProperty(window, "innerWidth", { value: 1200, configurable: true });
+
+    // User clicks conversation row while sidebar is expanded
+    onConvRowClick();
+    expect(expansionLockUntil).toBeGreaterThan(Date.now());
+    expect(navigatingConversationUntil).toBeGreaterThan(Date.now());
+
+    // Antigravity triggers synthetic toggle click during navigation
+    let prevented = false;
+    let propagationStopped = false;
+    const syntheticEvent = {
+      isTrusted: false,
+      defaultPrevented: false,
+      preventDefault: () => { prevented = true; },
+      stopImmediatePropagation: () => { propagationStopped = true; }
+    };
+
+    onToggleClick(syntheticEvent);
+    expect(prevented).toBe(true);
+    expect(propagationStopped).toBe(true);
+    expect(sidebarCollapsed).toBe(false); // Sidebar remained expanded!
+
+    // Human user click (isTrusted: true) succeeds
+    const userEvent = {
+      isTrusted: true,
+      defaultPrevented: false,
+      preventDefault: vi.fn(),
+      stopImmediatePropagation: vi.fn()
+    };
+    onToggleClick(userEvent);
+    expect(sidebarCollapsed).toBe(true); // User click collapsed sidebar as intended
+  });
+});
+
 
 

@@ -312,11 +312,11 @@ div:has(+ div > [data-testid="sidebar-toggle"]):has(svg),
  * the font for the same shape. Hide whatever the button nests inside its span
  * rather than the svg alone — the svg sits under an `absolute inset-0` wrapper,
  * so hiding the wrapper is what actually removes it. */
-[data-testid="sidebar-toggle"][aria-label*="Toggle Sidebar"] > span:first-child > * {
+[data-testid="sidebar-toggle"] > span:first-child > * {
   display: none !important;
 }
 
-[data-testid="sidebar-toggle"][aria-label*="Toggle Sidebar"] > span:first-child {
+[data-testid="sidebar-toggle"] > span:first-child {
   width: 24px !important;
   height: 24px !important;
   display: flex !important;
@@ -324,7 +324,7 @@ div:has(+ div > [data-testid="sidebar-toggle"]):has(svg),
   justify-content: center !important;
 }
 
-[data-testid="sidebar-toggle"][aria-label*="Toggle Sidebar"] > span:first-child::before {
+[data-testid="sidebar-toggle"] > span:first-child::before {
   content: "side_nav" !important;
   font-family: var(--gemini-icon-font, "Luminous Symbols"), "Google Symbols", "Material Symbols Rounded", sans-serif !important;
   font-variation-settings: var(--gemini-icon-axes, "FILL" 0, "wght" 300, "GRAD" 0, "ROND" 100, "opsz" 24) !important;
@@ -346,18 +346,18 @@ div:has(+ div > [data-testid="sidebar-toggle"]):has(svg),
   transition: transform 200ms ease !important;
 }
 
-[data-testid="sidebar-toggle"][aria-label*="Toggle Sidebar"]:active > span:first-child::before {
+[data-testid="sidebar-toggle"]:active > span:first-child::before {
   transform: scale(0.9) !important;
 }
 
 /* When collapsed, keep the sidebar toggle clearly visible and centered in the 52px rail.
  * It assumes the expand role with `side_nav_expand` icon and never vanishes. */
-.absolute.top-0 [data-testid="sidebar-toggle"][aria-label*="Toggle Sidebar"][aria-expanded="false"],
-html[data-sidebar-collapsed="true"] .absolute.top-0 [data-testid="sidebar-toggle"][aria-label*="Toggle Sidebar"],
-[data-testid="sidebar-toggle"][aria-label*="Toggle Sidebar"][aria-expanded="false"]:not([class*="group/file-row"] *),
-html[data-sidebar-collapsed="true"] [data-testid="sidebar-toggle"][aria-label*="Toggle Sidebar"]:not([class*="group/file-row"] *),
-[role="navigation"][aria-label="Sidebar"][data-collapsed="true"] ~ * [data-testid="sidebar-toggle"][aria-label*="Toggle Sidebar"]:not([class*="group/file-row"] *),
-div:has(> [role="navigation"][aria-label="Sidebar"][data-collapsed="true"]) ~ * [data-testid="sidebar-toggle"][aria-label*="Toggle Sidebar"]:not([class*="group/file-row"] *) {
+.absolute.top-0 [data-testid="sidebar-toggle"][aria-expanded="false"],
+html[data-sidebar-collapsed="true"] .absolute.top-0 [data-testid="sidebar-toggle"],
+[data-testid="sidebar-toggle"][aria-expanded="false"]:not([class*="group/file-row"] *),
+html[data-sidebar-collapsed="true"] [data-testid="sidebar-toggle"]:not([class*="group/file-row"] *),
+[role="navigation"][aria-label="Sidebar"][data-collapsed="true"] ~ * [data-testid="sidebar-toggle"]:not([class*="group/file-row"] *),
+div:has(> [role="navigation"][aria-label="Sidebar"][data-collapsed="true"]) ~ * [data-testid="sidebar-toggle"]:not([class*="group/file-row"] *) {
   position: absolute !important;
   left: 6px !important;
   top: 6px !important;
@@ -369,17 +369,17 @@ div:has(> [role="navigation"][aria-label="Sidebar"][data-collapsed="true"]) ~ * 
   animation: none !important;
 }
 
-.absolute.top-0 [data-testid="sidebar-toggle"][aria-label*="Toggle Sidebar"][aria-expanded="false"] > span:first-child::before,
-html[data-sidebar-collapsed="true"] .absolute.top-0 [data-testid="sidebar-toggle"][aria-label*="Toggle Sidebar"] > span:first-child::before,
-[data-testid="sidebar-toggle"][aria-label*="Toggle Sidebar"][aria-expanded="false"]:not([class*="group/file-row"] *) > span:first-child::before,
-html[data-sidebar-collapsed="true"] [data-testid="sidebar-toggle"][aria-label*="Toggle Sidebar"]:not([class*="group/file-row"] *) > span:first-child::before {
+.absolute.top-0 [data-testid="sidebar-toggle"][aria-expanded="false"] > span:first-child::before,
+html[data-sidebar-collapsed="true"] .absolute.top-0 [data-testid="sidebar-toggle"] > span:first-child::before,
+[data-testid="sidebar-toggle"][aria-expanded="false"]:not([class*="group/file-row"] *) > span:first-child::before,
+html[data-sidebar-collapsed="true"] [data-testid="sidebar-toggle"]:not([class*="group/file-row"] *) > span:first-child::before {
   content: "side_nav_expand" !important;
 }
 
 /* Open, the button crosses the rail to Willow's corner: 288 − 14 − 40 = 234,
  * `top-1.5` = 6, `h-10 w-10 rounded-full text-[#e3e3e3] hover:bg-white/[0.08]`. */
-.absolute.top-0 [data-testid="sidebar-toggle"][aria-label*="Toggle Sidebar"],
-[data-testid="sidebar-toggle"][aria-label*="Toggle Sidebar"]:not([class*="group/file-row"] *):not([class*="border-b"] *) {
+.absolute.top-0 [data-testid="sidebar-toggle"],
+[data-testid="sidebar-toggle"]:not([class*="group/file-row"] *):not([class*="border-b"] *) {
   position: absolute !important;
   left: 234px !important;
   top: 6px !important;
@@ -402,8 +402,8 @@ html[data-sidebar-collapsed="true"] [data-testid="sidebar-toggle"][aria-label*="
   transition: left 300ms cubic-bezier(0.2, 0, 0, 1), background-color 150ms ease, color 150ms ease !important;
 }
 
-.absolute.top-0 [data-testid="sidebar-toggle"][aria-label*="Toggle Sidebar"]:hover,
-[data-testid="sidebar-toggle"][aria-label*="Toggle Sidebar"]:not([class*="group/file-row"] *):hover {
+.absolute.top-0 [data-testid="sidebar-toggle"]:hover,
+[data-testid="sidebar-toggle"]:not([class*="group/file-row"] *):hover {
   background-color: rgba(255, 255, 255, 0.08) !important;
   color: var(--gemini-body-text, #e3e3e3) !important;
 }
@@ -429,7 +429,7 @@ html[data-sidebar-collapsed="true"] [data-testid="sidebar-toggle"][aria-label*="
  * The bar is the window's drag region, so the pair has to opt out of it or a
  * click would move the window instead of going back; each menu wrapper carries
  * the same `no-drag`. z-index clears the toolbar's own 50. */
-[data-testid="sidebar-toggle"][aria-label*="Toggle Sidebar"] + div:has([aria-label="Go Back"]),
+[data-testid="sidebar-toggle"] + div:has([aria-label="Go Back"]),
 div:has(> button[aria-label="Go Back"]) {
   position: fixed !important;
   left: var(--gemini-history-arrows-left, 284px) !important;
@@ -965,7 +965,19 @@ html[data-sidebar-collapsed="true"] [role="navigation"][aria-label="Sidebar"] .g
 [data-gemini-experience="chat"] #gemini-new-project-button,
 [data-gemini-experience="chat"] [data-testid="sidebar-add-project-button"],
 #gemini-experience-switch[data-gemini-experience="chat"] ~ * #gemini-new-project-button,
-#gemini-experience-switch[data-gemini-experience="chat"] ~ * [data-testid="sidebar-add-project-button"] {
+#gemini-experience-switch[data-gemini-experience="chat"] ~ * [data-testid="sidebar-add-project-button"],
+[data-gemini-experience="chat"] [role="navigation"][aria-label="Sidebar"] .group\/header:not([class*="section-header"]),
+[data-gemini-experience="chat"] [role="navigation"][aria-label="Sidebar"] div[class~="group/header"]:not([class*="section-header"]),
+[data-gemini-experience="chat"] [role="navigation"][aria-label="Sidebar"] button[data-project-card="true"],
+[data-gemini-experience="chat"] [role="navigation"][aria-label="Sidebar"] .group\/headerbtn,
+[data-gemini-experience="chat"] [role="navigation"][aria-label="Sidebar"] button[class*="group/headerbtn"],
+[data-gemini-experience="chat"] [role="navigation"][aria-label="Sidebar"] div[class*="pl-[22px]"],
+html[data-gemini-experience="chat"] [role="navigation"][aria-label="Sidebar"] .group\/header:not([class*="section-header"]),
+html[data-gemini-experience="chat"] [role="navigation"][aria-label="Sidebar"] div[class~="group/header"]:not([class*="section-header"]),
+html[data-gemini-experience="chat"] [role="navigation"][aria-label="Sidebar"] button[data-project-card="true"],
+html[data-gemini-experience="chat"] [role="navigation"][aria-label="Sidebar"] .group\/headerbtn,
+html[data-gemini-experience="chat"] [role="navigation"][aria-label="Sidebar"] button[class*="group/headerbtn"],
+html[data-gemini-experience="chat"] [role="navigation"][aria-label="Sidebar"] div[class*="pl-[22px]"] {
   display: none !important;
 }
 

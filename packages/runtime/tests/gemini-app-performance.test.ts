@@ -478,7 +478,7 @@ describe("Gemini App repeated work", () => {
     const toggleRemoves = vi.spyOn(toggle, "removeEventListener");
     const headingAdds = vi.spyOn(heading, "addEventListener");
     const headingRemoves = vi.spyOn(heading, "removeEventListener");
-    mount('button[data-testid="sidebar-toggle"][aria-label="Toggle Sidebar"]', toggle);
+    mount('button[data-testid="sidebar-toggle"]', toggle);
     mount('.group\\/headerbtn, button[class*="group/headerbtn"]', heading);
     const original = () => null;
     const fiber = { type: original, alternate: { type: original } };

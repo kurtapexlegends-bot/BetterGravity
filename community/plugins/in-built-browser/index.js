@@ -542,15 +542,38 @@ function activeConversationContext() {
 function nativePaneOpen() {
   const wrapper = document.querySelector("[data-aux-pane-open]");
   if (wrapper) return wrapper.getAttribute("data-aux-pane-open") === "true";
-  // Antigravity unmounts the pane when collapsed. Read the current React tree
-  // only when its DOM marker is absent, without changing the host's store.
+
+  const auxSidebar = document.querySelector('[data-testid="aux-sidebar"]');
+  if (auxSidebar) {
+    if (auxSidebar.getAttribute("data-aux-pane-open") === "false") return false;
+    if (auxSidebar.getAttribute("data-aux-pane-open") === "true") return true;
+    const rect = auxSidebar.getBoundingClientRect();
+    if (rect.width > 20 && rect.height > 20 && getComputedStyle(auxSidebar).display !== "none") return true;
+  }
+
   const toggle = document.querySelector('[data-testid="toggle-aux-sidebar"]');
+  if (toggle) {
+    const expanded = toggle.getAttribute("aria-expanded");
+    if (expanded === "true") return true;
+    if (expanded === "false") return false;
+    const pressed = toggle.getAttribute("aria-pressed");
+    if (pressed === "true") return true;
+    if (pressed === "false") return false;
+    const state = toggle.getAttribute("data-state");
+    if (state === "open" || state === "on") return true;
+    if (state === "closed" || state === "off") return false;
+    if (toggle.classList.contains("active") || toggle.classList.contains("selected")) return true;
+  }
+
   let fiber = toggle && plugin.react?.getFiber?.(toggle);
   let top = fiber;
   while (top?.return) top = top.return;
   if (top?.stateNode?.current && top.stateNode.current !== top) fiber = fiber?.alternate;
-  for (let depth = 0; fiber && depth++ < 30; fiber = fiber.return) {
+  for (let depth = 0; fiber && depth++ < 35; fiber = fiber.return) {
     if (typeof fiber.memoizedProps?.isAuxPaneOpen === "boolean") return fiber.memoizedProps.isAuxPaneOpen;
+    if (typeof fiber.memoizedProps?.isOpen === "boolean") return fiber.memoizedProps.isOpen;
+    if (typeof fiber.memoizedProps?.expanded === "boolean") return fiber.memoizedProps.expanded;
+    if (typeof fiber.memoizedProps?.active === "boolean") return fiber.memoizedProps.active;
   }
   return false;
 }
@@ -901,10 +924,6 @@ function showNativePane() {
   requestedPaneOpen = true;
   rememberPaneVisibility(context, true);
   applyPaneVisibility();
-  if (!nativePaneOpen()) {
-    const toggle = document.querySelector('[data-testid="toggle-aux-sidebar"]');
-    if (toggle) toggle.click();
-  }
 }
 
 async function show() {
@@ -943,12 +962,15 @@ function updateSelection() {
 function mountPageTabs() {
   if (!toolbar || !tabs) return;
   const plus = toolbar.querySelector('[data-testid="aux-panel-plus-dropdown-trigger"]');
-  if (tabHost?.isConnected && tabs.parentElement === tabHost) return;
-  if (tabHost && ownedTabHost) { tabHost.remove(); }
-  ownedTabHost = true;
-  tabHost = element("div", "bg-browser-tab-host");
+  // Share the native file-tab scroller so its existing + and pane controls
+  // keep their position. Older hosts without a scroller use the same row.
+  const native = [...toolbar.children].find(node => node.classList.contains("overflow-x-auto"));
+  if (tabHost?.isConnected && (!native || tabHost === native) && tabs.parentElement === tabHost) return;
+  if (tabHost) { if (ownedTabHost) tabHost.remove(); else tabHost.removeAttribute("data-bg-browser-tab-host"); }
+  ownedTabHost = !native;
+  tabHost = native || element("div", "bg-browser-tab-host");
   tabHost.setAttribute("data-bg-browser-tab-host", "");
-  if (plus) plus.before(tabHost); else toolbar.append(tabHost);
+  if (ownedTabHost) { if (plus) plus.before(tabHost); else toolbar.append(tabHost); }
   tabHost.append(tabs);
 }
 
@@ -1125,12 +1147,13 @@ function syncBounds() {
     if (!compositing && surface) surface.hidden = true;
   }
   const wrapper = toolbar?.closest("[data-aux-pane-open]");
-  const blocked = occluded;
-  const visible = open && shown && right > left && bottom > top && !blocked && !state?.permission && !state?.dialog && wrapper?.getAttribute("data-aux-pane-open") !== "false" && !!tab && !tab.error;
+  const blocked = state?.supportsCompositing ? occluded : !!document.querySelector('[role="dialog"], [data-state="open"][role="menu"]');
+  const visible = open && shown && right > left && bottom > top && (compositing || !resizing && !overlay && !blocked) && !state?.permission && !state?.dialog && wrapper?.getAttribute("data-aux-pane-open") !== "false" && tab?.url !== "about:blank" && !!tab && !tab.error;
   const moving = layoutNodes.some(node => node.getAnimations?.().some(animation => animation.playState === "running" || animation.pending));
   const ready = open && shown && right - left > 1 && bottom - top > 1 && wrapper?.getAttribute("data-aux-pane-open") !== "false" && !moving;
   if (!compositing) {
     if (surface) surface.hidden = true;
+    const frozen = viewport?.querySelector(".bg-browser-frozen");
     if (frozen) frozen.hidden = true;
   }
   sendBounds({ context, x: left, y: top, width: Math.max(0, right - left), height: Math.max(0, bottom - top), visible: !!visible, composited: compositing, hostDragging, frameGeneration, ...(ready && pendingReveal ? { revealSequence: pendingReveal } : {}) });
@@ -1600,6 +1623,13 @@ function onKey(event) {
 function unmount() {
   suspendView(); removeResize(); clearPreview(); clearAgentCursor(false); cursorEffect?.dispose(); agentCursor?.destroy(); agentCursor = cursorLayer = cursorEffect = null;
   agentPresentationKey = null; lastCursorState = null;
+  if (disposed) disconnectTaskState();
+  borderEffect?.dispose(); dockEffect?.dispose(); borderEffect = dockEffect = null;
+  restoreNative(); resizeObserver?.disconnect(); layoutObserver?.disconnect(); overlayObserver?.disconnect(); toolbarObserver?.disconnect(); toolbar?._bgBrowserCleanup?.();
+  toolbar?.removeAttribute("data-bg-browser-selected"); body?.removeAttribute("data-bg-browser-container"); root?.remove();
+  plusMenu?.cleanup(); plusMenu = null; tabs?.remove();
+  if (ownedTabHost) tabHost?.remove(); else tabHost?.removeAttribute("data-bg-browser-tab-host");
+  tabHost = tabs = null; ownedTabHost = false;
   root = toolbar = body = viewport = overlay = surface = null; open = false; state = null; layoutNodes = []; overlayNodes = []; compositing = false; frameGeneration++; queuedFrame = null; lastTabs = ""; lastBounds = "";
   agentBorder = agentDock = agentControl = agentControlIcon = agentControlLabel = statusText = commentsControl = statusBar = null;
 }
@@ -1668,15 +1698,28 @@ plugin.patcher.after(history, "replaceState", () => { queueMicrotask(syncContext
 function changesBrowserStructure(records) {
   for (const record of records) {
     const target = record.target;
-    if (record.type !== "childList" || !target.closest?.(CHAT_CONTENT) || target.closest(OVERLAYS)) return true;
-    // Text and command suggestions inside chat do not change browser context.
-    // Keep popup insertion/removal, native host mounts, and the Stop-button
-    // fallback observable even when they occur inside one of those subtrees.
-    for (const changed of [record.addedNodes, record.removedNodes]) {
-      for (const node of changed) {
-        if (node.nodeType === 1 && (node.matches(BROWSER_STRUCTURE) || node.firstElementChild && node.querySelector(BROWSER_STRUCTURE))) return true;
+    if (root?.contains(target)) continue;
+    if (target.closest?.(CHAT_CONTENT) && !target.closest(OVERLAYS)) {
+      if (record.type === "attributes") {
+        if (record.attributeName === "data-tooltip-id" && target.getAttribute("data-tooltip-id") === "input-send-button-cancel-tooltip") return true;
+        continue;
+      }
+      if (record.type === "childList") {
+        let structural = false;
+        for (const changed of [record.addedNodes, record.removedNodes]) {
+          for (const node of changed) {
+            if (node.nodeType === 1 && (node.matches(BROWSER_STRUCTURE) || node.firstElementChild && node.querySelector(BROWSER_STRUCTURE))) {
+              structural = true;
+              break;
+            }
+          }
+          if (structural) break;
+        }
+        if (structural) return true;
+        continue;
       }
     }
+    return true;
   }
   return false;
 }
@@ -1701,6 +1744,7 @@ plugin.onDispose(() => {
   rememberCurrentPane();
   disposed = true; clearTimeout(previewTimer); if (frame) cancelAnimationFrame(frame);
   suspendView();
+  disconnectTaskState();
   if (plugin.browser?.available) plugin.browser.request("detach", { context }).catch(() => {});
   document.removeEventListener("keydown", onKey, true); document.removeEventListener("click", onPaneToggle, true); window.removeEventListener("resize", scheduleBounds); document.removeEventListener("visibilitychange", onVisibility); document.removeEventListener("scroll", onDocumentScroll, true); window.removeEventListener("popstate", syncContext);
   for (const name of motionEvents) document.removeEventListener(name, onLayoutMotion, true);

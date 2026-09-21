@@ -1,0 +1,113 @@
+/* ---------------------------------------------------------------------------
+ * Codex-Inspired Features for BetterGravity
+ * 1. 1-Click Desktop Screen Snipping in Composer
+ * ------------------------------------------------------------------------- */
+
+/* ==========================================================================
+   1. Screen Snipping in Composer
+   ========================================================================== */
+
+.gemini-composer-snip-btn,
+[data-testid="agent-input-box"] .gemini-composer-snip-btn {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 28px !important;
+  min-width: 28px !important;
+  max-width: 28px !important;
+  height: 28px !important;
+  min-height: 28px !important;
+  max-height: 28px !important;
+  border-radius: 6px !important;
+  border: none !important;
+  background: transparent !important;
+  color: var(--muted-foreground, rgba(255, 255, 255, 0.6)) !important;
+  cursor: pointer !important;
+  transition: background-color 140ms ease, color 140ms ease !important;
+  padding: 0 !important;
+  margin: 0 0 0 2px !important;
+  flex: 0 0 28px !important;
+  flex-shrink: 0 !important;
+  justify-self: start !important;
+  align-self: center !important;
+  box-sizing: border-box !important;
+}
+
+.gemini-composer-snip-btn:hover,
+[data-testid="agent-input-box"] .gemini-composer-snip-btn:hover {
+  background: rgba(255, 255, 255, 0.08) !important;
+  color: var(--foreground, #ffffff) !important;
+}
+
+.gemini-composer-snip-btn:active,
+[data-testid="agent-input-box"] .gemini-composer-snip-btn:active {
+  transform: scale(0.95) !important;
+}
+
+#gemini-screen-snipper {
+  position: fixed;
+  inset: 0;
+  z-index: 999999;
+  cursor: crosshair;
+  background: rgba(0, 0, 0, 0.35);
+  user-select: none;
+  touch-action: none;
+}
+
+.gemini-snip-selection {
+  position: absolute;
+  border: 2px dashed var(--gemini-theme-accent, #3b82f6);
+  background: rgba(59, 130, 246, 0.14);
+  box-shadow: 0 0 0 99999px rgba(0, 0, 0, 0.45);
+  pointer-events: none;
+}
+
+.gemini-snip-hint {
+  position: fixed;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--card, #1c1c20);
+  color: var(--foreground, #ffffff);
+  border: 1px solid var(--border, rgba(255, 255, 255, 0.15));
+  border-radius: 20px;
+  padding: 6px 16px;
+  font-size: 13px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
+  pointer-events: none;
+  font-family: var(--gemini-font, system-ui, sans-serif);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.gemini-snip-toast {
+  position: fixed;
+  bottom: 32px;
+  right: 32px;
+  z-index: 999999;
+  background: var(--card, #1e1e24);
+  color: var(--foreground, #ffffff);
+  border: 1px solid var(--border, rgba(255, 255, 255, 0.15));
+  border-radius: 8px;
+  padding: 10px 16px;
+  font-size: 13px;
+  font-family: var(--gemini-font, system-ui, sans-serif);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  animation: geminiSnipToastIn 200ms ease-out forwards;
+}
+
+@keyframes geminiSnipToastIn {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+

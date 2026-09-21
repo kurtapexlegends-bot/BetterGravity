@@ -188,7 +188,9 @@ async function navigateToConversation(cascadeId, projectId) {
         }
       });
       return true;
-    } catch {}
+    } catch {
+      return false;
+    }
   }
 
   // A real sidebar link can navigate even if the router context is unavailable.
@@ -750,6 +752,14 @@ function decorateTurnBar(bar) {
       });
       return;
     }
+    if (stepIndex < 0) {
+      plugin.ui.toast({
+        title: "Fork point unavailable",
+        body: "Could not identify the end of this response. Please reopen the conversation and try again.",
+        kind: "warning"
+      });
+      return;
+    }
     openTurnForkPopover(button, cascadeId, stepIndex);
   });
 
@@ -1048,7 +1058,7 @@ function setupObservers() {
     if (needsScan) {
       scheduleScan();
     }
-  }, 2500);
+  }, 600);
 
   const onVisibilityChange = () => {
     if (typeof document !== "undefined" && !document.hidden) {
