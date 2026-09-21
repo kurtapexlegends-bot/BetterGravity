@@ -3063,6 +3063,8 @@ function buildExperienceSwitch() {
   const tabsWrap = document.createElement("div");
   tabsWrap.className = "gemini-experience-tabs-wrap";
 
+  let justDragged = false;
+
   for (const experience of EXPERIENCES) {
     const tab = document.createElement("button");
     tab.type = "button";
@@ -3088,6 +3090,11 @@ function buildExperienceSwitch() {
       ? `Switch to Work (${shortcutLabel})`
       : `Switch to Chat (${shortcutLabel})`;
     tab.addEventListener("click", (e) => {
+      if (justDragged) {
+        e.preventDefault();
+        e.stopPropagation();
+        return;
+      }
       e.preventDefault();
       e.stopPropagation();
       markExperience(pill, experience.id, true);
@@ -3096,6 +3103,80 @@ function buildExperienceSwitch() {
     tabsWrap.append(tab);
   }
   track.append(tabsWrap);
+
+  // Enable sliding/dragging between Chat and Work (Liquid Touch/Pointer Gesture)
+  let startX = 0;
+  let isDragging = false;
+  let startExp = "chat";
+  let activePointerId = null;
+
+  track.addEventListener("pointerdown", (e) => {
+    if (e.button !== 0 && e.pointerType === "mouse") return;
+    startX = e.clientX;
+    isDragging = false;
+    startExp = pill.dataset.geminiExperience || getStoredExperience();
+    activePointerId = e.pointerId;
+    try {
+      track.setPointerCapture(e.pointerId);
+    } catch {}
+  });
+
+  track.addEventListener("pointermove", (e) => {
+    if (activePointerId === null || e.pointerId !== activePointerId) return;
+    const deltaX = e.clientX - startX;
+    if (!isDragging && Math.abs(deltaX) > 6) {
+      isDragging = true;
+    }
+    if (isDragging) {
+      const trackRect = track.getBoundingClientRect();
+      const halfWidth = trackRect.width / 2;
+      const baseLeft = startExp === "work" ? halfWidth : 2;
+      const clampedLeft = Math.max(2, Math.min(halfWidth, baseLeft + deltaX));
+      slider.style.transition = "none";
+      slider.style.left = `${clampedLeft}px`;
+    }
+  });
+
+  const finishDrag = (e) => {
+    if (activePointerId === null || e.pointerId !== activePointerId) return;
+    const pointerId = activePointerId;
+    activePointerId = null;
+    try {
+      track.releasePointerCapture(pointerId);
+    } catch {}
+
+    slider.style.transition = "";
+    slider.style.left = "";
+
+    if (isDragging) {
+      justDragged = true;
+      setTimeout(() => { justDragged = false; }, 100);
+
+      const deltaX = e.clientX - startX;
+      const trackRect = track.getBoundingClientRect();
+      const threshold = Math.max(16, trackRect.width * 0.18);
+      let target = startExp;
+
+      if (startExp === "chat" && deltaX > threshold) {
+        target = "work";
+      } else if (startExp === "work" && deltaX < -threshold) {
+        target = "chat";
+      } else if (Math.abs(deltaX) >= threshold) {
+        const relativeX = e.clientX - trackRect.left;
+        target = relativeX > trackRect.width / 2 ? "work" : "chat";
+      }
+
+      if (target !== startExp) {
+        markExperience(pill, target, true);
+        navigateToExperienceNewConversation(target);
+      } else {
+        markExperience(pill, startExp, false);
+      }
+    }
+  };
+
+  track.addEventListener("pointerup", finishDrag);
+  track.addEventListener("pointercancel", finishDrag);
 
   const shortcutLabel = typeof WORK_TOGGLE_SHORTCUT !== "undefined" ? WORK_TOGGLE_SHORTCUT : "Alt+W";
   const collapsedBtn = document.createElement("button");
@@ -6323,6 +6404,7 @@ const urlTicker = window.setInterval(() => {
     handleRouteChange();
   }
 }, 3000);
+plugin.onDispose(() => clearInterval(urlTicker));
 
 const PIN_LEAD_SVG = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="shrink-0"><line x1="12" y1="17" x2="12" y2="22"></line><path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h.5a1.5 1.5 0 0 0 0-3h-7a1.5 1.5 0 0 0 0 3h.5v4.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24Z"></path></svg>`;
 
@@ -10989,6 +11071,7 @@ const topChipsTicker = window.setInterval(() => {
   if (!document.querySelector(HOME_SCROLLER) && !topChipHostEl) return;
   reconcileTopChips();
 }, 4000);
+plugin.onDispose(() => clearInterval(topChipsTicker));
 reconcileTopChips();
 ensureGeminiWebHeaderButton();
 
