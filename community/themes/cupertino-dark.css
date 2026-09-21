@@ -2,55 +2,64 @@
  * @name        Cupertino Dark
  * @description Masterclass Apple Pro & Space Black aesthetics for BetterGravity: Continuous squircle curvature, obsidian glass materials, specular chamfers, floating inspector wells, and tactile spring physics.
  * @author      BetterGravity Contributors
- * @version     1.3.0
+ * @version     1.4.0
  * @source      https://github.com/YashjitPal/BetterGravity
  */
 
 /* ==========================================================================
-   1. Apple Studio Space Black Design Tokens
+   1. Apple Studio Space Black & Liquid Design Tokens
    ========================================================================== */
 :root {
-  /* Fluid Spring Physics (Apple HIG Liquid Feel) */
+  /* Fluid Spring Physics (Apple HIG Liquid Motion) */
   --apple-ease-spring: cubic-bezier(0.16, 1, 0.3, 1);
+  --apple-ease-liquid: cubic-bezier(0.19, 1, 0.22, 1);
   --apple-ease-smooth: cubic-bezier(0.25, 1, 0.5, 1);
   --apple-ease-tactile: cubic-bezier(0.34, 1.4, 0.64, 1);
+  --apple-ease-squish: cubic-bezier(0.32, 1.35, 0.64, 1);
   --apple-ease-enter: cubic-bezier(0, 0, 0.2, 1);
   --apple-ease-exit: cubic-bezier(0.4, 0, 1, 1);
 
   /* True Deep Obsidian Canvas & Surfaces */
-  --apple-canvas: #09090b;
-  --apple-sidebar: #09090b;
-  --apple-surface: #121216;
-  --apple-surface-elevated: rgba(20, 20, 25, 0.82);
-  --apple-surface-overlay: rgba(26, 26, 32, 0.94);
-  --apple-card: rgba(18, 18, 22, 0.78);
-  --apple-bubble: rgba(26, 26, 32, 0.88);
+  --apple-canvas: #000000;
+  --apple-sidebar: #060608;
+  --apple-surface: #101014;
+  --apple-surface-elevated: rgba(22, 22, 28, 0.82);
+  --apple-surface-overlay: rgba(28, 28, 36, 0.92);
+  --apple-card: rgba(18, 18, 24, 0.76);
+  --apple-bubble: rgba(26, 26, 34, 0.86);
+  --apple-glass-thick: rgba(30, 30, 38, 0.88);
+  --apple-glass-thin: rgba(255, 255, 255, 0.05);
 
   /* Specular Hairlines & Glass Chamfers */
-  --apple-border: rgba(255, 255, 255, 0.07);
+  --apple-border: rgba(255, 255, 255, 0.08);
   --apple-border-subtle: rgba(255, 255, 255, 0.04);
-  --apple-border-hover: rgba(255, 255, 255, 0.12);
-  --apple-specular: inset 0 1px 0 0 rgba(255, 255, 255, 0.10);
-  --apple-specular-prominent: inset 0 1px 0 0 rgba(255, 255, 255, 0.18);
-  --apple-specular-bright: inset 0 1px 0 0 rgba(255, 255, 255, 0.35);
+  --apple-border-hover: rgba(255, 255, 255, 0.14);
+  --apple-specular: inset 0 1px 0 0 rgba(255, 255, 255, 0.12), inset 0 0 0 1px rgba(255, 255, 255, 0.04);
+  --apple-specular-prominent: inset 0 1px 0 0 rgba(255, 255, 255, 0.20), inset 0 0 0 1px rgba(255, 255, 255, 0.06);
+  --apple-specular-bright: inset 0 1px 0 0 rgba(255, 255, 255, 0.38), inset 0 0 0 1px rgba(255, 255, 255, 0.12);
   --apple-divider: rgba(255, 255, 255, 0.06);
+
+  /* Glassmorphic Blur Filters */
+  --apple-glass-blur: blur(48px) saturate(210%) brightness(1.04);
+  --apple-glass-blur-subtle: blur(30px) saturate(180%);
+  --apple-glass-blur-deep: blur(60px) saturate(220%) brightness(1.02);
 
   /* Apple Pro Accents */
   --apple-blue: #0a84ff;
   --apple-blue-gradient: linear-gradient(180deg, #1a8eff 0%, #0071e3 100%);
   --apple-blue-hover: #0071e3;
-  --apple-blue-glow: rgba(10, 132, 255, 0.22);
+  --apple-blue-glow: rgba(10, 132, 255, 0.24);
   --apple-blue-subtle: rgba(10, 132, 255, 0.14);
 
   /* High-Signal Typography Colors */
   --apple-label: #f5f5f7;
-  --apple-secondary-label: rgba(235, 235, 245, 0.62);
-  --apple-tertiary-label: rgba(235, 235, 245, 0.36);
+  --apple-secondary-label: rgba(235, 235, 245, 0.64);
+  --apple-tertiary-label: rgba(235, 235, 245, 0.38);
 
   /* Interactive States */
-  --apple-hover-wash: rgba(255, 255, 255, 0.05);
-  --apple-active-wash: rgba(255, 255, 255, 0.09);
-  --apple-selected-row: rgba(255, 255, 255, 0.11);
+  --apple-hover-wash: rgba(255, 255, 255, 0.06);
+  --apple-active-wash: rgba(255, 255, 255, 0.10);
+  --apple-selected-row: rgba(255, 255, 255, 0.12);
 
   /* BetterGravity & Antigravity Semantic Mappings */
   --background: var(--apple-canvas) !important;
@@ -59,13 +68,13 @@
   --primary-foreground: #ffffff !important;
   --secondary: var(--apple-surface) !important;
   --secondary-foreground: var(--apple-label) !important;
-  --muted: #0c0c0f !important;
+  --muted: #08080a !important;
   --muted-foreground: var(--apple-secondary-label) !important;
   --border: var(--apple-border) !important;
   --card: var(--apple-card) !important;
   --card-border: var(--apple-border) !important;
   --sidebar: var(--apple-sidebar) !important;
-  --sidebar-secondary: #131317 !important;
+  --sidebar-secondary: #0e0e12 !important;
   --sidebar-muted: var(--apple-secondary-label) !important;
   --link: var(--apple-blue) !important;
   --focus-ring-color: transparent !important;
@@ -79,8 +88,8 @@
   --gemini-send-bg: var(--apple-blue) !important;
   --gemini-send-bg-hover: var(--apple-blue-hover) !important;
   --gemini-bubble-bg: var(--apple-bubble) !important;
-  --gemini-switch-track: #0b0b0e !important;
-  --gemini-switch-slider: rgba(255, 255, 255, 0.12) !important;
+  --gemini-switch-track: #08080a !important;
+  --gemini-switch-slider: rgba(255, 255, 255, 0.14) !important;
   --gemini-separator: var(--apple-divider) !important;
   --gemini-menu-divider: var(--apple-divider) !important;
   --gemini-rule: var(--apple-divider) !important;
@@ -104,9 +113,13 @@ select,
 
 /* Apple Pro Headings with Precise Optical Tracking */
 h1, h2, h3, .text-xl, .text-2xl, .text-3xl {
-  letter-spacing: -0.02em;
+  letter-spacing: -0.025em;
   font-weight: 600;
   color: var(--apple-label);
+}
+
+p, span, div {
+  letter-spacing: -0.01em;
 }
 
 /* SF Mono for Code and Tokens */
@@ -137,9 +150,9 @@ body::before {
   background: linear-gradient(
     90deg,
     transparent 0%,
-    rgba(255, 255, 255, 0.10) 20%,
-    rgba(255, 255, 255, 0.18) 50%,
-    rgba(255, 255, 255, 0.10) 80%,
+    rgba(255, 255, 255, 0.12) 15%,
+    rgba(255, 255, 255, 0.22) 50%,
+    rgba(255, 255, 255, 0.12) 85%,
     transparent 100%
   );
   pointer-events: none;
@@ -168,12 +181,12 @@ div:has(> div > [data-testid="window-controls"]) {
   border: 1px solid transparent;
   border-radius: 9999px;
   background-clip: content-box;
-  background-color: rgba(255, 255, 255, 0.15);
-  transition: background-color 150ms ease;
+  background-color: rgba(255, 255, 255, 0.16);
+  transition: background-color 150ms var(--apple-ease-smooth);
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background-color: rgba(255, 255, 255, 0.35);
+  background-color: rgba(255, 255, 255, 0.38);
 }
 
 /* ==========================================================================
@@ -184,7 +197,7 @@ div:has(> div > [data-testid="window-controls"]) {
   border-right: 1px solid var(--apple-divider) !important;
 }
 
-/* Remove all ugly rectangular patch backgrounds on sticky headers / section banners */
+/* Remove rectangular patch backgrounds on sticky headers / section banners */
 [role="navigation"][aria-label="Sidebar"] .bg-sidebar,
 [role="navigation"][aria-label="Sidebar"] div[class*="bg-sidebar"],
 [role="navigation"][aria-label="Sidebar"] button[class*="bg-sidebar"],
@@ -200,18 +213,18 @@ div:has(> div > [data-testid="window-controls"]) {
   background: linear-gradient(to bottom, var(--apple-canvas) 15%, transparent) !important;
 }
 
-/* Apple macOS Section Headers (PINNED CONVERSATIONS, SIDEPROJECTS) */
+/* Apple macOS Section Headers (PINNED CONVERSATIONS, PROJECTS, RECENTS) */
 [role="navigation"][aria-label="Sidebar"] h2,
 [role="navigation"][aria-label="Sidebar"] h3,
 [role="navigation"][aria-label="Sidebar"] [class*="text-xs"][class*="font-semibold"],
 [role="navigation"][aria-label="Sidebar"] [class*="text-xs"][class*="tracking-"] {
-  font-size: 10.5px !important;
-  font-weight: 600 !important;
-  letter-spacing: 0.08em !important;
+  font-size: 10px !important;
+  font-weight: 650 !important;
+  letter-spacing: 0.09em !important;
   text-transform: uppercase !important;
   color: var(--apple-tertiary-label) !important;
-  padding-left: 12px !important;
-  padding-top: 14px !important;
+  padding-left: 14px !important;
+  padding-top: 16px !important;
   padding-bottom: 4px !important;
 }
 
@@ -223,23 +236,30 @@ div[data-testid="conversation-row-sidebar"],
 [role="navigation"][aria-label="Sidebar"] li[role="treeitem"] {
   width: calc(100% - 16px) !important;
   margin: 1px 8px !important;
-  border-radius: 9px !important;
-  padding: 6px 10px !important;
+  border-radius: 10px !important;
+  padding: 6px 12px !important;
   box-sizing: border-box !important;
   border: 1px solid transparent !important;
-  transition: background-color 150ms var(--apple-ease-smooth), color 150ms var(--apple-ease-smooth), border-color 150ms var(--apple-ease-smooth), transform 120ms var(--apple-ease-spring) !important;
+  will-change: transform, background-color, border-color;
+  transition:
+    background-color 150ms var(--apple-ease-smooth),
+    color 150ms var(--apple-ease-smooth),
+    border-color 150ms var(--apple-ease-smooth),
+    transform 140ms var(--apple-ease-spring) !important;
 }
 
 [role="navigation"][aria-label="Sidebar"] [data-testid="conversation-row-sidebar"]:hover:not([data-selected="true"]),
 [role="navigation"][aria-label="Sidebar"] a[role="link"]:hover:not([aria-current="page"]),
 [role="navigation"][aria-label="Sidebar"] [data-testid*="conversation-item"]:hover:not([data-selected="true"]) {
   background-color: var(--apple-hover-wash) !important;
+  border-color: rgba(255, 255, 255, 0.04) !important;
 }
 
 [role="navigation"][aria-label="Sidebar"] [data-testid="conversation-row-sidebar"]:active,
 [role="navigation"][aria-label="Sidebar"] a[role="link"]:active,
 [role="navigation"][aria-label="Sidebar"] [data-testid*="conversation-item"]:active {
-  transform: scale(0.97) !important;
+  transform: scale(0.965) !important;
+  background-color: var(--apple-active-wash) !important;
 }
 
 /* Active / Selected Sidebar Item (Symmetric Apple Frosted Capsule) */
@@ -249,7 +269,7 @@ div[data-testid="conversation-row-sidebar"][data-selected="true"],
 [role="navigation"][aria-label="Sidebar"] [aria-selected="true"],
 [role="navigation"][aria-label="Sidebar"] [data-selected="true"] {
   background-color: var(--apple-selected-row) !important;
-  border: 1px solid rgba(255, 255, 255, 0.07) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
   box-shadow: var(--apple-specular) !important;
   color: #ffffff !important;
   font-weight: 500 !important;
@@ -263,11 +283,15 @@ div[data-testid="conversation-row-sidebar"][data-selected="true"],
 [role="navigation"][aria-label="Sidebar"] #gemini-browser-button,
 [role="navigation"][aria-label="Sidebar"] #gemini-new-project-button,
 [role="navigation"][aria-label="Sidebar"] #gemini-display-options-button {
-  border-radius: 9px !important;
+  border-radius: 10px !important;
   margin: 1px 8px !important;
   width: calc(100% - 16px) !important;
   box-sizing: border-box !important;
-  transition: background-color 150ms var(--apple-ease-smooth), color 150ms var(--apple-ease-smooth), transform 120ms var(--apple-ease-spring) !important;
+  will-change: transform, background-color;
+  transition:
+    background-color 150ms var(--apple-ease-smooth),
+    color 150ms var(--apple-ease-smooth),
+    transform 140ms var(--apple-ease-spring) !important;
 }
 
 [role="navigation"][aria-label="Sidebar"] [data-testid="new-conversation-button"]:hover,
@@ -293,32 +317,37 @@ div[data-testid="conversation-row-sidebar"][data-selected="true"],
 /* Chat / Work Segmented Control Switch */
 #gemini-experience-switch [data-gemini-experience-track] {
   background-color: var(--gemini-switch-track) !important;
-  border: 1px solid rgba(255, 255, 255, 0.06) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
   border-radius: 9999px !important;
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.6) !important;
 }
 
 #gemini-experience-switch [data-gemini-experience-slider] {
   background-color: var(--gemini-switch-slider) !important;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.5), var(--apple-specular) !important;
+  backdrop-filter: blur(16px) !important;
+  -webkit-backdrop-filter: blur(16px) !important;
+  border: 1px solid rgba(255, 255, 255, 0.10) !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5), var(--apple-specular) !important;
   border-radius: 9999px !important;
+  transition: transform 220ms var(--apple-ease-spring) !important;
 }
 
 /* Settings Button (Bottom Right of Sidebar) */
 [data-testid="settings-button"] {
   border-radius: 9999px !important;
-  background: rgba(255, 255, 255, 0.05) !important;
-  border: 1px solid rgba(255, 255, 255, 0.07) !important;
+  background: rgba(255, 255, 255, 0.06) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
   box-shadow: var(--apple-specular) !important;
-  transition: background-color 140ms ease, transform 100ms ease !important;
+  transition: background-color 140ms var(--apple-ease-smooth), transform 120ms var(--apple-ease-spring) !important;
 }
 
 [data-testid="settings-button"]:hover {
-  background: rgba(255, 255, 255, 0.10) !important;
-  border-color: rgba(255, 255, 255, 0.12) !important;
+  background: rgba(255, 255, 255, 0.11) !important;
+  border-color: rgba(255, 255, 255, 0.14) !important;
 }
 
 [data-testid="settings-button"]:active {
-  transform: scale(0.94) !important;
+  transform: scale(0.93) !important;
 }
 
 /* ==========================================================================
@@ -335,26 +364,28 @@ div[data-testid="conversation-row-sidebar"][data-selected="true"],
 [data-testid="agent-input-box"] > .rounded-2xl.bg-card-border > .bg-card:not([data-mention-menu]),
 [data-testid="agent-input-box"] .bg-card:not([data-mention-menu]) {
   background: var(--apple-surface-elevated) !important;
-  backdrop-filter: blur(50px) saturate(190%) !important;
-  -webkit-backdrop-filter: blur(50px) saturate(190%) !important;
-  border: 1px solid rgba(255, 255, 255, 0.08) !important;
-  border-radius: 24px !important;
+  backdrop-filter: var(--apple-glass-blur) !important;
+  -webkit-backdrop-filter: var(--apple-glass-blur) !important;
+  border: 1px solid rgba(255, 255, 255, 0.09) !important;
+  border-radius: 26px !important;
   box-shadow:
     var(--apple-specular-prominent),
-    0 20px 50px -10px rgba(0, 0, 0, 0.85),
-    0 4px 12px rgba(0, 0, 0, 0.5) !important;
-  transition: border-color 200ms ease, box-shadow 200ms ease !important;
+    0 24px 64px -10px rgba(0, 0, 0, 0.88),
+    0 4px 16px rgba(0, 0, 0, 0.5) !important;
+  transition:
+    border-color 220ms var(--apple-ease-spring),
+    box-shadow 220ms var(--apple-ease-spring) !important;
 }
 
 /* Focus State: Specular Edge & Quiet Ambient Glow */
 [data-testid="agent-input-box"]:focus-within > .rounded-2xl.bg-card-border > .bg-card:not([data-mention-menu]),
 [data-testid="agent-input-box"]:focus-within .bg-card:not([data-mention-menu]) {
-  border-color: rgba(255, 255, 255, 0.16) !important;
+  border-color: rgba(255, 255, 255, 0.18) !important;
   box-shadow:
     var(--apple-specular-prominent),
-    0 0 0 1px rgba(255, 255, 255, 0.08),
-    0 0 28px rgba(10, 132, 255, 0.15),
-    0 24px 60px -10px rgba(0, 0, 0, 0.95) !important;
+    0 0 0 1px rgba(10, 132, 255, 0.40),
+    0 0 36px rgba(10, 132, 255, 0.16),
+    0 28px 72px -10px rgba(0, 0, 0, 0.95) !important;
   outline: none !important;
   --tw-ring-offset-shadow: none !important;
   --tw-ring-shadow: none !important;
@@ -375,11 +406,14 @@ div[data-testid="conversation-row-sidebar"][data-selected="true"],
   border: 1px solid rgba(255, 255, 255, 0.08) !important;
   box-shadow: var(--apple-specular) !important;
   color: var(--apple-secondary-label) !important;
-  transition: background-color 120ms ease, transform 90ms ease, color 120ms ease !important;
+  transition:
+    background-color 140ms var(--apple-ease-smooth),
+    transform 120ms var(--apple-ease-spring),
+    color 140ms var(--apple-ease-smooth) !important;
 }
 
 [data-testid="agent-input-box"] button[aria-label="Add context"]:hover {
-  background-color: rgba(255, 255, 255, 0.11) !important;
+  background-color: rgba(255, 255, 255, 0.12) !important;
   color: #ffffff !important;
 }
 
@@ -393,27 +427,47 @@ div[data-testid="conversation-row-sidebar"][data-selected="true"],
 [data-testid="agent-input-box"] button[class*="rounded-full"] {
   border-radius: 9999px !important;
   background-color: rgba(255, 255, 255, 0.05) !important;
-  border: 1px solid rgba(255, 255, 255, 0.07) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
   box-shadow: var(--apple-specular) !important;
   color: var(--apple-secondary-label) !important;
   font-size: 12.5px !important;
   font-weight: 500 !important;
-  transition: background-color 120ms ease, border-color 120ms ease, color 120ms ease !important;
+  transition:
+    background-color 140ms var(--apple-ease-smooth),
+    border-color 140ms var(--apple-ease-smooth),
+    color 140ms var(--apple-ease-smooth),
+    transform 120ms var(--apple-ease-spring) !important;
 }
 
 [data-testid="model-selector-trigger"]:hover,
 [data-testid="side-question-toolbar-button"]:hover,
 [data-testid="agent-input-box"] button[class*="rounded-full"]:hover {
-  background-color: rgba(255, 255, 255, 0.09) !important;
-  border-color: rgba(255, 255, 255, 0.12) !important;
+  background-color: rgba(255, 255, 255, 0.10) !important;
+  border-color: rgba(255, 255, 255, 0.14) !important;
   color: #ffffff !important;
+}
+
+[data-testid="model-selector-trigger"]:active,
+[data-testid="side-question-toolbar-button"]:active,
+[data-testid="agent-input-box"] button[class*="rounded-full"]:active {
+  transform: scale(0.95) !important;
 }
 
 /* Token Counter Pill */
 [data-testid="agent-input-box"] .gemini-composer-meta {
   color: var(--apple-tertiary-label) !important;
-  font-size: 12px !important;
+  font-size: 11.5px !important;
   font-weight: 500 !important;
+  border-radius: 9999px !important;
+  background: rgba(255, 255, 255, 0.05) !important;
+  border: 1px solid rgba(255, 255, 255, 0.07) !important;
+  box-shadow: var(--apple-specular) !important;
+  transition: background-color 140ms var(--apple-ease-smooth) !important;
+}
+
+[data-testid="agent-input-box"] .gemini-composer-meta:hover {
+  background: rgba(255, 255, 255, 0.09) !important;
+  color: #ffffff !important;
 }
 
 /* ==========================================================================
@@ -423,22 +477,31 @@ div[data-testid="conversation-row-sidebar"][data-selected="true"],
 [data-testid="send-button"]:not(:disabled):not([disabled]):not([aria-disabled="true"]) {
   background: var(--apple-blue-gradient) !important;
   color: #ffffff !important;
-  border: 1px solid rgba(255, 255, 255, 0.22) !important;
+  border: 1px solid rgba(255, 255, 255, 0.24) !important;
   border-radius: 9999px !important;
   box-shadow:
     var(--apple-specular-bright),
-    0 2px 10px rgba(10, 132, 255, 0.45) !important;
+    0 2px 10px rgba(10, 132, 255, 0.48),
+    0 6px 20px rgba(10, 132, 255, 0.22) !important;
   opacity: 1 !important;
   cursor: pointer !important;
-  transition: transform 90ms cubic-bezier(0.2, 0, 0, 1), filter 140ms ease !important;
+  transition:
+    transform 120ms var(--apple-ease-spring),
+    filter 140ms var(--apple-ease-smooth),
+    box-shadow 140ms var(--apple-ease-smooth) !important;
 }
 
 [data-testid="send-button"]:not(:disabled):not([disabled]):not([aria-disabled="true"]):hover {
-  filter: brightness(1.12) !important;
+  filter: brightness(1.14) !important;
+  box-shadow:
+    var(--apple-specular-bright),
+    0 4px 14px rgba(10, 132, 255, 0.58),
+    0 8px 26px rgba(10, 132, 255, 0.28) !important;
 }
 
 [data-testid="send-button"]:not(:disabled):not([disabled]):not([aria-disabled="true"]):active {
-  transform: scale(0.92) !important;
+  transform: scale(0.91) !important;
+  filter: brightness(0.96) !important;
 }
 
 [data-testid="send-button"]:not(:disabled):not([disabled]):not([aria-disabled="true"]) svg {
@@ -472,9 +535,9 @@ div[data-testid="conversation-row-sidebar"][data-selected="true"],
 /* User Sent Message Bubble: Translucent Apple Dark Glass Pill */
 [data-testid="user-input-step"] > [data-testid="lifted-context-menu-trigger"] > .bg-card {
   background: var(--apple-bubble) !important;
-  backdrop-filter: blur(30px) saturate(170%) !important;
-  -webkit-backdrop-filter: blur(30px) saturate(170%) !important;
-  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  backdrop-filter: var(--apple-glass-blur-subtle) !important;
+  -webkit-backdrop-filter: var(--apple-glass-blur-subtle) !important;
+  border: 1px solid rgba(255, 255, 255, 0.09) !important;
   border-radius: 20px !important;
   padding: 14px 20px !important;
   box-shadow:
@@ -495,9 +558,10 @@ div[data-testid="conversation-row-sidebar"][data-selected="true"],
 .willow-bubble-toggle-pill {
   background: rgba(255, 255, 255, 0.08) !important;
   border-radius: 9999px !important;
+  backdrop-filter: blur(12px) !important;
 }
 
-/* Status / Notice Banners (e.g. "User cancelled agent execution") */
+/* Status / Notice Banners */
 [data-testid="conversation-view"] .text-muted-foreground,
 [data-testid="conversation-view"] div:has(> svg + span:contains("cancelled")) {
   color: var(--apple-secondary-label) !important;
@@ -506,10 +570,10 @@ div[data-testid="conversation-row-sidebar"][data-selected="true"],
 
 /* Changed Files Review Card (.files-changed-header) */
 .files-changed-header {
-  background: rgba(20, 20, 25, 0.82) !important;
-  backdrop-filter: blur(32px) saturate(170%) !important;
-  -webkit-backdrop-filter: blur(32px) saturate(170%) !important;
-  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  background: var(--apple-surface-elevated) !important;
+  backdrop-filter: var(--apple-glass-blur-subtle) !important;
+  -webkit-backdrop-filter: var(--apple-glass-blur-subtle) !important;
+  border: 1px solid rgba(255, 255, 255, 0.09) !important;
   border-radius: 16px !important;
   box-shadow:
     var(--apple-specular),
@@ -517,12 +581,16 @@ div[data-testid="conversation-row-sidebar"][data-selected="true"],
   padding: 14px 20px !important;
   min-height: 72px !important;
   height: auto !important;
-  transition: background-color 150ms ease, border-color 150ms ease !important;
+  transition:
+    background-color 150ms var(--apple-ease-smooth),
+    border-color 150ms var(--apple-ease-smooth),
+    transform 140ms var(--apple-ease-spring) !important;
 }
 
 .files-changed-header:hover {
-  background: rgba(28, 28, 34, 0.90) !important;
-  border-color: rgba(255, 255, 255, 0.12) !important;
+  background: rgba(30, 30, 38, 0.90) !important;
+  border-color: rgba(255, 255, 255, 0.14) !important;
+  transform: translateY(-1px) !important;
 }
 
 /* Review Action Pill Button */
@@ -532,23 +600,25 @@ div[data-testid="conversation-row-sidebar"][data-selected="true"],
   padding: 0 20px !important;
   border-radius: 9999px !important;
   background: var(--apple-blue-gradient) !important;
-  border: 1px solid rgba(255, 255, 255, 0.25) !important;
+  border: 1px solid rgba(255, 255, 255, 0.26) !important;
   box-shadow:
     var(--apple-specular-bright),
-    0 2px 8px rgba(10, 132, 255, 0.4) !important;
+    0 2px 8px rgba(10, 132, 255, 0.42) !important;
   color: #ffffff !important;
   font-weight: 500 !important;
   font-size: 14px !important;
   letter-spacing: -0.01em !important;
-  transition: filter 120ms ease, transform 90ms ease !important;
+  transition:
+    filter 120ms var(--apple-ease-smooth),
+    transform 120ms var(--apple-ease-spring) !important;
 }
 
 .files-changed-header .review-button:hover {
-  filter: brightness(1.12) !important;
+  filter: brightness(1.14) !important;
 }
 
 .files-changed-header .review-button:active {
-  transform: scale(0.95) !important;
+  transform: scale(0.94) !important;
 }
 
 /* Step & Artifact Cards in Assistant Turns */
@@ -557,13 +627,21 @@ div[data-testid="conversation-row-sidebar"][data-selected="true"],
 [data-testid="conversation-view"] .border-border,
 [data-testid="conversation-view"] div[class*="rounded-lg"][class*="border"] {
   background-color: var(--apple-card) !important;
-  backdrop-filter: blur(24px) saturate(160%) !important;
-  -webkit-backdrop-filter: blur(24px) saturate(160%) !important;
+  backdrop-filter: var(--apple-glass-blur-subtle) !important;
+  -webkit-backdrop-filter: var(--apple-glass-blur-subtle) !important;
   border: 1px solid rgba(255, 255, 255, 0.08) !important;
   border-radius: 14px !important;
   box-shadow:
     var(--apple-specular),
     0 4px 18px rgba(0, 0, 0, 0.4) !important;
+  transition:
+    border-color 150ms var(--apple-ease-smooth),
+    transform 140ms var(--apple-ease-spring) !important;
+}
+
+[data-testid*="artifact"]:hover,
+[data-testid="conversation-view"] div[class*="rounded-lg"][class*="border"]:hover {
+  border-color: rgba(255, 255, 255, 0.12) !important;
 }
 
 /* ==========================================================================
@@ -574,21 +652,24 @@ div[data-testid="conversation-row-sidebar"][data-selected="true"],
 [data-radix-popper-content-wrapper] > div,
 [data-radix-menu-content] {
   background-color: var(--apple-surface-overlay) !important;
-  backdrop-filter: blur(40px) saturate(180%) !important;
-  -webkit-backdrop-filter: blur(40px) saturate(180%) !important;
-  border: 1px solid rgba(255, 255, 255, 0.10) !important;
-  border-radius: 12px !important;
+  backdrop-filter: var(--apple-glass-blur) !important;
+  -webkit-backdrop-filter: var(--apple-glass-blur) !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  border-radius: 14px !important;
   box-shadow:
     var(--apple-specular-prominent),
-    0 20px 50px rgba(0, 0, 0, 0.65),
-    0 4px 12px rgba(0, 0, 0, 0.35) !important;
+    0 24px 60px rgba(0, 0, 0, 0.72),
+    0 6px 16px rgba(0, 0, 0, 0.4) !important;
 }
 
 /* Menu items */
 [role="menuitem"],
 [role="option"] {
-  border-radius: 6px !important;
-  transition: background-color 100ms ease, color 100ms ease !important;
+  border-radius: 8px !important;
+  transition:
+    background-color 100ms var(--apple-ease-smooth),
+    color 100ms var(--apple-ease-smooth),
+    transform 80ms var(--apple-ease-spring) !important;
 }
 
 [role="menuitem"]:hover,
@@ -600,24 +681,29 @@ div[data-testid="conversation-row-sidebar"][data-selected="true"],
   color: #ffffff !important;
 }
 
+[role="menuitem"]:active,
+[role="option"]:active {
+  transform: scale(0.98) !important;
+}
+
 /* ==========================================================================
    10. Code Blocks & Output Blocks
    ========================================================================== */
 pre,
 .prose pre,
 [class*="code-block"] {
-  background-color: #0c0c0f !important;
+  background-color: #08080b !important;
   border: 1px solid rgba(255, 255, 255, 0.07) !important;
-  border-radius: 12px !important;
-  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.5) !important;
+  border-radius: 14px !important;
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.6) !important;
 }
 
 /* Inline code tag */
 :not(pre) > code {
   background-color: rgba(255, 255, 255, 0.07) !important;
   border: 1px solid rgba(255, 255, 255, 0.06) !important;
-  border-radius: 5px !important;
-  padding: 0.15em 0.35em !important;
+  border-radius: 6px !important;
+  padding: 0.15em 0.4em !important;
   color: #ff7b72 !important;
 }
 
@@ -629,7 +715,7 @@ pre,
 [data-testid="conversation-view"] ~ [data-testid="aux-sidebar"] {
   background-color: var(--apple-canvas) !important;
   border-left: 1px solid var(--apple-divider) !important;
-  transition: width 240ms var(--apple-ease-spring) !important;
+  transition: width 260ms var(--apple-ease-liquid) !important;
 }
 
 /* Auxiliary Toolbar Header */
@@ -646,7 +732,10 @@ pre,
 [data-testid="toggle-aux-sidebar"],
 [data-testid="toggle-maximize-pane"] {
   border-radius: 8px !important;
-  transition: background-color 150ms var(--apple-ease-smooth), color 150ms var(--apple-ease-smooth), transform 120ms var(--apple-ease-spring) !important;
+  transition:
+    background-color 150ms var(--apple-ease-smooth),
+    color 150ms var(--apple-ease-smooth),
+    transform 120ms var(--apple-ease-spring) !important;
 }
 
 [data-testid="aux-sidebar"] header button:hover,
@@ -670,7 +759,7 @@ pre,
 .pane-inner header.toolbar button.bg-secondary {
   background-color: var(--apple-selected-row) !important;
   box-shadow: var(--apple-specular) !important;
-  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  border: 1px solid rgba(255, 255, 255, 0.09) !important;
   color: #ffffff !important;
 }
 
@@ -684,7 +773,8 @@ pre,
 .bg-browser-navigation {
   background-color: var(--apple-surface) !important;
   border-bottom: 1px solid var(--apple-divider) !important;
-  backdrop-filter: blur(30px) saturate(180%) !important;
+  backdrop-filter: var(--apple-glass-blur-subtle) !important;
+  -webkit-backdrop-filter: var(--apple-glass-blur-subtle) !important;
 }
 
 .bg-browser-address-input {
@@ -693,12 +783,14 @@ pre,
   border-radius: 9999px !important;
   box-shadow: var(--apple-specular) !important;
   color: var(--apple-label) !important;
-  transition: border-color 180ms var(--apple-ease-spring), box-shadow 180ms var(--apple-ease-spring) !important;
+  transition:
+    border-color 180ms var(--apple-ease-spring),
+    box-shadow 180ms var(--apple-ease-spring) !important;
 }
 
 .bg-browser-address-input:focus {
-  border-color: rgba(255, 255, 255, 0.18) !important;
-  box-shadow: var(--apple-specular-prominent), 0 0 16px rgba(10, 132, 255, 0.2) !important;
+  border-color: rgba(255, 255, 255, 0.20) !important;
+  box-shadow: var(--apple-specular-prominent), 0 0 18px rgba(10, 132, 255, 0.22) !important;
 }
 
 /* ==========================================================================
@@ -707,7 +799,7 @@ pre,
 @keyframes apple-dialog-pop {
   0% {
     opacity: 0;
-    transform: scale(0.96) translateY(2px);
+    transform: scale(0.95) translateY(3px);
   }
   100% {
     opacity: 1;
@@ -718,6 +810,6 @@ pre,
 [role="dialog"],
 [role="menu"],
 [data-radix-popper-content-wrapper] > div {
-  animation: apple-dialog-pop 160ms var(--apple-ease-spring) !important;
+  animation: apple-dialog-pop 180ms var(--apple-ease-spring) !important;
+  transform-origin: center top !important;
 }
-
