@@ -2,7 +2,7 @@
  * @name        Cupertino Dark
  * @description Masterclass Apple Pro & Space Black aesthetics for BetterGravity: Continuous squircle curvature, obsidian glass materials, specular chamfers, floating inspector wells, and tactile spring physics.
  * @author      BetterGravity Contributors
- * @version     1.2.0
+ * @version     1.3.0
  * @source      https://github.com/YashjitPal/BetterGravity
  */
 
@@ -10,6 +10,13 @@
    1. Apple Studio Space Black Design Tokens
    ========================================================================== */
 :root {
+  /* Fluid Spring Physics (Apple HIG Liquid Feel) */
+  --apple-ease-spring: cubic-bezier(0.16, 1, 0.3, 1);
+  --apple-ease-smooth: cubic-bezier(0.25, 1, 0.5, 1);
+  --apple-ease-tactile: cubic-bezier(0.34, 1.4, 0.64, 1);
+  --apple-ease-enter: cubic-bezier(0, 0, 0.2, 1);
+  --apple-ease-exit: cubic-bezier(0.4, 0, 1, 1);
+
   /* True Deep Obsidian Canvas & Surfaces */
   --apple-canvas: #09090b;
   --apple-sidebar: #09090b;
@@ -220,13 +227,19 @@ div[data-testid="conversation-row-sidebar"],
   padding: 6px 10px !important;
   box-sizing: border-box !important;
   border: 1px solid transparent !important;
-  transition: background-color 100ms ease, color 100ms ease, border-color 100ms ease !important;
+  transition: background-color 150ms var(--apple-ease-smooth), color 150ms var(--apple-ease-smooth), border-color 150ms var(--apple-ease-smooth), transform 120ms var(--apple-ease-spring) !important;
 }
 
 [role="navigation"][aria-label="Sidebar"] [data-testid="conversation-row-sidebar"]:hover:not([data-selected="true"]),
 [role="navigation"][aria-label="Sidebar"] a[role="link"]:hover:not([aria-current="page"]),
 [role="navigation"][aria-label="Sidebar"] [data-testid*="conversation-item"]:hover:not([data-selected="true"]) {
   background-color: var(--apple-hover-wash) !important;
+}
+
+[role="navigation"][aria-label="Sidebar"] [data-testid="conversation-row-sidebar"]:active,
+[role="navigation"][aria-label="Sidebar"] a[role="link"]:active,
+[role="navigation"][aria-label="Sidebar"] [data-testid*="conversation-item"]:active {
+  transform: scale(0.97) !important;
 }
 
 /* Active / Selected Sidebar Item (Symmetric Apple Frosted Capsule) */
@@ -254,7 +267,7 @@ div[data-testid="conversation-row-sidebar"][data-selected="true"],
   margin: 1px 8px !important;
   width: calc(100% - 16px) !important;
   box-sizing: border-box !important;
-  transition: background-color 120ms ease, transform 90ms ease !important;
+  transition: background-color 150ms var(--apple-ease-smooth), color 150ms var(--apple-ease-smooth), transform 120ms var(--apple-ease-spring) !important;
 }
 
 [role="navigation"][aria-label="Sidebar"] [data-testid="new-conversation-button"]:hover,
@@ -267,8 +280,14 @@ div[data-testid="conversation-row-sidebar"][data-selected="true"],
   background-color: var(--apple-hover-wash) !important;
 }
 
-[role="navigation"][aria-label="Sidebar"] [data-testid="new-conversation-button"]:active {
-  transform: scale(0.98);
+[role="navigation"][aria-label="Sidebar"] [data-testid="new-conversation-button"]:active,
+[role="navigation"][aria-label="Sidebar"] [data-testid="history-button"]:active,
+[role="navigation"][aria-label="Sidebar"] #gemini-skills-button:active,
+[role="navigation"][aria-label="Sidebar"] #gemini-scheduled-tasks-button:active,
+[role="navigation"][aria-label="Sidebar"] #gemini-browser-button:active,
+[role="navigation"][aria-label="Sidebar"] #gemini-new-project-button:active,
+[role="navigation"][aria-label="Sidebar"] #gemini-display-options-button:active {
+  transform: scale(0.96) !important;
 }
 
 /* Chat / Work Segmented Control Switch */
@@ -601,3 +620,104 @@ pre,
   padding: 0.15em 0.35em !important;
   color: #ff7b72 !important;
 }
+
+/* ==========================================================================
+   11. Auxiliary Sidebar & Secondary Workspace Pane (Liquid Glass)
+   ========================================================================== */
+[data-testid="aux-sidebar"],
+.pane[data-aux-pane-open],
+[data-testid="conversation-view"] ~ [data-testid="aux-sidebar"] {
+  background-color: var(--apple-canvas) !important;
+  border-left: 1px solid var(--apple-divider) !important;
+  transition: width 240ms var(--apple-ease-spring) !important;
+}
+
+/* Auxiliary Toolbar Header */
+[data-testid="aux-sidebar"] header,
+.pane-inner header.toolbar,
+[data-testid="aux-sidebar"] [data-testid="aux-sidebar-header"] {
+  background-color: var(--apple-canvas) !important;
+  border-bottom: 1px solid var(--apple-divider) !important;
+}
+
+/* Auxiliary Tab Buttons (Segmented Frosted Pills) */
+[data-testid="aux-sidebar"] header button,
+.pane-inner header.toolbar button,
+[data-testid="toggle-aux-sidebar"],
+[data-testid="toggle-maximize-pane"] {
+  border-radius: 8px !important;
+  transition: background-color 150ms var(--apple-ease-smooth), color 150ms var(--apple-ease-smooth), transform 120ms var(--apple-ease-spring) !important;
+}
+
+[data-testid="aux-sidebar"] header button:hover,
+.pane-inner header.toolbar button:hover,
+[data-testid="toggle-aux-sidebar"]:hover,
+[data-testid="toggle-maximize-pane"]:hover {
+  background-color: var(--apple-hover-wash) !important;
+  color: #ffffff !important;
+}
+
+[data-testid="aux-sidebar"] header button:active,
+.pane-inner header.toolbar button:active,
+[data-testid="toggle-aux-sidebar"]:active,
+[data-testid="toggle-maximize-pane"]:active {
+  transform: scale(0.94) !important;
+}
+
+/* Active Tab Segment in Auxiliary Toolbar */
+[data-testid="aux-sidebar"] header button[aria-selected="true"],
+[data-testid="aux-sidebar"] header button[data-state="active"],
+.pane-inner header.toolbar button.bg-secondary {
+  background-color: var(--apple-selected-row) !important;
+  box-shadow: var(--apple-specular) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  color: #ffffff !important;
+}
+
+/* In-Built Browser Root & Surface Integration */
+#bg-in-built-browser,
+.bg-browser-root {
+  background-color: var(--apple-canvas) !important;
+  border-radius: 0 !important;
+}
+
+.bg-browser-navigation {
+  background-color: var(--apple-surface) !important;
+  border-bottom: 1px solid var(--apple-divider) !important;
+  backdrop-filter: blur(30px) saturate(180%) !important;
+}
+
+.bg-browser-address-input {
+  background-color: rgba(255, 255, 255, 0.06) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  border-radius: 9999px !important;
+  box-shadow: var(--apple-specular) !important;
+  color: var(--apple-label) !important;
+  transition: border-color 180ms var(--apple-ease-spring), box-shadow 180ms var(--apple-ease-spring) !important;
+}
+
+.bg-browser-address-input:focus {
+  border-color: rgba(255, 255, 255, 0.18) !important;
+  box-shadow: var(--apple-specular-prominent), 0 0 16px rgba(10, 132, 255, 0.2) !important;
+}
+
+/* ==========================================================================
+   12. Fluid Apple Scale & Rebound Keyframes
+   ========================================================================== */
+@keyframes apple-dialog-pop {
+  0% {
+    opacity: 0;
+    transform: scale(0.96) translateY(2px);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+[role="dialog"],
+[role="menu"],
+[data-radix-popper-content-wrapper] > div {
+  animation: apple-dialog-pop 160ms var(--apple-ease-spring) !important;
+}
+
