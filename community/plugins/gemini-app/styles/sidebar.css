@@ -38,17 +38,23 @@
 }
 
 /* Willow exact sidebar widths (expanded = 288px, collapsed = 52px) and motion curve */
-div.flex:has(> div > [role="navigation"][aria-label="Sidebar"]),
-div[style*="transition: width"]:has(> div > [role="navigation"][aria-label="Sidebar"]) {
+html:not([data-sidebar-collapsed="true"]):not(:has([data-testid="sidebar-toggle"][aria-expanded="false"])) div.flex:has(> div > [role="navigation"][aria-label="Sidebar"]),
+html:not([data-sidebar-collapsed="true"]):not(:has([data-testid="sidebar-toggle"][aria-expanded="false"])) div[style*="transition: width"]:has(> div > [role="navigation"][aria-label="Sidebar"]) {
   width: 288px !important;
   min-width: 0px !important;
   max-width: none !important;
-  transition: width 300ms cubic-bezier(0.2, 0, 0, 1),
-              background-color 300ms cubic-bezier(0.2, 0, 0, 1) !important;
+  transition: width 300ms cubic-bezier(0.16, 1, 0.3, 1),
+              background-color 300ms cubic-bezier(0.16, 1, 0.3, 1) !important;
   will-change: width, background-color;
   overflow: hidden !important;
 }
 
+html[data-sidebar-collapsed="true"] div.flex:has(> div > [role="navigation"][aria-label="Sidebar"]),
+html[data-sidebar-collapsed="true"] div[style*="transition: width"]:has(> div > [role="navigation"][aria-label="Sidebar"]),
+html[data-sidebar-collapsed="true"] [role="navigation"][aria-label="Sidebar"],
+html[data-sidebar-collapsed="true"] div:has(> [role="navigation"][aria-label="Sidebar"]),
+html:has([data-testid="sidebar-toggle"][aria-expanded="false"]) div.flex:has(> div > [role="navigation"][aria-label="Sidebar"]),
+html:has([data-testid="sidebar-toggle"][aria-expanded="false"]) div[style*="transition: width"]:has(> div > [role="navigation"][aria-label="Sidebar"]),
 div.flex:has(> div > [role="navigation"][aria-label="Sidebar"][data-collapsed="true"]),
 div[style*="transition: width"]:has(> div > [role="navigation"][aria-label="Sidebar"][data-collapsed="true"]) {
   width: 52px !important;
@@ -221,7 +227,8 @@ div.bg-border.flex-shrink-0.w-\[1px\] {
 
 /* Collapsed logo: hide duplicate logo button so sidebar-toggle acts as the primary expand button */
 [role="navigation"][aria-label="Sidebar"][data-collapsed="true"] .gemini-logo-btn,
-html[data-sidebar-collapsed="true"] [role="navigation"][aria-label="Sidebar"] .gemini-logo-btn {
+html[data-sidebar-collapsed="true"] [role="navigation"][aria-label="Sidebar"] .gemini-logo-btn,
+html:has([data-testid="sidebar-toggle"][aria-expanded="false"]) .gemini-logo-btn {
   display: none !important;
 }
 
@@ -290,7 +297,9 @@ html[data-sidebar-collapsed="true"] [role="navigation"][aria-label="Sidebar"] .g
   transition: opacity 150ms ease 100ms !important;
 }
 
-[role="navigation"][aria-label="Sidebar"][data-collapsed="true"] .willow-sidenav-text {
+[role="navigation"][aria-label="Sidebar"][data-collapsed="true"] .willow-sidenav-text,
+html[data-sidebar-collapsed="true"] .willow-sidenav-text,
+html:has([data-testid="sidebar-toggle"][aria-expanded="false"]) .willow-sidenav-text {
   opacity: 0 !important;
   max-width: 0 !important;
   overflow: hidden !important;
@@ -476,7 +485,9 @@ div:has(> button[aria-label="Go Back"]) {
 }
 
 [role="navigation"][aria-label="Sidebar"][data-collapsed="true"] #gemini-experience-switch,
-html[data-sidebar-collapsed="true"] [role="navigation"][aria-label="Sidebar"] #gemini-experience-switch {
+html[data-sidebar-collapsed="true"] [role="navigation"][aria-label="Sidebar"] #gemini-experience-switch,
+html:has([data-testid="sidebar-toggle"][aria-expanded="false"]) [role="navigation"][aria-label="Sidebar"] #gemini-experience-switch,
+html:has([data-testid="sidebar-toggle"][aria-expanded="false"]) #gemini-experience-switch {
   padding: 0 10px !important;
   margin: 4px 0 12px !important;
   width: 100% !important;
@@ -498,7 +509,9 @@ html[data-sidebar-collapsed="true"] [role="navigation"][aria-label="Sidebar"] #g
 }
 
 [role="navigation"][aria-label="Sidebar"][data-collapsed="true"] #gemini-experience-switch [data-gemini-experience-track],
-html[data-sidebar-collapsed="true"] [role="navigation"][aria-label="Sidebar"] #gemini-experience-switch [data-gemini-experience-track] {
+html[data-sidebar-collapsed="true"] [role="navigation"][aria-label="Sidebar"] #gemini-experience-switch [data-gemini-experience-track],
+html:has([data-testid="sidebar-toggle"][aria-expanded="false"]) [role="navigation"][aria-label="Sidebar"] #gemini-experience-switch [data-gemini-experience-track],
+html:has([data-testid="sidebar-toggle"][aria-expanded="false"]) #gemini-experience-switch [data-gemini-experience-track] {
   background-color: transparent !important;
   padding: 0 !important;
   justify-content: flex-start !important;
@@ -511,20 +524,22 @@ html[data-sidebar-collapsed="true"] [role="navigation"][aria-label="Sidebar"] #g
   width: 100%;
   height: 100%;
   align-items: center;
-  transition: transform 300ms cubic-bezier(0.2, 0, 0, 1), opacity 150ms cubic-bezier(0, 0, 0, 1);
+  transition: transform 300ms cubic-bezier(0.16, 1, 0.3, 1), opacity 150ms cubic-bezier(0, 0, 0, 1);
   transform-origin: left center;
 }
 
 [role="navigation"][aria-label="Sidebar"][data-collapsed="true"] .gemini-experience-tabs-wrap,
-html[data-sidebar-collapsed="true"] [role="navigation"][aria-label="Sidebar"] .gemini-experience-tabs-wrap {
+html[data-sidebar-collapsed="true"] [role="navigation"][aria-label="Sidebar"] .gemini-experience-tabs-wrap,
+html:has([data-testid="sidebar-toggle"][aria-expanded="false"]) [role="navigation"][aria-label="Sidebar"] .gemini-experience-tabs-wrap,
+html:has([data-testid="sidebar-toggle"][aria-expanded="false"]) .gemini-experience-tabs-wrap {
+  display: none !important;
   opacity: 0 !important;
   transform: scaleX(0.2) !important;
   pointer-events: none !important;
 }
 
-/* Gemini animates the slider's INSET, not a transform, and over 400ms on an
- * ease-out-quart — a curve that overshoots late in its travel and settles,
- * where the 200ms translate this reads as at a glance decelerates flat. */
+/* Gemini animates the slider's transform over 320ms on Apple's liquid kinetic curve
+ * (cubic-bezier(0.16, 1, 0.3, 1)) for buttery smooth fluid transition between Chat and Work */
 #gemini-experience-switch [data-gemini-experience-slider] {
   position: absolute;
   top: 2px;
@@ -532,13 +547,33 @@ html[data-sidebar-collapsed="true"] [role="navigation"][aria-label="Sidebar"] .g
   left: 2px;
   width: calc(50% - 2px);
   border-radius: 9999px;
-  background-color: var(--gemini-switch-slider, #1f1f1f);
-  transition: left 400ms cubic-bezier(0.25, 1, 0.5, 1), width 400ms cubic-bezier(0.25, 1, 0.5, 1), opacity 150ms ease;
+  background-color: var(--gemini-switch-slider, #242426);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.45), inset 0 0.5px 0 rgba(255, 255, 255, 0.12);
+  transform: translate3d(0, 0, 0);
+  transition: transform 320ms cubic-bezier(0.16, 1, 0.3, 1),
+              background-color 200ms cubic-bezier(0.16, 1, 0.3, 1),
+              opacity 150ms ease !important;
   pointer-events: none;
+  will-change: transform;
+}
+
+#gemini-experience-switch[data-gemini-experience="chat"] [data-gemini-experience-slider] {
+  transform: translate3d(0, 0, 0) !important;
+}
+
+#gemini-experience-switch[data-gemini-experience="work"] [data-gemini-experience-slider] {
+  transform: translate3d(100%, 0, 0) !important;
+}
+
+#gemini-experience-switch [data-gemini-experience-track]:active [data-gemini-experience-slider] {
+  filter: brightness(1.08);
 }
 
 [role="navigation"][aria-label="Sidebar"][data-collapsed="true"] #gemini-experience-switch [data-gemini-experience-slider],
-html[data-sidebar-collapsed="true"] [role="navigation"][aria-label="Sidebar"] #gemini-experience-switch [data-gemini-experience-slider] {
+html[data-sidebar-collapsed="true"] [role="navigation"][aria-label="Sidebar"] #gemini-experience-switch [data-gemini-experience-slider],
+html:has([data-testid="sidebar-toggle"][aria-expanded="false"]) [role="navigation"][aria-label="Sidebar"] #gemini-experience-switch [data-gemini-experience-slider],
+html:has([data-testid="sidebar-toggle"][aria-expanded="false"]) [data-gemini-experience-slider] {
+  display: none !important;
   opacity: 0 !important;
   pointer-events: none !important;
 }
@@ -569,15 +604,18 @@ html[data-sidebar-collapsed="true"] [role="navigation"][aria-label="Sidebar"] #g
   transform: scale(0.72) !important;
   pointer-events: none !important;
   will-change: transform !important;
-  transition: transform 300ms cubic-bezier(0.2, 0, 0, 1), opacity 150ms cubic-bezier(0, 0, 0, 1), background-color 150ms ease !important;
+  transition: transform 300ms cubic-bezier(0.16, 1, 0.3, 1), opacity 150ms cubic-bezier(0, 0, 0, 1), background-color 150ms ease !important;
 }
 
 [role="navigation"][aria-label="Sidebar"][data-collapsed="true"] .gemini-experience-collapsed-btn,
-html[data-sidebar-collapsed="true"] [role="navigation"][aria-label="Sidebar"] .gemini-experience-collapsed-btn {
+html[data-sidebar-collapsed="true"] [role="navigation"][aria-label="Sidebar"] .gemini-experience-collapsed-btn,
+html:has([data-testid="sidebar-toggle"][aria-expanded="false"]) [role="navigation"][aria-label="Sidebar"] .gemini-experience-collapsed-btn,
+html:has([data-testid="sidebar-toggle"][aria-expanded="false"]) .gemini-experience-collapsed-btn {
+  display: flex !important;
   opacity: 1 !important;
   transform: scale(1) !important;
   pointer-events: auto !important;
-  transition: transform 300ms cubic-bezier(0.2, 0, 0, 1), opacity 300ms cubic-bezier(0.2, 0, 0, 1), background-color 150ms ease !important;
+  transition: transform 300ms cubic-bezier(0.16, 1, 0.3, 1), opacity 300ms cubic-bezier(0.16, 1, 0.3, 1), background-color 150ms ease !important;
 }
 
 .gemini-experience-collapsed-btn:hover {
@@ -594,7 +632,7 @@ html[data-sidebar-collapsed="true"] [role="navigation"][aria-label="Sidebar"] .g
   display: block !important;
   color: var(--gemini-body-text, #e6e6e6) !important;
   transform-origin: center center !important;
-  transition: transform 150ms ease !important;
+  transition: transform 260ms cubic-bezier(0.16, 1, 0.3, 1) !important;
 }
 
 #gemini-experience-switch[data-gemini-experience="work"] .gemini-experience-collapsed-icon {
@@ -603,10 +641,6 @@ html[data-sidebar-collapsed="true"] [role="navigation"][aria-label="Sidebar"] .g
 
 #gemini-experience-switch[data-gemini-experience="chat"] .gemini-experience-collapsed-icon {
   transform: rotate(0deg) !important;
-}
-
-#gemini-experience-switch[data-gemini-experience="work"] [data-gemini-experience-slider] {
-  left: 50%;
 }
 
 /* Willow's measured `.agent-tab-content` is a three-column grid, `1fr auto 1fr`
@@ -636,7 +670,7 @@ html[data-sidebar-collapsed="true"] [role="navigation"][aria-label="Sidebar"] .g
   line-height: 1;
   color: var(--gemini-text-dim, rgba(255, 255, 255, 0.55));
   cursor: pointer;
-  transition: color 150ms ease;
+  transition: color 240ms cubic-bezier(0.16, 1, 0.3, 1) !important;
   appearance: none;
 }
 
@@ -906,25 +940,40 @@ html[data-sidebar-collapsed="true"] [role="navigation"][aria-label="Sidebar"] .g
  * same pitch under Search chats as any two rows have between them. The rows'
  * own `2px 0` is therefore the whole gap, and a margin here would show up as a
  * wider space under Conversation History than the rail has anywhere else. */
-[role="navigation"][aria-label="Sidebar"] #gemini-scroll-nav {
+[role="navigation"][aria-label="Sidebar"] #gemini-scroll-nav,
+#gemini-scroll-nav {
   width: 100% !important;
   padding: 0 !important;
   margin: 0 !important;
-  display: flex !important;
-  flex-direction: column !important;
-  align-items: flex-start !important;
-  gap: 0px !important;
+  display: grid !important;
+  grid-template-rows: 1fr !important;
+  opacity: 1 !important;
+  overflow: hidden !important;
+  transition: grid-template-rows 280ms cubic-bezier(0.16, 1, 0.3, 1),
+              opacity 200ms cubic-bezier(0.16, 1, 0.3, 1) !important;
+  will-change: grid-template-rows, opacity;
 }
 
-[role="navigation"][aria-label="Sidebar"] #gemini-scroll-nav[data-collapsed="true"] {
-  display: none !important;
-  height: 0 !important;
-  max-height: 0 !important;
+#gemini-scroll-nav > * {
+  min-height: 0;
+  overflow: hidden;
+}
+
+#gemini-scroll-nav[data-collapsed="true"],
+#gemini-scroll-nav.collapsed,
+[role="navigation"][aria-label="Sidebar"] #gemini-scroll-nav[data-collapsed="true"],
+[role="navigation"][aria-label="Sidebar"] #gemini-scroll-nav.collapsed,
+[role="navigation"] #gemini-scroll-nav[data-collapsed="true"] {
+  grid-template-rows: 0fr !important;
+  opacity: 0 !important;
   overflow: hidden !important;
   padding: 0 !important;
   margin: 0 !important;
+  pointer-events: none !important;
 }
 
+#gemini-scroll-nav-header,
+.gemini-nav-section-header,
 [role="navigation"][aria-label="Sidebar"] #gemini-scroll-nav-header,
 [role="navigation"][aria-label="Sidebar"] .gemini-nav-section-header {
   display: flex !important;
@@ -947,12 +996,40 @@ html[data-sidebar-collapsed="true"] [role="navigation"][aria-label="Sidebar"] .g
   transition: color 140ms ease, background-color 140ms ease !important;
 }
 
+#gemini-scroll-nav-header:hover,
+.gemini-nav-section-header:hover,
 [role="navigation"][aria-label="Sidebar"] #gemini-scroll-nav-header:hover,
 [role="navigation"][aria-label="Sidebar"] .gemini-nav-section-header:hover {
   color: var(--apple-secondary-label, rgba(255, 255, 255, 0.75)) !important;
   background-color: rgba(255, 255, 255, 0.04) !important;
 }
 
+/* Hide shortcuts header completely when the sidebar is collapsed into an icon rail */
+html[data-sidebar-collapsed="true"] #gemini-scroll-nav-header,
+html[data-sidebar-collapsed="true"] .gemini-nav-section-header,
+html:has([data-testid="sidebar-toggle"][aria-expanded="false"]) #gemini-scroll-nav-header,
+html:has([data-testid="sidebar-toggle"][aria-expanded="false"]) .gemini-nav-section-header,
+[role="navigation"][aria-label="Sidebar"][data-collapsed="true"] #gemini-scroll-nav-header,
+[role="navigation"][aria-label="Sidebar"][data-collapsed="true"] .gemini-nav-section-header,
+[role="navigation"][data-collapsed="true"] #gemini-scroll-nav-header,
+[role="navigation"][data-collapsed="true"] .gemini-nav-section-header,
+#gemini-scroll-nav-header[hidden],
+#gemini-scroll-nav-header.sidebar-collapsed,
+#gemini-scroll-nav-header[data-sidebar-collapsed="true"],
+.gemini-nav-section-header[hidden],
+.gemini-nav-section-header.sidebar-collapsed {
+  display: none !important;
+  visibility: hidden !important;
+  height: 0 !important;
+  max-height: 0 !important;
+  overflow: hidden !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+
+.gemini-nav-section-chevron,
 [role="navigation"][aria-label="Sidebar"] .gemini-nav-section-chevron {
   display: inline-flex !important;
   align-items: center !important;
@@ -965,9 +1042,11 @@ html[data-sidebar-collapsed="true"] [role="navigation"][aria-label="Sidebar"] .g
   stroke: currentColor !important;
   flex-shrink: 0 !important;
   pointer-events: none !important;
-  transition: transform 200ms cubic-bezier(0.34, 1.56, 0.64, 1) !important;
+  transition: transform 240ms cubic-bezier(0.16, 1, 0.3, 1) !important;
 }
 
+#gemini-scroll-nav-header[data-collapsed="true"] .gemini-nav-section-chevron,
+.gemini-nav-section-header[data-collapsed="true"] .gemini-nav-section-chevron,
 [role="navigation"][aria-label="Sidebar"] #gemini-scroll-nav-header[data-collapsed="true"] .gemini-nav-section-chevron,
 [role="navigation"][aria-label="Sidebar"] .gemini-nav-section-header[data-collapsed="true"] .gemini-nav-section-chevron {
   transform: rotate(-90deg) !important;
@@ -1087,7 +1166,27 @@ html[data-gemini-experience="chat"] [role="navigation"][aria-label="Sidebar"] di
 [role="navigation"][aria-label="Sidebar"][data-collapsed="true"] #gemini-display-options-button,
 [role="navigation"][aria-label="Sidebar"][data-collapsed="true"] [data-bettergravity-button],
 [role="navigation"][aria-label="Sidebar"][data-collapsed="true"] #gemini-scroll-nav > *,
-[role="navigation"][aria-label="Sidebar"][data-collapsed="true"] .gemini-nav-item {
+[role="navigation"][aria-label="Sidebar"][data-collapsed="true"] .gemini-nav-item,
+html[data-sidebar-collapsed="true"] [role="navigation"][aria-label="Sidebar"] [data-testid="new-conversation-button"],
+html[data-sidebar-collapsed="true"] [role="navigation"][aria-label="Sidebar"] [data-testid="history-button"],
+html[data-sidebar-collapsed="true"] [role="navigation"][aria-label="Sidebar"] [data-testid="automations-button"],
+html[data-sidebar-collapsed="true"] [role="navigation"][aria-label="Sidebar"] #gemini-skills-button,
+html[data-sidebar-collapsed="true"] [role="navigation"][aria-label="Sidebar"] #gemini-scheduled-tasks-button,
+html[data-sidebar-collapsed="true"] [role="navigation"][aria-label="Sidebar"] #gemini-new-project-button,
+html[data-sidebar-collapsed="true"] [role="navigation"][aria-label="Sidebar"] #gemini-display-options-button,
+html[data-sidebar-collapsed="true"] [role="navigation"][aria-label="Sidebar"] [data-bettergravity-button],
+html[data-sidebar-collapsed="true"] [role="navigation"][aria-label="Sidebar"] #gemini-scroll-nav > *,
+html[data-sidebar-collapsed="true"] [role="navigation"][aria-label="Sidebar"] .gemini-nav-item,
+html:has([data-testid="sidebar-toggle"][aria-expanded="false"]) [role="navigation"][aria-label="Sidebar"] [data-testid="new-conversation-button"],
+html:has([data-testid="sidebar-toggle"][aria-expanded="false"]) [role="navigation"][aria-label="Sidebar"] [data-testid="history-button"],
+html:has([data-testid="sidebar-toggle"][aria-expanded="false"]) [role="navigation"][aria-label="Sidebar"] [data-testid="automations-button"],
+html:has([data-testid="sidebar-toggle"][aria-expanded="false"]) [role="navigation"][aria-label="Sidebar"] #gemini-skills-button,
+html:has([data-testid="sidebar-toggle"][aria-expanded="false"]) [role="navigation"][aria-label="Sidebar"] #gemini-scheduled-tasks-button,
+html:has([data-testid="sidebar-toggle"][aria-expanded="false"]) [role="navigation"][aria-label="Sidebar"] #gemini-new-project-button,
+html:has([data-testid="sidebar-toggle"][aria-expanded="false"]) [role="navigation"][aria-label="Sidebar"] #gemini-display-options-button,
+html:has([data-testid="sidebar-toggle"][aria-expanded="false"]) [role="navigation"][aria-label="Sidebar"] [data-bettergravity-button],
+html:has([data-testid="sidebar-toggle"][aria-expanded="false"]) [role="navigation"][aria-label="Sidebar"] #gemini-scroll-nav > *,
+html:has([data-testid="sidebar-toggle"][aria-expanded="false"]) [role="navigation"][aria-label="Sidebar"] .gemini-nav-item {
   width: 32px !important;
   height: 32px !important;
   min-width: 32px !important;
@@ -1095,11 +1194,11 @@ html[data-gemini-experience="chat"] [role="navigation"][aria-label="Sidebar"] di
   min-height: 32px !important;
   max-height: 32px !important;
   padding: 0 !important;
-  margin: 0.5px 0 !important;
+  margin: 0.5px auto !important;
   border-radius: 9999px !important;
   display: flex !important;
   align-items: center !important;
-  justify-content: flex-start !important;
+  justify-content: center !important;
   gap: 0 !important;
   overflow: visible !important;
   box-sizing: border-box !important;
@@ -1141,7 +1240,34 @@ html[data-gemini-experience="chat"] [role="navigation"][aria-label="Sidebar"] di
 [role="navigation"][aria-label="Sidebar"][data-collapsed="true"] .gemini-nav-item span.truncate,
 [role="navigation"][aria-label="Sidebar"][data-collapsed="true"] [data-testid="new-conversation-button"] span:last-child,
 [role="navigation"][aria-label="Sidebar"][data-collapsed="true"] [data-testid="history-button"] span:last-child,
-[role="navigation"][aria-label="Sidebar"][data-collapsed="true"] [data-testid="automations-button"] span:last-child {
+[role="navigation"][aria-label="Sidebar"][data-collapsed="true"] [data-testid="automations-button"] span:last-child,
+html[data-sidebar-collapsed="true"] [role="navigation"][aria-label="Sidebar"] [data-testid="new-conversation-button"] span.truncate,
+html[data-sidebar-collapsed="true"] [role="navigation"][aria-label="Sidebar"] [data-testid="history-button"] span.truncate,
+html[data-sidebar-collapsed="true"] [role="navigation"][aria-label="Sidebar"] [data-testid="automations-button"] span.truncate,
+html[data-sidebar-collapsed="true"] [role="navigation"][aria-label="Sidebar"] #gemini-skills-button span.truncate,
+html[data-sidebar-collapsed="true"] [role="navigation"][aria-label="Sidebar"] #gemini-scheduled-tasks-button span.truncate,
+html[data-sidebar-collapsed="true"] [role="navigation"][aria-label="Sidebar"] #gemini-new-project-button span.truncate,
+html[data-sidebar-collapsed="true"] [role="navigation"][aria-label="Sidebar"] #gemini-display-options-button span.truncate,
+html[data-sidebar-collapsed="true"] [role="navigation"][aria-label="Sidebar"] [data-bettergravity-button] span.truncate,
+html[data-sidebar-collapsed="true"] [role="navigation"][aria-label="Sidebar"] #gemini-scroll-nav > * span.truncate,
+html[data-sidebar-collapsed="true"] [role="navigation"][aria-label="Sidebar"] .gemini-nav-item span.truncate,
+html[data-sidebar-collapsed="true"] [role="navigation"][aria-label="Sidebar"] [data-testid="new-conversation-button"] span:last-child,
+html[data-sidebar-collapsed="true"] [role="navigation"][aria-label="Sidebar"] [data-testid="history-button"] span:last-child,
+html[data-sidebar-collapsed="true"] [role="navigation"][aria-label="Sidebar"] [data-testid="automations-button"] span:last-child,
+html:has([data-testid="sidebar-toggle"][aria-expanded="false"]) [role="navigation"][aria-label="Sidebar"] [data-testid="new-conversation-button"] span.truncate,
+html:has([data-testid="sidebar-toggle"][aria-expanded="false"]) [role="navigation"][aria-label="Sidebar"] [data-testid="history-button"] span.truncate,
+html:has([data-testid="sidebar-toggle"][aria-expanded="false"]) [role="navigation"][aria-label="Sidebar"] [data-testid="automations-button"] span.truncate,
+html:has([data-testid="sidebar-toggle"][aria-expanded="false"]) [role="navigation"][aria-label="Sidebar"] #gemini-skills-button span.truncate,
+html:has([data-testid="sidebar-toggle"][aria-expanded="false"]) [role="navigation"][aria-label="Sidebar"] #gemini-scheduled-tasks-button span.truncate,
+html:has([data-testid="sidebar-toggle"][aria-expanded="false"]) [role="navigation"][aria-label="Sidebar"] #gemini-new-project-button span.truncate,
+html:has([data-testid="sidebar-toggle"][aria-expanded="false"]) [role="navigation"][aria-label="Sidebar"] #gemini-display-options-button span.truncate,
+html:has([data-testid="sidebar-toggle"][aria-expanded="false"]) [role="navigation"][aria-label="Sidebar"] [data-bettergravity-button] span.truncate,
+html:has([data-testid="sidebar-toggle"][aria-expanded="false"]) [role="navigation"][aria-label="Sidebar"] #gemini-scroll-nav > * span.truncate,
+html:has([data-testid="sidebar-toggle"][aria-expanded="false"]) [role="navigation"][aria-label="Sidebar"] .gemini-nav-item span.truncate,
+html:has([data-testid="sidebar-toggle"][aria-expanded="false"]) [role="navigation"][aria-label="Sidebar"] [data-testid="new-conversation-button"] span:last-child,
+html:has([data-testid="sidebar-toggle"][aria-expanded="false"]) [role="navigation"][aria-label="Sidebar"] [data-testid="history-button"] span:last-child,
+html:has([data-testid="sidebar-toggle"][aria-expanded="false"]) [role="navigation"][aria-label="Sidebar"] [data-testid="automations-button"] span:last-child {
+  display: none !important;
   opacity: 0 !important;
   max-width: 0 !important;
   width: 0 !important;
@@ -1155,7 +1281,11 @@ html[data-gemini-experience="chat"] [role="navigation"][aria-label="Sidebar"] di
 
 /* Hide shortcut hints in collapsed mode so icon is not pushed off-center */
 [role="navigation"][aria-label="Sidebar"][data-collapsed="true"] [data-testid="new-conversation-button"]::after,
-[role="navigation"][aria-label="Sidebar"][data-collapsed="true"] [data-shortcut]::after {
+[role="navigation"][aria-label="Sidebar"][data-collapsed="true"] [data-shortcut]::after,
+html[data-sidebar-collapsed="true"] [role="navigation"][aria-label="Sidebar"] [data-testid="new-conversation-button"]::after,
+html[data-sidebar-collapsed="true"] [role="navigation"][aria-label="Sidebar"] [data-shortcut]::after,
+html:has([data-testid="sidebar-toggle"][aria-expanded="false"]) [role="navigation"][aria-label="Sidebar"] [data-testid="new-conversation-button"]::after,
+html:has([data-testid="sidebar-toggle"][aria-expanded="false"]) [role="navigation"][aria-label="Sidebar"] [data-shortcut]::after {
   display: none !important;
   content: none !important;
   width: 0 !important;
@@ -1185,14 +1315,34 @@ html[data-gemini-experience="chat"] [role="navigation"][aria-label="Sidebar"] di
 [role="navigation"][aria-label="Sidebar"][data-collapsed="true"] #gemini-new-project-button > span.icon-box,
 [role="navigation"][aria-label="Sidebar"][data-collapsed="true"] #gemini-display-options-button > span.icon-box,
 [role="navigation"][aria-label="Sidebar"][data-collapsed="true"] [data-bettergravity-button] > span.icon-box,
-[role="navigation"][aria-label="Sidebar"][data-collapsed="true"] #gemini-scroll-nav > * > span.icon-box {
+[role="navigation"][aria-label="Sidebar"][data-collapsed="true"] #gemini-scroll-nav > * > span.icon-box,
+html[data-sidebar-collapsed="true"] [role="navigation"][aria-label="Sidebar"] .gemini-nav-item .icon-box,
+html[data-sidebar-collapsed="true"] [role="navigation"][aria-label="Sidebar"] [data-testid="new-conversation-button"] > span:first-child,
+html[data-sidebar-collapsed="true"] [role="navigation"][aria-label="Sidebar"] [data-testid="history-button"] > span:first-child,
+html[data-sidebar-collapsed="true"] [role="navigation"][aria-label="Sidebar"] [data-testid="automations-button"] > span:first-child,
+html[data-sidebar-collapsed="true"] [role="navigation"][aria-label="Sidebar"] #gemini-skills-button > span.icon-box,
+html[data-sidebar-collapsed="true"] [role="navigation"][aria-label="Sidebar"] #gemini-scheduled-tasks-button > span.icon-box,
+html[data-sidebar-collapsed="true"] [role="navigation"][aria-label="Sidebar"] #gemini-new-project-button > span.icon-box,
+html[data-sidebar-collapsed="true"] [role="navigation"][aria-label="Sidebar"] #gemini-display-options-button > span.icon-box,
+html[data-sidebar-collapsed="true"] [role="navigation"][aria-label="Sidebar"] [data-bettergravity-button] > span.icon-box,
+html[data-sidebar-collapsed="true"] [role="navigation"][aria-label="Sidebar"] #gemini-scroll-nav > * > span.icon-box,
+html:has([data-testid="sidebar-toggle"][aria-expanded="false"]) [role="navigation"][aria-label="Sidebar"] .gemini-nav-item .icon-box,
+html:has([data-testid="sidebar-toggle"][aria-expanded="false"]) [role="navigation"][aria-label="Sidebar"] [data-testid="new-conversation-button"] > span:first-child,
+html:has([data-testid="sidebar-toggle"][aria-expanded="false"]) [role="navigation"][aria-label="Sidebar"] [data-testid="history-button"] > span:first-child,
+html:has([data-testid="sidebar-toggle"][aria-expanded="false"]) [role="navigation"][aria-label="Sidebar"] [data-testid="automations-button"] > span:first-child,
+html:has([data-testid="sidebar-toggle"][aria-expanded="false"]) [role="navigation"][aria-label="Sidebar"] #gemini-skills-button > span.icon-box,
+html:has([data-testid="sidebar-toggle"][aria-expanded="false"]) [role="navigation"][aria-label="Sidebar"] #gemini-scheduled-tasks-button > span.icon-box,
+html:has([data-testid="sidebar-toggle"][aria-expanded="false"]) [role="navigation"][aria-label="Sidebar"] #gemini-new-project-button > span.icon-box,
+html:has([data-testid="sidebar-toggle"][aria-expanded="false"]) [role="navigation"][aria-label="Sidebar"] #gemini-display-options-button > span.icon-box,
+html:has([data-testid="sidebar-toggle"][aria-expanded="false"]) [role="navigation"][aria-label="Sidebar"] [data-bettergravity-button] > span.icon-box,
+html:has([data-testid="sidebar-toggle"][aria-expanded="false"]) [role="navigation"][aria-label="Sidebar"] #gemini-scroll-nav > * > span.icon-box {
   width: 32px !important;
   height: 32px !important;
   min-width: 32px !important;
   max-width: 32px !important;
   min-height: 32px !important;
   max-height: 32px !important;
-  margin: 0 !important;
+  margin: 0 auto !important;
   padding: 0 !important;
   display: flex !important;
   align-items: center !important;
@@ -3310,7 +3460,11 @@ div:has(> [role="menu"][data-gemini-conversation-menu]) {
 }
 
 [role="navigation"][aria-label="Sidebar"][data-collapsed="true"] .overflow-y-auto,
-[role="navigation"][aria-label="Sidebar"][data-collapsed="true"] [data-testid="conversation-list-sidebar"] {
+[role="navigation"][aria-label="Sidebar"][data-collapsed="true"] [data-testid="conversation-list-sidebar"],
+html[data-sidebar-collapsed="true"] [role="navigation"][aria-label="Sidebar"] .overflow-y-auto,
+html[data-sidebar-collapsed="true"] [role="navigation"][aria-label="Sidebar"] [data-testid="conversation-list-sidebar"],
+html:has([data-testid="sidebar-toggle"][aria-expanded="false"]) [role="navigation"][aria-label="Sidebar"] .overflow-y-auto,
+html:has([data-testid="sidebar-toggle"][aria-expanded="false"]) [role="navigation"][aria-label="Sidebar"] [data-testid="conversation-list-sidebar"] {
   opacity: 0 !important;
   visibility: hidden !important;
   pointer-events: none !important;
@@ -3320,18 +3474,26 @@ div:has(> [role="menu"][data-gemini-conversation-menu]) {
 }
 
 [role="navigation"][aria-label="Sidebar"][data-collapsed="true"] > div.h-px,
-[role="navigation"][aria-label="Sidebar"][data-collapsed="true"] > div[class*="h-px"] {
+[role="navigation"][aria-label="Sidebar"][data-collapsed="true"] > div[class*="h-px"],
+html[data-sidebar-collapsed="true"] [role="navigation"][aria-label="Sidebar"] > div.h-px,
+html[data-sidebar-collapsed="true"] [role="navigation"][aria-label="Sidebar"] > div[class*="h-px"],
+html:has([data-testid="sidebar-toggle"][aria-expanded="false"]) [role="navigation"][aria-label="Sidebar"] > div.h-px,
+html:has([data-testid="sidebar-toggle"][aria-expanded="false"]) [role="navigation"][aria-label="Sidebar"] > div[class*="h-px"] {
   display: none !important;
   opacity: 0 !important;
 }
 
-[role="navigation"][aria-label="Sidebar"][data-collapsed="true"] [data-testid="conversation-list-sidebar"]::-webkit-scrollbar {
+[role="navigation"][aria-label="Sidebar"][data-collapsed="true"] [data-testid="conversation-list-sidebar"]::-webkit-scrollbar,
+html[data-sidebar-collapsed="true"] [role="navigation"][aria-label="Sidebar"] [data-testid="conversation-list-sidebar"]::-webkit-scrollbar,
+html:has([data-testid="sidebar-toggle"][aria-expanded="false"]) [role="navigation"][aria-label="Sidebar"] [data-testid="conversation-list-sidebar"]::-webkit-scrollbar {
   display: none !important;
   width: 0 !important;
   height: 0 !important;
 }
 
-[role="navigation"][aria-label="Sidebar"][data-collapsed="true"] #gemini-top-fade {
+[role="navigation"][aria-label="Sidebar"][data-collapsed="true"] #gemini-top-fade,
+html[data-sidebar-collapsed="true"] [role="navigation"][aria-label="Sidebar"] #gemini-top-fade,
+html:has([data-testid="sidebar-toggle"][aria-expanded="false"]) #gemini-top-fade {
   display: none !important;
 }
 
@@ -3344,7 +3506,11 @@ div:has(> [role="menu"][data-gemini-conversation-menu]) {
 }
 
 [role="navigation"][aria-label="Sidebar"][data-collapsed="true"]:has(#gemini-sidebar-user-pill) > div:has(> [data-testid="settings-button"]),
-[role="navigation"][aria-label="Sidebar"][data-collapsed="true"]:has(#gemini-sidebar-user-pill) > div:last-child {
+[role="navigation"][aria-label="Sidebar"][data-collapsed="true"]:has(#gemini-sidebar-user-pill) > div:last-child,
+html[data-sidebar-collapsed="true"] [role="navigation"][aria-label="Sidebar"]:has(#gemini-sidebar-user-pill) > div:has(> [data-testid="settings-button"]),
+html[data-sidebar-collapsed="true"] [role="navigation"][aria-label="Sidebar"]:has(#gemini-sidebar-user-pill) > div:last-child,
+html:has([data-testid="sidebar-toggle"][aria-expanded="false"]) [role="navigation"][aria-label="Sidebar"]:has(#gemini-sidebar-user-pill) > div:has(> [data-testid="settings-button"]),
+html:has([data-testid="sidebar-toggle"][aria-expanded="false"]) [role="navigation"][aria-label="Sidebar"]:has(#gemini-sidebar-user-pill) > div:last-child {
   width: 52px !important;
   height: 92px !important;
   min-height: 92px !important;
@@ -3359,7 +3525,11 @@ div:has(> [role="menu"][data-gemini-conversation-menu]) {
 }
 
 [role="navigation"][aria-label="Sidebar"][data-collapsed="true"]:not(:has(#gemini-sidebar-user-pill)) > div:has(> [data-testid="settings-button"]),
-[role="navigation"][aria-label="Sidebar"][data-collapsed="true"]:not(:has(#gemini-sidebar-user-pill)) > div:last-child {
+[role="navigation"][aria-label="Sidebar"][data-collapsed="true"]:not(:has(#gemini-sidebar-user-pill)) > div:last-child,
+html[data-sidebar-collapsed="true"] [role="navigation"][aria-label="Sidebar"]:not(:has(#gemini-sidebar-user-pill)) > div:has(> [data-testid="settings-button"]),
+html[data-sidebar-collapsed="true"] [role="navigation"][aria-label="Sidebar"]:not(:has(#gemini-sidebar-user-pill)) > div:last-child,
+html:has([data-testid="sidebar-toggle"][aria-expanded="false"]) [role="navigation"][aria-label="Sidebar"]:not(:has(#gemini-sidebar-user-pill)) > div:has(> [data-testid="settings-button"]),
+html:has([data-testid="sidebar-toggle"][aria-expanded="false"]) [role="navigation"][aria-label="Sidebar"]:not(:has(#gemini-sidebar-user-pill)) > div:last-child {
   width: 52px !important;
   height: 48px !important;
   min-height: 48px !important;
@@ -3372,7 +3542,10 @@ div:has(> [role="menu"][data-gemini-conversation-menu]) {
   transition: none !important;
 }
 
-[role="navigation"][aria-label="Sidebar"][data-collapsed="true"] [data-testid="settings-button"] {
+[role="navigation"][aria-label="Sidebar"][data-collapsed="true"] [data-testid="settings-button"],
+html[data-sidebar-collapsed="true"] [role="navigation"][aria-label="Sidebar"] [data-testid="settings-button"],
+html:has([data-testid="sidebar-toggle"][aria-expanded="false"]) [role="navigation"][aria-label="Sidebar"] [data-testid="settings-button"],
+html:has([data-testid="sidebar-toggle"][aria-expanded="false"]) [data-testid="settings-button"] {
   width: 32px !important;
   height: 32px !important;
   min-width: 32px !important;
@@ -3393,7 +3566,10 @@ div:has(> [role="menu"][data-gemini-conversation-menu]) {
   transition: opacity 150ms ease 100ms !important;
 }
 
-[role="navigation"][aria-label="Sidebar"][data-collapsed="true"] #gemini-sidebar-user-pill {
+[role="navigation"][aria-label="Sidebar"][data-collapsed="true"] #gemini-sidebar-user-pill,
+html[data-sidebar-collapsed="true"] [role="navigation"][aria-label="Sidebar"] #gemini-sidebar-user-pill,
+html:has([data-testid="sidebar-toggle"][aria-expanded="false"]) [role="navigation"][aria-label="Sidebar"] #gemini-sidebar-user-pill,
+html:has([data-testid="sidebar-toggle"][aria-expanded="false"]) #gemini-sidebar-user-pill {
   width: 32px !important;
   height: 32px !important;
   min-width: 32px !important;
@@ -3411,7 +3587,10 @@ div:has(> [role="menu"][data-gemini-conversation-menu]) {
   box-sizing: border-box !important;
 }
 
-[role="navigation"][aria-label="Sidebar"][data-collapsed="true"] #gemini-sidebar-user-pill .gemini-user-text {
+[role="navigation"][aria-label="Sidebar"][data-collapsed="true"] #gemini-sidebar-user-pill .gemini-user-text,
+html[data-sidebar-collapsed="true"] [role="navigation"][aria-label="Sidebar"] #gemini-sidebar-user-pill .gemini-user-text,
+html:has([data-testid="sidebar-toggle"][aria-expanded="false"]) [role="navigation"][aria-label="Sidebar"] #gemini-sidebar-user-pill .gemini-user-text,
+html:has([data-testid="sidebar-toggle"][aria-expanded="false"]) #gemini-sidebar-user-pill .gemini-user-text {
   display: none !important;
   width: 0 !important;
   min-width: 0 !important;
@@ -3426,7 +3605,10 @@ div:has(> [role="menu"][data-gemini-conversation-menu]) {
   pointer-events: none !important;
 }
 
-[role="navigation"][aria-label="Sidebar"][data-collapsed="true"] #gemini-sidebar-user-pill .gemini-user-avatar-wrap {
+[role="navigation"][aria-label="Sidebar"][data-collapsed="true"] #gemini-sidebar-user-pill .gemini-user-avatar-wrap,
+html[data-sidebar-collapsed="true"] [role="navigation"][aria-label="Sidebar"] #gemini-sidebar-user-pill .gemini-user-avatar-wrap,
+html:has([data-testid="sidebar-toggle"][aria-expanded="false"]) [role="navigation"][aria-label="Sidebar"] #gemini-sidebar-user-pill .gemini-user-avatar-wrap,
+html:has([data-testid="sidebar-toggle"][aria-expanded="false"]) #gemini-sidebar-user-pill .gemini-user-avatar-wrap {
   width: 28px !important;
   height: 28px !important;
   min-width: 28px !important;
@@ -3440,7 +3622,10 @@ div:has(> [role="menu"][data-gemini-conversation-menu]) {
   aspect-ratio: 1 / 1 !important;
 }
 
-[role="navigation"][aria-label="Sidebar"][data-collapsed="true"] #gemini-sidebar-user-pill .gemini-user-avatar {
+[role="navigation"][aria-label="Sidebar"][data-collapsed="true"] #gemini-sidebar-user-pill .gemini-user-avatar,
+html[data-sidebar-collapsed="true"] [role="navigation"][aria-label="Sidebar"] #gemini-sidebar-user-pill .gemini-user-avatar,
+html:has([data-testid="sidebar-toggle"][aria-expanded="false"]) [role="navigation"][aria-label="Sidebar"] #gemini-sidebar-user-pill .gemini-user-avatar,
+html:has([data-testid="sidebar-toggle"][aria-expanded="false"]) #gemini-sidebar-user-pill .gemini-user-avatar {
   width: 28px !important;
   height: 28px !important;
   min-width: 28px !important;
@@ -3507,7 +3692,9 @@ div:has(> [role="menu"][data-gemini-conversation-menu]) {
 
 /* Collapsed settings button in 52px rail: hide label, center icon */
 [role="navigation"][aria-label="Sidebar"][data-collapsed="true"] [data-testid="settings-button"],
-html[data-sidebar-collapsed="true"] [role="navigation"][aria-label="Sidebar"] [data-testid="settings-button"] {
+html[data-sidebar-collapsed="true"] [role="navigation"][aria-label="Sidebar"] [data-testid="settings-button"],
+html:has([data-testid="sidebar-toggle"][aria-expanded="false"]) [role="navigation"][aria-label="Sidebar"] [data-testid="settings-button"],
+html:has([data-testid="sidebar-toggle"][aria-expanded="false"]) [data-testid="settings-button"] {
   width: 32px !important;
   height: 32px !important;
   min-width: 32px !important;
@@ -3518,7 +3705,9 @@ html[data-sidebar-collapsed="true"] [role="navigation"][aria-label="Sidebar"] [d
 }
 
 [role="navigation"][aria-label="Sidebar"][data-collapsed="true"] [data-testid="settings-button"] > span:last-child,
-html[data-sidebar-collapsed="true"] [role="navigation"][aria-label="Sidebar"] [data-testid="settings-button"] > span:last-child {
+html[data-sidebar-collapsed="true"] [role="navigation"][aria-label="Sidebar"] [data-testid="settings-button"] > span:last-child,
+html:has([data-testid="sidebar-toggle"][aria-expanded="false"]) [role="navigation"][aria-label="Sidebar"] [data-testid="settings-button"] > span:last-child,
+html:has([data-testid="sidebar-toggle"][aria-expanded="false"]) [data-testid="settings-button"] > span:last-child {
   display: none !important;
 }
 

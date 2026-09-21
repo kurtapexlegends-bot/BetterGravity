@@ -713,45 +713,57 @@ body.gemini-skills-open [data-gemini-skills-hidden] {
   content: none !important;
 }
 
-/* Code blocks: Willow's 40px radius card, #171717 background, borderless, 14px/21px typography */
-:is([data-testid="planner-response-text"], [role="article"][aria-label="Agent response"]) div:has(> .min-h-7):has(.code-block),
-:is([data-testid="planner-response-text"], [role="article"][aria-label="Agent response"]) div.relative.rounded-xl:has(> .min-h-7),
-:is([data-testid="planner-response-text"], [role="article"][aria-label="Agent response"]) div.relative.whitespace-pre-wrap:has(.code-block),
-:is([data-testid="planner-response-text"], [role="article"][aria-label="Agent response"]) div:has(> .p-3 > div > pre),
-:is([data-testid="planner-response-text"], [role="article"][aria-label="Agent response"]) .relative.whitespace-pre-wrap:has(pre) {
-  border-radius: 40px !important;
-  background: rgb(23, 23, 23) !important;
-  border: none !important;
-  margin: 16px 0 !important;
-  overflow: clip !important;
-  padding: 26px 0 32px 32px !important;
-  box-shadow: none !important;
+/* Code blocks: Sequoia Obsidian Glass card, borderless inner, unified padding */
+:is([data-testid="planner-response-text"], [role="article"][aria-label="Agent response"]) div:has(> .min-h-7),
+:is([data-testid="planner-response-text"], [role="article"][aria-label="Agent response"]) div:has(> * > .min-h-7):has(pre),
+:is([data-testid="planner-response-text"], [role="article"][aria-label="Agent response"]) div.relative.rounded-xl:has(pre),
+:is([data-testid="planner-response-text"], [role="article"][aria-label="Agent response"]) div:has(> .p-3 > div > pre) {
+  border-radius: 16px !important;
+  background: #0c0c10 !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  margin: 14px 0 !important;
+  overflow: hidden !important;
+  padding: 0 !important;
+  box-shadow:
+    var(--apple-specular),
+    0 4px 18px rgba(0, 0, 0, 0.40) !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: stretch !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
 }
 
 /* Header inside code block */
-:is([data-testid="planner-response-text"], [role="article"][aria-label="Agent response"]) .min-h-7:has(+ .p-3),
+:is([data-testid="planner-response-text"], [role="article"][aria-label="Agent response"]) .min-h-7,
 :is([data-testid="planner-response-text"], [role="article"][aria-label="Agent response"]) div:has(.code-block) > .min-h-7 {
-  position: relative !important;
+  position: static !important;
   top: auto !important;
+  right: auto !important;
   z-index: auto !important;
   display: flex !important;
+  flex-direction: row !important;
   width: 100% !important;
-  height: 36px !important;
-  min-height: 36px !important;
+  height: 38px !important;
+  min-height: 38px !important;
   align-items: center !important;
   justify-content: space-between !important;
-  background: transparent !important;
-  border-bottom: none !important;
-  padding: 0 16px 0 0 !important;
+  background: rgba(255, 255, 255, 0.035) !important;
+  border: none !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06) !important;
+  border-radius: 15px 15px 0 0 !important;
+  padding: 0 12px 0 16px !important;
   margin: 0 !important;
   color: #ffffff !important;
+  box-sizing: border-box !important;
+  flex-shrink: 0 !important;
 }
 
 /* Language label: Willow's 15px/20px weight 540 Google Sans Flex, white */
-:is([data-testid="planner-response-text"], [role="article"][aria-label="Agent response"]) .min-h-7:has(+ .p-3) > .font-sans,
+:is([data-testid="planner-response-text"], [role="article"][aria-label="Agent response"]) .min-h-7 .font-sans,
 :is([data-testid="planner-response-text"], [role="article"][aria-label="Agent response"]) div:has(.code-block) > .min-h-7 > .font-sans {
   font-family: var(--gemini-font) !important;
-  font-size: 15px !important;
+  font-size: 14px !important;
   font-weight: 540 !important;
   line-height: 20px !important;
   font-variation-settings: "ROND" 0, "slnt" 0, "wdth" 92, "wght" 540 !important;
@@ -759,13 +771,13 @@ body.gemini-skills-open [data-gemini-skills-hidden] {
   letter-spacing: normal !important;
 }
 
-:is([data-testid="planner-response-text"], [role="article"][aria-label="Agent response"]) .min-h-7:has(+ .p-3) > .font-sans:empty::before,
+:is([data-testid="planner-response-text"], [role="article"][aria-label="Agent response"]) .min-h-7 .font-sans:empty::before,
 :is([data-testid="planner-response-text"], [role="article"][aria-label="Agent response"]) div:has(.code-block) > .min-h-7 > .font-sans:empty::before {
   content: "Code" !important;
 }
 
 /* Code block header action buttons container */
-:is([data-testid="planner-response-text"], [role="article"][aria-label="Agent response"]) .min-h-7:has(+ .p-3) > .flex,
+:is([data-testid="planner-response-text"], [role="article"][aria-label="Agent response"]) .min-h-7 .flex,
 :is([data-testid="planner-response-text"], [role="article"][aria-label="Agent response"]) div:has(.code-block) > .min-h-7 > .flex {
   display: flex !important;
   align-items: center !important;
@@ -774,7 +786,7 @@ body.gemini-skills-open [data-gemini-skills-hidden] {
 }
 
 /* Willow circular pill button for code block header */
-:is([data-testid="planner-response-text"], [role="article"][aria-label="Agent response"]) .min-h-7:has(+ .p-3) button,
+:is([data-testid="planner-response-text"], [role="article"][aria-label="Agent response"]) .min-h-7 button,
 :is([data-testid="planner-response-text"], [role="article"][aria-label="Agent response"]) div:has(.code-block) > .min-h-7 button {
   display: inline-flex !important;
   width: 36px !important;
@@ -791,14 +803,14 @@ body.gemini-skills-open [data-gemini-skills-hidden] {
   transition: background-color 0.15s ease, color 0.15s ease !important;
 }
 
-:is([data-testid="planner-response-text"], [role="article"][aria-label="Agent response"]) .min-h-7:has(+ .p-3) button:hover,
+:is([data-testid="planner-response-text"], [role="article"][aria-label="Agent response"]) .min-h-7 button:hover,
 :is([data-testid="planner-response-text"], [role="article"][aria-label="Agent response"]) div:has(.code-block) > .min-h-7 button:hover {
   background-color: rgba(255, 255, 255, 0.08) !important;
   color: #ffffff !important;
 }
 
 /* Icon size inside code block buttons */
-:is([data-testid="planner-response-text"], [role="article"][aria-label="Agent response"]) .min-h-7:has(+ .p-3) button svg,
+:is([data-testid="planner-response-text"], [role="article"][aria-label="Agent response"]) .min-h-7 button svg,
 :is([data-testid="planner-response-text"], [role="article"][aria-label="Agent response"]) div:has(.code-block) > .min-h-7 button svg {
   width: 20px !important;
   height: 20px !important;
@@ -806,26 +818,42 @@ body.gemini-skills-open [data-gemini-skills-hidden] {
 }
 
 /* Code container padding & scroll (.p-3) */
-:is([data-testid="planner-response-text"], [role="article"][aria-label="Agent response"]) div:has(> .min-h-7) > .p-3 {
-  padding: 16px 32px 0 0 !important;
+:is([data-testid="planner-response-text"], [role="article"][aria-label="Agent response"]) div:has(> .min-h-7) > .p-3,
+:is([data-testid="planner-response-text"], [role="article"][aria-label="Agent response"]) div.relative.rounded-xl:has(pre) > .p-3 {
+  padding: 14px 16px !important;
   margin: 0 !important;
   overflow-x: auto !important;
+  overflow-y: hidden !important;
   background: transparent !important;
+  box-sizing: border-box !important;
 }
 
-/* Code block, pre, code-line, line-content: Willow typography (14px, line-height 21px, Google Sans Code) */
+
+/* Code block, pre, code-line, line-content: typography with strict non-wrapping */
 :is([data-testid="planner-response-text"], [role="article"][aria-label="Agent response"]) .code-block,
 :is([data-testid="planner-response-text"], [role="article"][aria-label="Agent response"]) .code-line,
 :is([data-testid="planner-response-text"], [role="article"][aria-label="Agent response"]) .line-content,
 :is([data-testid="planner-response-text"], [role="article"][aria-label="Agent response"]) pre,
 :is([data-testid="planner-response-text"], [role="article"][aria-label="Agent response"]) pre code {
-  font-family: var(--gemini-code-font) !important;
-  font-size: 14px !important;
-  line-height: 21px !important;
+  font-family: var(--apple-mono, "SF Mono", "Fira Code", "JetBrains Mono", Consolas, Menlo, monospace) !important;
+  font-size: 13px !important;
+  line-height: 1.6 !important;
   font-weight: 400 !important;
-  color: rgb(255, 255, 255) !important;
+  color: rgb(240, 240, 245) !important;
   background: transparent !important;
-  tab-size: 4 !important;
+  border: none !important;
+  box-shadow: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  white-space: pre !important;
+  overflow-x: auto !important;
+  word-break: normal !important;
+  word-wrap: normal !important;
+  overflow-wrap: normal !important;
+  text-wrap: nowrap !important;
+  hyphens: none !important;
+  -webkit-hyphens: none !important;
+  tab-size: 2 !important;
 }
 
 :is([data-testid="planner-response-text"], [role="article"][aria-label="Agent response"]) .code-line {

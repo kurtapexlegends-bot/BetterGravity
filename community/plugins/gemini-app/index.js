@@ -2364,9 +2364,13 @@ function isSidebarCollapsed() {
   if (Date.now() < expansionLockUntil) return false;
   if (Date.now() < collapseLockUntil) return true;
 
-  const toggle = document.querySelector(TOGGLE_SELECTOR);
+  const toggle = document.querySelector(TOGGLE_SELECTOR) || document.querySelector('[data-testid="sidebar-toggle"]');
   if (toggle && toggle.hasAttribute("aria-expanded")) {
     return toggle.getAttribute("aria-expanded") === "false";
+  }
+  const rootCollapsed = document.documentElement.getAttribute("data-sidebar-collapsed");
+  if (rootCollapsed !== null) {
+    return rootCollapsed === "true";
   }
   const sidebar = document.querySelector(SIDEBAR_SELECTOR);
   return sidebar?.getAttribute("data-collapsed") === "true";
@@ -2382,6 +2386,7 @@ function enforceSidebarGeometry(grandParent, collapsed) {
   try {
     const targetWidth = collapsed ? WILLOW_SIDEBAR_COLLAPSED_WIDTH : WILLOW_SIDEBAR_EXPANDED_WIDTH;
     if (grandParent.style.width !== targetWidth) {
+      grandParent.style.setProperty("width", targetWidth, "important");
       grandParent.style.width = targetWidth;
     }
     if (grandParent.style.minWidth !== "0px") {
@@ -2478,21 +2483,30 @@ function ensureSidebarHeader(sidebar, collapsed) {
       </div>
     `;
     logoBtn.addEventListener("click", () => {
-      const sb = document.querySelector(SIDEBAR_SELECTOR);
-      if (sb && sb.getAttribute("data-collapsed") === "true") {
-        collapseLockUntil = 0;
-        expansionLockUntil = Date.now() + 500;
-        sb.setAttribute("data-collapsed", "false");
-        const gp = sb.parentElement?.parentElement;
-        if (gp) enforceSidebarGeometry(gp, false);
-        const toggle = document.querySelector(TOGGLE_SELECTOR);
-        if (toggle) {
-          isInternalToggleAction = true;
-          try {
-            toggle.click();
-          } finally {
-            isInternalToggleAction = false;
+      const toggle = document.querySelector(TOGGLE_SELECTOR);
+      if (toggle) {
+        isInternalToggleAction = true;
+        try {
+          toggle.click();
+        } finally {
+          isInternalToggleAction = false;
+        }
+      } else {
+        const sb = document.querySelector(SIDEBAR_SELECTOR);
+        if (sb) {
+          const isCurrentlyColl = isSidebarCollapsed();
+          const nextColl = !isCurrentlyColl;
+          if (nextColl) {
+            expansionLockUntil = 0;
+            collapseLockUntil = Date.now() + 500;
+          } else {
+            collapseLockUntil = 0;
+            expansionLockUntil = Date.now() + 500;
           }
+          sb.setAttribute("data-collapsed", String(nextColl));
+          document.documentElement.setAttribute("data-sidebar-collapsed", String(nextColl));
+          const gp = sb.parentElement?.parentElement;
+          if (gp) enforceSidebarGeometry(gp, nextColl);
         }
       }
     });
@@ -3124,16 +3138,17 @@ function buildExperienceSwitch() {
   track.addEventListener("pointermove", (e) => {
     if (activePointerId === null || e.pointerId !== activePointerId) return;
     const deltaX = e.clientX - startX;
-    if (!isDragging && Math.abs(deltaX) > 6) {
+    if (!isDragging && Math.abs(deltaX) > 4) {
       isDragging = true;
     }
     if (isDragging) {
       const trackRect = track.getBoundingClientRect();
       const halfWidth = trackRect.width / 2;
-      const baseLeft = startExp === "work" ? halfWidth : 2;
-      const clampedLeft = Math.max(2, Math.min(halfWidth, baseLeft + deltaX));
+      const baseTranslate = startExp === "work" ? (halfWidth - 2) : 0;
+      const clampedTranslate = Math.max(0, Math.min(halfWidth - 2, baseTranslate + deltaX));
+      const stretch = 1 + Math.min(0.08, Math.abs(deltaX) / (trackRect.width * 3));
       slider.style.transition = "none";
-      slider.style.left = `${clampedLeft}px`;
+      slider.style.transform = `translate3d(${clampedTranslate}px, 0, 0) scaleX(${stretch})`;
     }
   });
 
@@ -3146,6 +3161,7 @@ function buildExperienceSwitch() {
     } catch {}
 
     slider.style.transition = "";
+    slider.style.transform = "";
     slider.style.left = "";
 
     if (isDragging) {
@@ -5022,6 +5038,38 @@ function isPinnedTopNavItem(node) {
 
 const observedTopNavs = new WeakSet();
 
+let isShortcutsSectionCollapsed = false;
+try {
+  isShortcutsSectionCollapsed = localStorage.getItem('bettergravity-shortcuts-collapsed') === 'true';
+} catch {}
+
+function setShortcutsSectionCollapsed(collapsed) {
+  isShortcutsSectionCollapsed = !!collapsed;
+  try {
+    localStorage.setItem('bettergravity-shortcuts-collapsed', String(isShortcutsSectionCollapsed));
+  } catch {}
+  const header = document.getElementById('gemini-scroll-nav-header');
+  const block = document.getElementById('gemini-scroll-nav');
+  if (header) {
+    header.setAttribute('data-collapsed', String(isShortcutsSectionCollapsed));
+    header.setAttribute('aria-expanded', String(!isShortcutsSectionCollapsed));
+  }
+  if (block) {
+    block.setAttribute('data-collapsed', String(isShortcutsSectionCollapsed));
+    block.classList.toggle('collapsed', isShortcutsSectionCollapsed);
+    block.style.removeProperty('display');
+  }
+}
+
+listenToPage(document, 'click', (e) => {
+  const h = e.target?.closest?.('#gemini-scroll-nav-header, .gemini-nav-section-header');
+  if (h) {
+    e.preventDefault();
+    e.stopPropagation();
+    setShortcutsSectionCollapsed(!isShortcutsSectionCollapsed);
+  }
+});
+
 function ensureScrollNav() {
   const collapsed = isSidebarCollapsed();
   const topNav = document.querySelector('[role="navigation"][aria-label="Sidebar"] > .px-2 > div.flex-col') ||
@@ -5127,23 +5175,15 @@ function ensureScrollNav() {
     header.addEventListener('click', (e) => {
       e.preventDefault();
       e.stopPropagation();
-      const next = header.getAttribute('data-collapsed') !== 'true';
-      header.setAttribute('data-collapsed', String(next));
-      block.setAttribute('data-collapsed', String(next));
-      block.style.display = next ? 'none' : 'flex';
-      try {
-        localStorage.setItem('bettergravity-shortcuts-collapsed', String(next));
-      } catch {}
+      setShortcutsSectionCollapsed(!isShortcutsSectionCollapsed);
     });
   }
 
-  let isShortcutsCollapsed = false;
-  try {
-    isShortcutsCollapsed = localStorage.getItem('bettergravity-shortcuts-collapsed') === 'true';
-  } catch {}
-  header.setAttribute('data-collapsed', String(isShortcutsCollapsed));
-  block.setAttribute('data-collapsed', String(isShortcutsCollapsed));
-  block.style.display = isShortcutsCollapsed ? 'none' : 'flex';
+  header.setAttribute('data-collapsed', String(isShortcutsSectionCollapsed));
+  header.setAttribute('aria-expanded', String(!isShortcutsSectionCollapsed));
+  block.setAttribute('data-collapsed', String(isShortcutsSectionCollapsed));
+  block.classList.toggle('collapsed', isShortcutsSectionCollapsed);
+  block.style.removeProperty('display');
 
   // Every write from here down is guarded, because the observers that call this
   // watch the nodes it writes to, and a `replaceChildren` or an `insertBefore`
@@ -5164,12 +5204,18 @@ function ensureScrollNav() {
   }
 
   if (collapsed) {
-    header.style.display = 'none';
+    header.style.setProperty('display', 'none', 'important');
+    header.setAttribute('data-sidebar-collapsed', 'true');
+    header.setAttribute('hidden', '');
+    header.classList.add('sidebar-collapsed');
     if (topNav && block.parentElement !== topNav) {
       topNav.appendChild(block);
     }
   } else {
     header.style.removeProperty('display');
+    header.removeAttribute('data-sidebar-collapsed');
+    header.removeAttribute('hidden');
+    header.classList.remove('sidebar-collapsed');
     if (scroller) {
       if (scroller.firstChild !== header) {
         scroller.insertBefore(header, scroller.firstChild);
@@ -5247,6 +5293,11 @@ plugin.dom.observe(TOGGLE_SELECTOR, (toggle) => {
       return;
     }
 
+    if (e.isTrusted) {
+      expansionLockUntil = 0;
+      navigatingConversationUntil = 0;
+    }
+
     const sb = document.querySelector(SIDEBAR_SELECTOR);
     if (sb) {
       const willCollapse = toggle.getAttribute("aria-expanded") !== "false";
@@ -5275,6 +5326,14 @@ plugin.dom.observe(TOGGLE_SELECTOR, (toggle) => {
       if (!isExpandedAttr && Date.now() < expansionLockUntil) {
         isInternalToggleAction = true;
         try { toggle.click(); } finally { isInternalToggleAction = false; }
+        return;
+      }
+      const isColl = !isExpandedAttr;
+      document.documentElement.setAttribute("data-sidebar-collapsed", String(isColl));
+      const sb = document.querySelector(SIDEBAR_SELECTOR);
+      if (sb) {
+        sb.setAttribute("data-collapsed", String(isColl));
+        syncSidebarState(sb);
         return;
       }
     }

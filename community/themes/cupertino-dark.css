@@ -873,27 +873,111 @@ button[data-fork-chat-btn]:active {
 /* ==========================================================================
    10. Code Blocks & Output Blocks (macOS Sequoia Obsidian Glass Terminal)
    ========================================================================== */
-pre,
-.prose pre,
-[class*="code-block"] {
-  background-color: #08080b !important;
+div:has(> .min-h-7),
+div:has(> * > .min-h-7):has(pre),
+div.relative.rounded-xl:has(pre),
+.code-block,
+[class*="code-block"]:not(pre):not(code),
+pre:not(div:has(.min-h-7) pre):not(div.relative pre):not([class*="code-block"] pre) {
+  background-color: #0c0c10 !important;
   border: 1px solid rgba(255, 255, 255, 0.08) !important;
-  border-radius: 14px !important;
+  border-radius: 16px !important;
   box-shadow:
     var(--apple-specular),
     inset 0 1px 4px rgba(0, 0, 0, 0.65),
     0 4px 18px rgba(0, 0, 0, 0.40) !important;
   position: relative !important;
   overflow: hidden !important;
+  margin: 14px 0 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: stretch !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+}
+
+/* Strip redundant nested frames and borders when pre or code is inside a container */
+div:has(> .min-h-7) pre,
+div:has(> .min-h-7) div:has(> pre),
+div:has(> .min-h-7) .p-3,
+div.relative.rounded-xl:has(pre) pre,
+div.relative.rounded-xl:has(pre) .p-3,
+div:has(> pre) > pre,
+div:has(> .p-3) pre,
+[class*="code-block"] pre,
+.code-block pre,
+pre pre,
+div:has(> pre) pre code,
+[class*="code-block"] pre code {
+  background: transparent !important;
+  border: none !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  outline: none !important;
+}
+
+/* Code container padding & horizontal scroll */
+div:has(> .min-h-7) > .p-3,
+div.relative.rounded-xl:has(pre) > .p-3,
+div:has(> pre) > .p-3 {
+  padding: 14px 16px !important;
+  margin: 0 !important;
+  overflow-x: auto !important;
+  overflow-y: hidden !important;
+  background: transparent !important;
+  box-sizing: border-box !important;
+  width: 100% !important;
+}
+
+/* Horizontal scrolling, non-wrapping code text */
+pre,
+pre code,
+.prose pre,
+.prose pre code,
+[class*="code-block"] pre,
+[class*="code-block"] code,
+.code-line,
+.line-content {
+  white-space: pre !important;
+  overflow-x: auto !important;
+  word-break: normal !important;
+  word-wrap: normal !important;
+  overflow-wrap: normal !important;
+  text-wrap: nowrap !important;
+  hyphens: none !important;
+  -webkit-hyphens: none !important;
+  font-family: var(--apple-mono, "SF Mono", "Fira Code", "JetBrains Mono", Consolas, Menlo, monospace) !important;
+  font-size: 13px !important;
+  line-height: 1.6 !important;
+  display: block !important;
+  width: 100% !important;
+  margin: 0 !important;
 }
 
 /* Code Block Header Bar */
 .code-block-header,
-pre > div:first-child:has(button),
+div:has(pre) .min-h-7,
+div:has(> .p-3) > .min-h-7,
 div:has(> pre) > div:first-child:has(button) {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  justify-content: space-between !important;
   background: rgba(255, 255, 255, 0.035) !important;
+  border: none !important;
   border-bottom: 1px solid rgba(255, 255, 255, 0.06) !important;
-  padding: 6px 12px !important;
+  border-radius: 15px 15px 0 0 !important;
+  padding: 0 14px !important;
+  height: 38px !important;
+  min-height: 38px !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+  position: static !important;
+  flex-shrink: 0 !important;
+  font-family: var(--gemini-font, system-ui, -apple-system, sans-serif) !important;
+  font-size: 12px !important;
+  font-weight: 500 !important;
+  color: var(--apple-secondary-label, rgba(255, 255, 255, 0.70)) !important;
 }
 
 /* Code Block Copy Button (Floating Glass Pill) */
@@ -934,6 +1018,29 @@ div:has(> pre) button[aria-label*="Copy"]:active,
   transform: scale(0.92) !important;
   background-color: rgba(255, 255, 255, 0.18) !important;
   transition: transform var(--apple-press-duration) var(--apple-ease-squish) !important;
+}
+
+/* Scrollbars inside code blocks */
+pre::-webkit-scrollbar,
+div:has(> .min-h-7) > .p-3::-webkit-scrollbar {
+  height: 6px !important;
+  background: transparent !important;
+}
+
+pre::-webkit-scrollbar-track,
+div:has(> .min-h-7) > .p-3::-webkit-scrollbar-track {
+  background: transparent !important;
+}
+
+pre::-webkit-scrollbar-thumb,
+div:has(> .min-h-7) > .p-3::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15) !important;
+  border-radius: 9999px !important;
+}
+
+pre::-webkit-scrollbar-thumb:hover,
+div:has(> .min-h-7) > .p-3::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.28) !important;
 }
 
 /* Inline code tag */
@@ -1679,13 +1786,13 @@ select {
 }
 
 /* Floating Selection Quote Popover ("Quote Ctrl+L") */
-[data-testid*="quote"],
-button:has(> span:contains("Quote")),
-div:has(> button:contains("Quote")),
-[class*="quote-button"],
-[class*="floating-quote"],
-div[style*="position: fixed"]:has(> button),
-div[style*="position: absolute"]:has(> button:has-text("Quote")) {
+[data-testid*="quote" i],
+[class*="quote-button" i],
+[class*="floating-quote" i],
+div[style*="position: fixed"] > button[data-testid*="quote" i],
+div[style*="position: absolute"] > button[data-testid*="quote" i],
+div[style*="position: fixed"] > button[aria-label*="Quote" i],
+div[style*="position: absolute"] > button[aria-label*="Quote" i] {
   background: rgba(16, 16, 22, 0.94) !important;
   backdrop-filter: var(--apple-glass-blur) !important;
   -webkit-backdrop-filter: var(--apple-glass-blur) !important;
@@ -1706,17 +1813,19 @@ div[style*="position: absolute"]:has(> button:has-text("Quote")) {
     transform 120ms var(--apple-ease-spring) !important;
 }
 
-[data-testid*="quote"]:hover,
-button:has(> span:contains("Quote")):hover,
-[class*="quote-button"]:hover {
+[data-testid*="quote" i]:hover,
+[class*="quote-button" i]:hover,
+div[style*="position: fixed"] > button[data-testid*="quote" i]:hover,
+div[style*="position: absolute"] > button[data-testid*="quote" i]:hover {
   background-color: rgba(255, 255, 255, 0.14) !important;
   color: #ffffff !important;
   transform: translateY(-0.5px) !important;
 }
 
-[data-testid*="quote"]:active,
-button:has(> span:contains("Quote")):active,
-[class*="quote-button"]:active {
+[data-testid*="quote" i]:active,
+[class*="quote-button" i]:active,
+div[style*="position: fixed"] > button[data-testid*="quote" i]:active,
+div[style*="position: absolute"] > button[data-testid*="quote" i]:active {
   transform: scale(0.94) !important;
 }
 
