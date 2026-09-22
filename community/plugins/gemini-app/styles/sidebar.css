@@ -2067,6 +2067,7 @@ div[role="dialog"]:has(button.main-row-trigger) {
 }
 
 [data-testid="conversation-row-sidebar"] {
+  contain: layout style paint;
   border-radius: 9999px !important;
   padding-left: 8px !important;
   padding-right: 6px !important;

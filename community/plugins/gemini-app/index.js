@@ -540,6 +540,9 @@ function apply(pill) {
  * ------------------------------------------------------------------------- */
 const observers = new WeakMap();
 const observed = new Set();
+const finalizationRegistry = typeof FinalizationRegistry !== "undefined"
+  ? new FinalizationRegistry((ref) => observed.delete(ref))
+  : null;
 
 /** Page listeners must leave with this instance when the plugin reloads. */
 function listenToPage(target, type, listener, options) {
@@ -547,11 +550,24 @@ function listenToPage(target, type, listener, options) {
   plugin.onDispose(() => target.removeEventListener(type, listener, options));
 }
 
-/** Refs whose element has been collected, dropped in a batch now and then. */
+/** Refs whose element has been collected or detached, disconnected and freed in batches. */
 function pruneObserved() {
-  if (observed.size < 512) return;
+  if (observed.size < 128) return;
   for (const ref of observed) {
-    if (!ref.deref()) observed.delete(ref);
+    const element = ref.deref();
+    if (!element) {
+      observed.delete(ref);
+      continue;
+    }
+    // Proactively disconnect and free observers of elements removed from DOM
+    if (!element.isConnected) {
+      const disposer = observers.get(element);
+      if (disposer) {
+        try { disposer.disconnect(); } catch {}
+        observers.delete(element);
+      }
+      observed.delete(ref);
+    }
   }
 }
 
@@ -587,7 +603,11 @@ function remember(element, disposer) {
     return;
   }
   observers.set(element, disposer);
-  observed.add(new WeakRef(element));
+  const ref = new WeakRef(element);
+  observed.add(ref);
+  if (finalizationRegistry) {
+    try { finalizationRegistry.register(element, ref); } catch {}
+  }
   pruneObserved();
 }
 
@@ -8556,8 +8576,8 @@ function setupGlobalTooltips() {
   document.addEventListener('focusout', closeTooltip, true);
   document.addEventListener('keydown', onKey, true);
   document.addEventListener('click', onClick, true);
-  window.addEventListener('scroll', onScrollOrResize, true);
-  window.addEventListener('resize', onScrollOrResize);
+  window.addEventListener('scroll', onScrollOrResize, { passive: true, capture: true });
+  window.addEventListener('resize', onScrollOrResize, { passive: true });
   window.addEventListener('blur', closeTooltip);
 
   return () => {
