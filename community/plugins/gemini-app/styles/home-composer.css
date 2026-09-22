@@ -45,8 +45,22 @@
  * ([288,76 1248x836] both), so either would place the composer in the same
  * spot; the scroller is the one that owns the composer, so the composer scrolls
  * with its siblings if the pane ever has more in it than it does today. */
+/* Apple iOS fluid spring entrance for Home view */
+@keyframes geminiHomeEnter {
+  0% {
+    opacity: 0;
+    transform: translateY(-8px) scale(0.992);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
 div[class*="pt-[30vh]"] {
   position: relative !important;
+  animation: geminiHomeEnter 320ms cubic-bezier(0.16, 1, 0.3, 1) forwards !important;
+  will-change: opacity, transform;
 }
 
 div[class*="pt-[30vh]"] > div[class*="z-[1]"] {

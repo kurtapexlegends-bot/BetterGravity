@@ -2911,9 +2911,14 @@ function markExperience(pill, selected, shouldRerender = true) {
     collapsedBtn.removeAttribute("data-willow-tooltip");
   }
 
-  // Reset scroll position on switch so the active list starts from the top
+  // Reset scroll position on switch and trigger fluid Apple list transition
   const scroller = document.querySelector(LIST_SELECTOR);
-  if (scroller) scroller.scrollTop = 0;
+  if (scroller) {
+    scroller.scrollTop = 0;
+    scroller.classList.remove('gemini-list-transition');
+    void scroller.offsetWidth;
+    scroller.classList.add('gemini-list-transition');
+  }
 
   ensureScrollNav();
   if (topChipsReady) {
@@ -3762,6 +3767,46 @@ async function attachImageBlobToComposer(blob) {
   }
 }
 
+async function cropImageAtNativeDpr(fullDataUrl, rect) {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => {
+      try {
+        const naturalW = img.naturalWidth || img.width;
+        const naturalH = img.naturalHeight || img.height;
+        const viewW = window.innerWidth || document.documentElement.clientWidth || 1;
+        const viewH = window.innerHeight || document.documentElement.clientHeight || 1;
+
+        const scaleX = naturalW / viewW;
+        const scaleY = naturalH / viewH;
+
+        const sx = Math.max(0, Math.round(rect.x * scaleX));
+        const sy = Math.max(0, Math.round(rect.y * scaleY));
+        const sw = Math.min(naturalW - sx, Math.max(1, Math.round(rect.width * scaleX)));
+        const sh = Math.min(naturalH - sy, Math.max(1, Math.round(rect.height * scaleY)));
+
+        const canvas = document.createElement('canvas');
+        canvas.width = sw;
+        canvas.height = sh;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+          resolve(null);
+          return;
+        }
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = 'high';
+        ctx.drawImage(img, sx, sy, sw, sh, 0, 0, sw, sh);
+        canvas.toBlob((blob) => resolve(blob), 'image/png');
+      } catch (err) {
+        console.debug('[BetterGravity] Native snip crop error:', err);
+        resolve(null);
+      }
+    };
+    img.onerror = () => resolve(null);
+    img.src = fullDataUrl;
+  });
+}
+
 function startScreenSnip() {
   if (activeSnipOverlay) return;
 
@@ -3769,19 +3814,22 @@ function startScreenSnip() {
   overlay.id = 'gemini-screen-snipper';
   overlay.innerHTML = `
     <div class="gemini-snip-hint">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
         <circle cx="12" cy="12" r="10"></circle>
         <line x1="12" y1="8" x2="12" y2="12"></line>
         <line x1="12" y1="16" x2="12.01" y2="16"></line>
       </svg>
-      <span>Click and drag to snip area &bull; Press <strong>Esc</strong> to cancel</span>
+      <span>Click and drag to snip &bull; Press <strong>Esc</strong> to cancel</span>
     </div>
-    <div class="gemini-snip-selection" style="display: none;"></div>
+    <div class="gemini-snip-selection" style="display: none;">
+      <div class="gemini-snip-dimensions"></div>
+    </div>
   `;
   document.body.appendChild(overlay);
   activeSnipOverlay = overlay;
 
   const selectionBox = overlay.querySelector('.gemini-snip-selection');
+  const dimBadge = overlay.querySelector('.gemini-snip-dimensions');
   let isDragging = false;
   let startX = 0;
   let startY = 0;
@@ -3812,6 +3860,7 @@ function startScreenSnip() {
     selectionBox.style.top = `${startY}px`;
     selectionBox.style.width = '0px';
     selectionBox.style.height = '0px';
+    if (dimBadge) dimBadge.textContent = '';
   });
 
   overlay.addEventListener('mousemove', (e) => {
@@ -3825,32 +3874,55 @@ function startScreenSnip() {
     selectionBox.style.top = `${y}px`;
     selectionBox.style.width = `${width}px`;
     selectionBox.style.height = `${height}px`;
+    if (dimBadge) {
+      dimBadge.textContent = `${Math.round(width)} × ${Math.round(height)} px`;
+    }
   });
 
   overlay.addEventListener('mouseup', async () => {
     if (!isDragging) return;
     isDragging = false;
     const rect = { ...currentRect };
+    overlay.style.display = 'none';
     closeSnip();
 
     if (rect.width < 10 || rect.height < 10) {
       return;
     }
 
-    // Wait 2 animation frames to ensure overlay is completely removed from the compositor
-    await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+    // Play subtle Apple shutter flash feedback
+    try {
+      const flash = document.createElement('div');
+      flash.className = 'gemini-snip-flash';
+      document.body.appendChild(flash);
+      setTimeout(() => { if (flash.isConnected) flash.remove(); }, 180);
+    } catch {}
+
+    // Wait for compositor to render clean frame without overlay
+    await new Promise((resolve) => requestAnimationFrame(() => setTimeout(resolve, 60)));
 
     try {
       const bridge = typeof window !== 'undefined' ? window.__betterGravityBridge : null;
       if (bridge && typeof bridge.capturePage === 'function') {
-        const dataUrl = await bridge.capturePage({
+        // Capture full viewport at 100% native hardware resolution
+        const fullDataUrl = await bridge.capturePage();
+        if (fullDataUrl) {
+          const croppedBlob = await cropImageAtNativeDpr(fullDataUrl, rect);
+          if (croppedBlob) {
+            await attachImageBlobToComposer(croppedBlob);
+            return;
+          }
+        }
+
+        // Direct rect fallback if full page capture returned empty
+        const rectDataUrl = await bridge.capturePage({
           x: Math.max(0, Math.round(rect.x)),
           y: Math.max(0, Math.round(rect.y)),
           width: Math.max(1, Math.round(rect.width)),
           height: Math.max(1, Math.round(rect.height))
         });
-        if (dataUrl) {
-          const res = await fetch(dataUrl);
+        if (rectDataUrl) {
+          const res = await fetch(rectDataUrl);
           const blob = await res.blob();
           await attachImageBlobToComposer(blob);
           return;

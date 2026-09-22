@@ -612,6 +612,23 @@ html:has([data-testid="sidebar-toggle"][aria-expanded="false"]) [data-gemini-exp
   pointer-events: none !important;
 }
 
+/* Fluid Apple liquid transition when switching between Chat and Work */
+@keyframes geminiListTransition {
+  0% {
+    opacity: 0.35;
+    transform: translateY(6px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.gemini-list-transition {
+  animation: geminiListTransition 260ms cubic-bezier(0.16, 1, 0.3, 1) forwards !important;
+  will-change: opacity, transform;
+}
+
 /* Willow collapsed compact experience capsule button */
 .gemini-experience-collapsed-btn {
   position: absolute !important;

@@ -20,6 +20,18 @@
   --max-conversation-width: 704px !important;
 }
 
+/* Apple iOS fluid spring entrance for conversation view */
+@keyframes geminiChatEnter {
+  0% {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 [data-testid="conversation-view"] {
   display: flex !important;
   flex-direction: column !important;
@@ -29,6 +41,24 @@
   overflow-y: hidden !important;
   scrollbar-gutter: auto !important;
   scrollbar-width: none !important;
+  animation: geminiChatEnter 320ms cubic-bezier(0.16, 1, 0.3, 1) forwards !important;
+  will-change: opacity, transform;
+}
+
+/* Apple fluid entrance for docked composer in conversation view */
+@keyframes geminiDockedComposerEnter {
+  0% {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.group\/pane:has([data-testid="conversation-view"]) [data-testid="agent-input-box"] {
+  animation: geminiDockedComposerEnter 300ms cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
 /* When custom full-viewport views (e.g. Skills view) are active, cleanly hide conversation view */
