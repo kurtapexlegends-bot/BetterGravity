@@ -8297,7 +8297,9 @@ const TOOLTIP_OPPOSITE = {
 const TOOLTIP_OFFSET = 8;
 const TOOLTIP_MARGIN_NEAR = 8;
 const TOOLTIP_MARGIN_FAR = 15;
-const TOOLTIP_HIDE_DURATION_MS = 75;
+const TOOLTIP_HIDE_DURATION_MS = 100;
+const TOOLTIP_SHOW_DELAY_MS = 300;
+const TOOLTIP_WARM_DELAY_MS = 80;
 
 const tooltipClamp = (value, min, max) => (max < min ? min : Math.min(Math.max(value, min), max));
 
@@ -8332,6 +8334,7 @@ let activeTooltipWrapper = null;
 let activeTooltipSurface = null;
 let activeTooltipPosition = 'below';
 let activeTooltipHideTimer = null;
+let cancelTooltipOpenTimer = null;
 
 function repositionTooltip() {
   if (!activeTooltipAnchor || !activeTooltipAnchor.isConnected || !activeTooltipPane || !activeTooltipWrapper) return;
@@ -8411,6 +8414,7 @@ function restoreTooltipAnchor(el) {
 }
 
 function closeTooltipImmediate() {
+  if (cancelTooltipOpenTimer) cancelTooltipOpenTimer();
   clearTimeout(activeTooltipHideTimer);
   if (activeTooltipAnchor) {
     restoreTooltipAnchor(activeTooltipAnchor);
@@ -8425,6 +8429,7 @@ function closeTooltipImmediate() {
 }
 
 function closeTooltip() {
+  if (cancelTooltipOpenTimer) cancelTooltipOpenTimer();
   if (!activeTooltipAnchor) return;
   restoreTooltipAnchor(activeTooltipAnchor);
   activeTooltipAnchor = null;
@@ -8459,9 +8464,10 @@ function showTooltipOverlay(anchor, text, position) {
 
   const pane = document.createElement('div');
   pane.className = `willow-tooltip-pane willow-tooltip-pane--${position}`;
+  pane.style.visibility = 'hidden';
 
   const wrapper = document.createElement('div');
-  wrapper.className = 'willow-tooltip willow-tooltip--show';
+  wrapper.className = 'willow-tooltip';
   wrapper.setAttribute('aria-hidden', 'true');
 
   const surface = document.createElement('div');
@@ -8479,6 +8485,8 @@ function showTooltipOverlay(anchor, text, position) {
   activeTooltipPosition = position;
 
   repositionTooltip();
+  pane.style.visibility = '';
+  wrapper.classList.add('willow-tooltip--show');
 }
 
 function openTooltipFor(el) {
@@ -8514,30 +8522,61 @@ function openTooltipFor(el) {
 }
 
 function setupGlobalTooltips() {
+  let tooltipOpenTimer = null;
+  let isScrolling = false;
+  let scrollEndTimer = null;
+
+  const cancelOpenTimer = () => {
+    if (tooltipOpenTimer !== null) {
+      clearTimeout(tooltipOpenTimer);
+      tooltipOpenTimer = null;
+    }
+  };
+  cancelTooltipOpenTimer = cancelOpenTimer;
+
   const onOver = (e) => {
+    if (isScrolling) return;
     const target = e.target;
     if (!target || !(target instanceof Element)) return;
     const el = target.closest('[title]');
-    if (el) openTooltipFor(el);
-    else if (activeTooltipAnchor && !activeTooltipAnchor.contains(target)) closeTooltip();
+    if (el) {
+      if (activeTooltipAnchor === el) return;
+      cancelOpenTimer();
+      const delay = activeTooltipPane ? TOOLTIP_WARM_DELAY_MS : TOOLTIP_SHOW_DELAY_MS;
+      tooltipOpenTimer = setTimeout(() => {
+        tooltipOpenTimer = null;
+        if (!isScrolling && el.isConnected) {
+          openTooltipFor(el);
+        }
+      }, delay);
+    } else if (activeTooltipAnchor && !activeTooltipAnchor.contains(target)) {
+      cancelOpenTimer();
+      closeTooltip();
+    }
   };
 
   const onOut = (e) => {
+    cancelOpenTimer();
     if (!activeTooltipAnchor) return;
     const next = e.relatedTarget;
     if (!next || !activeTooltipAnchor.contains(next)) closeTooltip();
   };
 
   const onFocusIn = (e) => {
+    cancelOpenTimer();
     const el = e.target?.closest?.('[title]');
     if (el && el.matches(':focus-visible')) openTooltipFor(el);
   };
 
   const onKey = (e) => {
-    if (e.key === 'Escape') closeTooltip();
+    if (e.key === 'Escape') {
+      cancelOpenTimer();
+      closeTooltip();
+    }
   };
 
   const onClick = (e) => {
+    cancelOpenTimer();
     const el = activeTooltipAnchor;
     if (!el || !el.contains(e.target)) {
       closeTooltip();
@@ -8562,6 +8601,13 @@ function setupGlobalTooltips() {
 
   let tooltipRafId = null;
   const onScrollOrResize = () => {
+    cancelOpenTimer();
+    isScrolling = true;
+    clearTimeout(scrollEndTimer);
+    scrollEndTimer = setTimeout(() => {
+      isScrolling = false;
+    }, 150);
+
     if (!activeTooltipAnchor) return;
     if (tooltipRafId !== null) return;
     tooltipRafId = requestAnimationFrame(() => {
@@ -8581,6 +8627,9 @@ function setupGlobalTooltips() {
   window.addEventListener('blur', closeTooltip);
 
   return () => {
+    cancelOpenTimer();
+    cancelTooltipOpenTimer = null;
+    clearTimeout(scrollEndTimer);
     if (tooltipRafId !== null) {
       cancelAnimationFrame(tooltipRafId);
       tooltipRafId = null;
