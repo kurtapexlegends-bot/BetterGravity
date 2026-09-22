@@ -3793,8 +3793,7 @@ async function cropImageAtNativeDpr(fullDataUrl, rect) {
           resolve(null);
           return;
         }
-        ctx.imageSmoothingEnabled = true;
-        ctx.imageSmoothingQuality = 'high';
+        ctx.imageSmoothingEnabled = false;
         ctx.drawImage(img, sx, sy, sw, sh, 0, 0, sw, sh);
         canvas.toBlob((blob) => resolve(blob), 'image/png');
       } catch (err) {
@@ -6272,7 +6271,7 @@ function transformItems(items, fiber) {
       result.push({
         type: 'spacer',
         id: 'spacer-section-pinned',
-        height: isPinnedCollapsed ? 8 : 16
+        height: isPinnedCollapsed ? 4 : 6
       });
     } else {
       result.push({
@@ -6347,8 +6346,13 @@ function transformItems(items, fiber) {
     result.push({
       type: 'spacer',
       id: 'spacer-section-pinned',
-      height: isPinnedCollapsed ? 8 : 16
+      height: isPinnedCollapsed ? 4 : 6
     });
+  }
+
+  // Remove any redundant leading spacers from workItems so spacers don't stack
+  while (workItems.length > 0 && workItems[0]?.type === 'spacer') {
+    workItems.shift();
   }
 
   result.push(...workItems);

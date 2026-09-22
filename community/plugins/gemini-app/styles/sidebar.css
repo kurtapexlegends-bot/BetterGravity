@@ -345,20 +345,12 @@ div:has(+ div > [data-testid="sidebar-toggle"]):has(svg),
  * rather than the svg alone — the svg sits under an `absolute inset-0` wrapper,
  * so hiding the wrapper is what actually removes it. */
 [data-testid="sidebar-toggle"] svg,
-[data-testid="sidebar-toggle"] > span:first-child > * {
+[data-testid="sidebar-toggle"] > span,
+[data-testid="sidebar-toggle"] > span:first-child {
   display: none !important;
 }
 
-[data-testid="sidebar-toggle"] > span:first-child {
-  width: 24px !important;
-  height: 24px !important;
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-}
-
-[data-testid="sidebar-toggle"]::before,
-[data-testid="sidebar-toggle"] > span:first-child::before {
+[data-testid="sidebar-toggle"]::before {
   content: "side_nav" !important;
   font-family: var(--gemini-icon-font, "Luminous Symbols"), "Google Symbols", "Material Symbols Rounded", sans-serif !important;
   font-variation-settings: var(--gemini-icon-axes, "FILL" 0, "wght" 300, "GRAD" 0, "ROND" 100, "opsz" 24) !important;
@@ -380,8 +372,7 @@ div:has(+ div > [data-testid="sidebar-toggle"]):has(svg),
   transition: transform 200ms ease !important;
 }
 
-[data-testid="sidebar-toggle"]:active::before,
-[data-testid="sidebar-toggle"]:active > span:first-child::before {
+[data-testid="sidebar-toggle"]:active::before {
   transform: scale(0.9) !important;
 }
 
@@ -405,13 +396,9 @@ div:has(> [role="navigation"][aria-label="Sidebar"][data-collapsed="true"]) ~ * 
 }
 
 .absolute.top-0 [data-testid="sidebar-toggle"][aria-expanded="false"]::before,
-.absolute.top-0 [data-testid="sidebar-toggle"][aria-expanded="false"] > span:first-child::before,
 html[data-sidebar-collapsed="true"] .absolute.top-0 [data-testid="sidebar-toggle"]::before,
-html[data-sidebar-collapsed="true"] .absolute.top-0 [data-testid="sidebar-toggle"] > span:first-child::before,
 [data-testid="sidebar-toggle"][aria-expanded="false"]:not([class*="group/file-row"] *)::before,
-[data-testid="sidebar-toggle"][aria-expanded="false"]:not([class*="group/file-row"] *) > span:first-child::before,
-html[data-sidebar-collapsed="true"] [data-testid="sidebar-toggle"]:not([class*="group/file-row"] *)::before,
-html[data-sidebar-collapsed="true"] [data-testid="sidebar-toggle"]:not([class*="group/file-row"] *) > span:first-child::before {
+html[data-sidebar-collapsed="true"] [data-testid="sidebar-toggle"]:not([class*="group/file-row"] *)::before {
   content: "side_nav_expand" !important;
 }
 
@@ -997,7 +984,7 @@ html:has([data-testid="sidebar-toggle"][aria-expanded="false"]) .gemini-experien
 #gemini-scroll-nav {
   width: 100% !important;
   padding: 0 !important;
-  margin: 0 !important;
+  margin: 0 0 2px 0 !important;
   display: grid !important;
   grid-template-rows: 1fr !important;
   opacity: 1 !important;
@@ -1348,7 +1335,7 @@ html:has([data-testid="sidebar-toggle"][aria-expanded="false"]) [role="navigatio
   padding: 0 !important;
 }
 
-/* Icon containers: 32x32 box at x=0 of button (x=10 of rail), 20px glyph centered -> centroid exactly 26px */
+/* Icon containers in expanded mode: 32x32 box at left of row */
 [role="navigation"][aria-label="Sidebar"] [data-testid="new-conversation-button"] > span:first-child,
 [role="navigation"][aria-label="Sidebar"] [data-testid="history-button"] > span:first-child,
 [role="navigation"][aria-label="Sidebar"] [data-testid="automations-button"] > span:first-child,
@@ -1358,7 +1345,22 @@ html:has([data-testid="sidebar-toggle"][aria-expanded="false"]) [role="navigatio
 [role="navigation"][aria-label="Sidebar"] #gemini-display-options-button > span.icon-box,
 [role="navigation"][aria-label="Sidebar"] [data-bettergravity-button] > span.icon-box,
 [role="navigation"][aria-label="Sidebar"] #gemini-scroll-nav > * > span.icon-box,
-[role="navigation"][aria-label="Sidebar"] .gemini-nav-item .icon-box,
+[role="navigation"][aria-label="Sidebar"] .gemini-nav-item .icon-box {
+  width: 32px !important;
+  height: 32px !important;
+  min-width: 32px !important;
+  max-width: 32px !important;
+  min-height: 32px !important;
+  max-height: 32px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  flex-shrink: 0 !important;
+}
+
+/* Collapsed icon containers: centered in 52px rail with margin: 0 auto */
 [role="navigation"][aria-label="Sidebar"][data-collapsed="true"] .gemini-nav-item .icon-box,
 [role="navigation"][aria-label="Sidebar"][data-collapsed="true"] [data-testid="new-conversation-button"] > span:first-child,
 [role="navigation"][aria-label="Sidebar"][data-collapsed="true"] [data-testid="history-button"] > span:first-child,
@@ -1389,18 +1391,7 @@ html:has([data-testid="sidebar-toggle"][aria-expanded="false"]) [role="navigatio
 html:has([data-testid="sidebar-toggle"][aria-expanded="false"]) [role="navigation"][aria-label="Sidebar"] #gemini-display-options-button > span.icon-box,
 html:has([data-testid="sidebar-toggle"][aria-expanded="false"]) [role="navigation"][aria-label="Sidebar"] [data-bettergravity-button] > span.icon-box,
 html:has([data-testid="sidebar-toggle"][aria-expanded="false"]) [role="navigation"][aria-label="Sidebar"] #gemini-scroll-nav > * > span.icon-box {
-  width: 32px !important;
-  height: 32px !important;
-  min-width: 32px !important;
-  max-width: 32px !important;
-  min-height: 32px !important;
-  max-height: 32px !important;
   margin: 0 auto !important;
-  padding: 0 !important;
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  flex-shrink: 0 !important;
 }
 
 [role="navigation"][aria-label="Sidebar"] .gemini-nav-item .icon-box svg,
@@ -1740,6 +1731,7 @@ body.gemini-custom-view-open [role="navigation"][aria-label="Sidebar"] #gemini-s
   margin: 0 !important;
 }
 
+[role="navigation"][aria-label="Sidebar"] [data-testid="section-header"],
 [role="navigation"][aria-label="Sidebar"] .group\/section-header,
 [role="navigation"][aria-label="Sidebar"] div[class*="group/section-header"] {
   display: flex !important;
@@ -1754,8 +1746,10 @@ body.gemini-custom-view-open [role="navigation"][aria-label="Sidebar"] #gemini-s
   font-variation-settings: "ROND" 0, "slnt" 0, "wdth" 92, "wght" 400 !important;
   color: var(--gemini-text-dim, rgba(255, 255, 255, 0.55)) !important;
   letter-spacing: normal !important;
-  padding-left: 8px !important;
-  padding-right: 6px !important;
+  margin-top: 4px !important;
+  margin-bottom: 2px !important;
+  padding: 2px 6px 2px 8px !important;
+  min-height: 24px !important;
 }
 
 [role="navigation"][aria-label="Sidebar"] .group\/section-header h2,
@@ -1895,10 +1889,21 @@ body.gemini-custom-view-open [role="navigation"][aria-label="Sidebar"] #gemini-s
   text-align: left !important;
 }
 
+[role="navigation"][aria-label="Sidebar"] .group\/header:not([class*="section-header"]),
+[role="navigation"][aria-label="Sidebar"] div[class~="group/header"]:not([class*="section-header"]) {
+  margin-top: 4px !important;
+  margin-bottom: 2px !important;
+  min-height: 28px !important;
+}
+
 [role="navigation"][aria-label="Sidebar"] .group\/headerbtn,
 [role="navigation"][aria-label="Sidebar"] button[class*="group/headerbtn"] {
   padding-left: 8px !important;
   padding-right: 6px !important;
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+  height: 28px !important;
+  min-height: 28px !important;
   justify-content: flex-start !important;
   text-align: left !important;
   background-color: transparent !important;
