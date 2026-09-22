@@ -1449,84 +1449,84 @@ function playAntigravityHaptic(level) {
     const now = bgAudioContext.currentTime;
 
     if (level === 'low') {
-      // Crisp subtle acoustic tick
+      // Crisp Apple dial acoustic tick (fast 15ms transient)
       const osc = bgAudioContext.createOscillator();
       const gain = bgAudioContext.createGain();
       osc.connect(gain);
       gain.connect(bgAudioContext.destination);
       osc.type = 'sine';
-      osc.frequency.setValueAtTime(860, now);
-      osc.frequency.exponentialRampToValueAtTime(320, now + 0.024);
-      gain.gain.setValueAtTime(0.035, now);
-      gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.024);
+      osc.frequency.setValueAtTime(1400, now);
+      osc.frequency.exponentialRampToValueAtTime(380, now + 0.016);
+      gain.gain.setValueAtTime(0.045, now);
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.016);
       osc.start(now);
-      osc.stop(now + 0.026);
+      osc.stop(now + 0.018);
     } else if (level === 'medium') {
-      // Resonant quantum chime with harmonic overtone
+      // Resonant dual-tone crystal chime with harmonic overtone
       const osc = bgAudioContext.createOscillator();
       const gain = bgAudioContext.createGain();
       osc.connect(gain);
       gain.connect(bgAudioContext.destination);
       osc.type = 'triangle';
-      osc.frequency.setValueAtTime(1080, now);
-      osc.frequency.exponentialRampToValueAtTime(460, now + 0.036);
-      gain.gain.setValueAtTime(0.045, now);
-      gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.036);
+      osc.frequency.setValueAtTime(1600, now);
+      osc.frequency.exponentialRampToValueAtTime(520, now + 0.022);
+      gain.gain.setValueAtTime(0.05, now);
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.022);
       osc.start(now);
-      osc.stop(now + 0.04);
+      osc.stop(now + 0.025);
 
       const chime = bgAudioContext.createOscillator();
       const chimeGain = bgAudioContext.createGain();
       chime.type = 'sine';
-      chime.frequency.setValueAtTime(1620, now);
-      chime.frequency.exponentialRampToValueAtTime(810, now + 0.05);
-      chimeGain.gain.setValueAtTime(0.025, now);
+      chime.frequency.setValueAtTime(1046.5, now); // C6 crystal chime
+      chime.frequency.exponentialRampToValueAtTime(880, now + 0.048);
+      chimeGain.gain.setValueAtTime(0.028, now);
       chimeGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.05);
       chime.connect(chimeGain);
       chimeGain.connect(bgAudioContext.destination);
       chime.start(now);
       chime.stop(now + 0.052);
     } else {
-      // HIGH EFFORT: Supernova 3-Voice Physical Power-Snap
-      // 1. Sub-Bass Visceral Thump (195Hz -> 36Hz)
+      // HIGH EFFORT: Supernova 3-Voice Tactile Power-Snap
+      // 1. Sub-Bass Visceral Thump (180Hz -> 38Hz)
       const sub = bgAudioContext.createOscillator();
       const subGain = bgAudioContext.createGain();
       sub.type = 'sine';
-      sub.frequency.setValueAtTime(195, now);
-      sub.frequency.exponentialRampToValueAtTime(36, now + 0.085);
-      subGain.gain.setValueAtTime(0.075, now);
-      subGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.09);
+      sub.frequency.setValueAtTime(180, now);
+      sub.frequency.exponentialRampToValueAtTime(38, now + 0.075);
+      subGain.gain.setValueAtTime(0.08, now);
+      subGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.08);
       sub.connect(subGain);
       subGain.connect(bgAudioContext.destination);
       sub.start(now);
-      sub.stop(now + 0.095);
+      sub.stop(now + 0.085);
 
-      // 2. Hyperspace Laser Chirp (480Hz -> 2150Hz -> 750Hz)
+      // 2. High-Frequency Mechanical Snap (600Hz -> 2400Hz -> 900Hz)
       const osc = bgAudioContext.createOscillator();
       const gain = bgAudioContext.createGain();
       osc.type = 'sine';
-      osc.frequency.setValueAtTime(480, now);
-      osc.frequency.exponentialRampToValueAtTime(2150, now + 0.038);
-      osc.frequency.exponentialRampToValueAtTime(750, now + 0.08);
-      gain.gain.setValueAtTime(0.065, now);
-      gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.085);
+      osc.frequency.setValueAtTime(600, now);
+      osc.frequency.exponentialRampToValueAtTime(2400, now + 0.028);
+      osc.frequency.exponentialRampToValueAtTime(900, now + 0.065);
+      gain.gain.setValueAtTime(0.06, now);
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.07);
       osc.connect(gain);
       gain.connect(bgAudioContext.destination);
       osc.start(now);
-      osc.stop(now + 0.09);
+      osc.stop(now + 0.075);
 
-      // 3. Crystalline Harmonic Bell (Dual pure sine overtones at 2200Hz -> 1760Hz)
+      // 3. Crystalline Harmonic Bell (2093Hz [C7] shimmer)
       const bell = bgAudioContext.createOscillator();
       const bellGain = bgAudioContext.createGain();
       bell.type = 'triangle';
-      bell.frequency.setValueAtTime(2200, now);
-      bell.frequency.exponentialRampToValueAtTime(1760, now + 0.12);
-      bellGain.gain.setValueAtTime(0.035, now);
-      bellGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.13);
+      bell.frequency.setValueAtTime(2093, now);
+      bell.frequency.exponentialRampToValueAtTime(1567.98, now + 0.11);
+      bellGain.gain.setValueAtTime(0.038, now);
+      bellGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.12);
       bell.connect(bellGain);
       bellGain.connect(bgAudioContext.destination);
       bell.start(now);
-      bell.stop(now + 0.135);
+      bell.stop(now + 0.125);
 
       // Physical device vibration if supported
       try {
@@ -2069,25 +2069,40 @@ function enhanceEffortSubmenu(submenu) {
         stepButtons.push(btn);
       });
 
+      let lastCommitTime = 0;
+      let lastCommittedIdx = -1;
+
       function setVisualPreview(idx) {
         if (idx < 0 || idx >= stepItems.length) return;
         stepButtons.forEach((b, i) => b.classList.toggle('is-active', i === idx));
         const chosenName = stepItems[idx].name;
         const badgeText = badge.querySelector('.gemini-effort-badge-text') || badge;
         badgeText.textContent = chosenName;
-        desc.textContent = EFFORT_DESCRIPTIONS[chosenName.toLowerCase()] || `Reasoning effort set to ${chosenName}.`;
+        const targetDesc = EFFORT_DESCRIPTIONS[chosenName.toLowerCase()] || `Reasoning effort set to ${chosenName}.`;
+        if (desc && desc.textContent !== targetDesc) {
+          desc.style.opacity = '0.3';
+          setTimeout(() => {
+            desc.textContent = targetDesc;
+            desc.style.opacity = '1';
+          }, 70);
+        }
         card.setAttribute('data-level', chosenName.toLowerCase());
       }
 
       function commitIndex(newIdx, skipAnimation = false) {
         if (newIdx < 0 || newIdx >= stepItems.length) return;
+        const now = Date.now();
+        if (newIdx === lastCommittedIdx && now - lastCommitTime < 140) return;
+        lastCommitTime = now;
+        lastCommittedIdx = newIdx;
+
         activeIdx = newIdx;
         track.setAttribute('data-active-index', String(newIdx));
         setVisualPreview(newIdx);
 
         const chosenName = stepItems[newIdx]?.name || "High";
 
-        // Reset drag override so CSS step placement governs cleanly
+        // Reset drag override so CSS step placement springs cleanly
         track.style.removeProperty('--drag-offset');
         if (glider) glider.style.transform = '';
 
@@ -2103,7 +2118,7 @@ function enhanceEffortSubmenu(submenu) {
           card.classList.add('gemini-high-impact');
         }
 
-        // Futuristic audio haptics & zero-G particle sparks
+        // Apple fluid audio haptics & zero-G particle sparks
         playAntigravityHaptic(chosenName.toLowerCase());
         emitAntigravitySparks(track, newIdx, chosenName.toLowerCase());
 
