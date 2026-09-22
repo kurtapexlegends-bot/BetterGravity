@@ -2868,6 +2868,10 @@ function markExperience(pill, selected, shouldRerender = true) {
     if (isSelected) {
       tab.removeAttribute("title");
       tab.removeAttribute("data-willow-tooltip");
+      for (const child of tab.querySelectorAll("[title], [data-willow-tooltip]")) {
+        child.removeAttribute("title");
+        child.removeAttribute("data-willow-tooltip");
+      }
     } else {
       // Written afresh rather than left to the stash: the engine only opens for
       // an element matching `[title]`, so restoring it is what lets the tooltip
@@ -2876,6 +2880,14 @@ function markExperience(pill, selected, shouldRerender = true) {
       tab.removeAttribute("data-willow-tooltip");
     }
   }
+
+  try {
+    if (typeof activeTooltipAnchor !== "undefined" && activeTooltipAnchor && pill.contains(activeTooltipAnchor)) {
+      if (typeof closeTooltipImmediate === "function") {
+        closeTooltipImmediate();
+      }
+    }
+  } catch {}
 
   const collapsedBtn = pill.querySelector(".gemini-experience-collapsed-btn");
   if (collapsedBtn) {
@@ -3079,6 +3091,8 @@ function buildExperienceSwitch() {
 
   let justDragged = false;
 
+  const currentExp = typeof getStoredExperience === "function" ? getStoredExperience() : "chat";
+
   for (const experience of EXPERIENCES) {
     const tab = document.createElement("button");
     tab.type = "button";
@@ -3096,13 +3110,11 @@ function buildExperienceSwitch() {
       const badge = document.createElement("span");
       badge.dataset.geminiExperienceBadge = "";
       badge.textContent = experience.badge;
-      badge.title = `Toggle Chat / Work (${experience.badge})`;
       tab.append(badge);
     }
-    const shortcutLabel = typeof WORK_TOGGLE_SHORTCUT !== "undefined" ? WORK_TOGGLE_SHORTCUT : "Alt+W";
-    tab.title = experience.id === "work"
-      ? `Switch to Work (${shortcutLabel})`
-      : `Switch to Chat (${shortcutLabel})`;
+    if (experience.id !== currentExp) {
+      tab.title = `Switch to ${experience.label}`;
+    }
     tab.addEventListener("click", (e) => {
       if (justDragged) {
         e.preventDefault();
@@ -8372,6 +8384,12 @@ function repositionTooltip() {
 
 function restoreTooltipAnchor(el) {
   if (!el) return;
+  if (el.matches?.('[data-gemini-experience-tab][aria-pressed="true"]') ||
+      el.closest?.('[data-gemini-experience-tab][aria-pressed="true"]')) {
+    el.removeAttribute(TOOLTIP_STASH_ATTR);
+    el.removeAttribute('title');
+    return;
+  }
   const stashed = el.getAttribute(TOOLTIP_STASH_ATTR);
   if (stashed !== null) {
     if (!el.hasAttribute('title')) el.setAttribute('title', stashed);
@@ -8458,6 +8476,13 @@ function openTooltipFor(el) {
   if (activeTooltipAnchor === el) return;
   closeTooltipImmediate();
 
+  if (el.matches?.('[data-gemini-experience-tab][aria-pressed="true"]') ||
+      el.closest?.('[data-gemini-experience-tab][aria-pressed="true"]')) {
+    el.removeAttribute('title');
+    el.removeAttribute(TOOLTIP_STASH_ATTR);
+    return;
+  }
+
   const title = el.getAttribute('title');
   if (title && title.trim()) {
     el.setAttribute(TOOLTIP_STASH_ATTR, title);
@@ -8520,6 +8545,8 @@ function setupGlobalTooltips() {
         el.removeAttribute('title');
         if (activeTooltipSurface) activeTooltipSurface.textContent = next.trim();
         repositionTooltip();
+      } else {
+        closeTooltipImmediate();
       }
     });
   };

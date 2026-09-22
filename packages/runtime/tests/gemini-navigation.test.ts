@@ -615,6 +615,104 @@ describe("Gemini App sidebar toggle detection and layout lock prevention", () =>
   });
 });
 
+describe("Gemini App experience switch active tab tooltip suppression", () => {
+  const switchSource = source.slice(
+    source.lastIndexOf("function getElementFiber("),
+    source.indexOf("function ensureExperienceSwitch(")
+  );
+
+  function createScopedSwitch(storedExp: string) {
+    const fn = new Function(
+      "EXPERIENCES", "getStoredExperience", "markExperience", "navigateToExperienceNewConversation",
+      `
+      const plugin = { react: { getFiber: () => ({ memoizedProps: { store: { getState: () => ({}), subscribe: () => {} } } }) } };
+      ${switchSource}
+      return { buildExperienceSwitch };
+      `
+    );
+    return fn(
+      [
+        { id: "chat", label: "Chat" },
+        { id: "work", label: "Work", badge: "beta" }
+      ],
+      () => storedExp,
+      (pill: HTMLElement, exp: string) => {
+        for (const tab of pill.querySelectorAll("[data-gemini-experience-tab]")) {
+          const isSelected = (tab as HTMLElement).dataset.geminiExperienceTab === exp;
+          tab.setAttribute("aria-pressed", String(isSelected));
+          if (isSelected) {
+            tab.removeAttribute("title");
+            tab.removeAttribute("data-willow-tooltip");
+            for (const child of tab.querySelectorAll("[title], [data-willow-tooltip]")) {
+              child.removeAttribute("title");
+              child.removeAttribute("data-willow-tooltip");
+            }
+          } else {
+            (tab as HTMLElement).title = `Switch to ${(tab as HTMLElement).dataset.geminiExperienceTab === "chat" ? "Chat" : "Work"}`;
+          }
+        }
+      },
+      () => {}
+    );
+  }
+
+  it("never assigns title or badge tooltip to the active tab during buildExperienceSwitch", () => {
+    // When Chat is stored experience
+    const chatScope = createScopedSwitch("chat");
+    const chatPill = chatScope.buildExperienceSwitch();
+    const chatTab = chatPill.querySelector('[data-gemini-experience-tab="chat"]');
+    const workTab = chatPill.querySelector('[data-gemini-experience-tab="work"]');
+    const workBadge = workTab?.querySelector('[data-gemini-experience-badge]');
+
+    expect(chatTab?.getAttribute("title")).toBeNull();
+    expect(chatTab?.getAttribute("data-willow-tooltip")).toBeNull();
+    expect(workTab?.getAttribute("title")).toBe("Switch to Work");
+    expect(workBadge?.getAttribute("title")).toBeNull();
+
+    // When Work is stored experience
+    const workScope = createScopedSwitch("work");
+    const workPill = workScope.buildExperienceSwitch();
+    const workChatTab = workPill.querySelector('[data-gemini-experience-tab="chat"]');
+    const workWorkTab = workPill.querySelector('[data-gemini-experience-tab="work"]');
+
+    expect(workWorkTab?.getAttribute("title")).toBeNull();
+    expect(workWorkTab?.getAttribute("data-willow-tooltip")).toBeNull();
+    expect(workChatTab?.getAttribute("title")).toBe("Switch to Chat");
+  });
+
+  it("tooltip engine does not open tooltips or restore titles on active experience tabs", () => {
+    const tooltipSource = source.slice(
+      source.indexOf("const TOOLTIP_STASH_ATTR ="),
+      source.indexOf("const stopGlobalTooltips =")
+    );
+
+    const engine = new Function(
+      `
+      ${tooltipSource}
+      return { restoreTooltipAnchor, openTooltipFor, showTooltipOverlay, closeTooltipImmediate };
+      `
+    )();
+
+    const activeTab = document.createElement("button");
+    activeTab.dataset.geminiExperienceTab = "chat";
+    activeTab.setAttribute("aria-pressed", "true");
+    activeTab.setAttribute("data-willow-tooltip", "Switch to Chat");
+    document.body.appendChild(activeTab);
+
+    // restoreTooltipAnchor must clear stash without putting title back on active tab
+    engine.restoreTooltipAnchor(activeTab);
+    expect(activeTab.getAttribute("title")).toBeNull();
+    expect(activeTab.getAttribute("data-willow-tooltip")).toBeNull();
+
+    // openTooltipFor must refuse to show tooltip on active tab even if title exists
+    activeTab.setAttribute("title", "Switch to Chat");
+    engine.openTooltipFor(activeTab);
+    expect(activeTab.getAttribute("title")).toBeNull();
+    expect(activeTab.getAttribute("data-willow-tooltip")).toBeNull();
+    expect(document.querySelector(".willow-tooltip-pane")).toBeNull();
+  });
+});
+
 
 
 

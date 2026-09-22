@@ -7,7 +7,6 @@ const source = readFileSync("community/plugins/yolo/index.js", "utf8");
 const ORIGIN = "https://127.0.0.1:51785";
 const SERVICE = "/exa.language_server_pb.LanguageServerService/";
 const POLICY = {
-  autoAllowAllInteractions: true, autoInteractionBehavior: 1,
   runCommand: { autoCommandConfig: { autoExecutionPolicy: 3 } },
   antigravityBrowser: { autoRunDecision: 1, browserJsAutoRunPolicy: 3, browserJsExecutionPolicy: 4, skipPermissionChecks: true },
   notifyUser: { artifactReviewMode: 2 }
@@ -102,8 +101,8 @@ function nested(bytes: Uint8Array, ...path: number[]): Uint8Array {
 
 function expectBinaryPolicy(bytes: Uint8Array) {
   const tools = nested(bytes, 5, 1, 13);
-  expect(fields(tools).get(46)).toEqual([1n]);
-  expect(fields(tools).get(53)).toEqual([1n]);
+  expect(fields(tools).get(46)).toBeUndefined();
+  expect(fields(tools).get(53)).toBeUndefined();
   expect(fields(nested(tools, 8, 3)).get(6)).toEqual([3n]);
   expect(fields(nested(tools, 8)).get(15)).toEqual([1n]); // existing sandbox setting
   expect(fields(nested(tools, 25)).get(25)).toEqual([1n]);
@@ -200,9 +199,9 @@ describe("YOLO native execution policy", () => {
 
   it("supports protobuf JSON snake_case and remains idempotent", async () => {
     start();
-    const sent = await (await outgoing(request({ cascade_config: { planner_config: { tool_config: { auto_allow_all_interactions: false } } } }))).json();
+    const sent = await (await outgoing(request({ cascade_config: { planner_config: { tool_config: { notify_user: { artifact_review_mode: 1 } } } } }))).json();
     expect(sent.cascadeConfig).toBeUndefined();
-    expect(sent.cascade_config.planner_config.tool_config.auto_allow_all_interactions).toBe(true);
+    expect(sent.cascade_config.planner_config.tool_config.notify_user.artifact_review_mode).toBe(2);
     const again = await (await outgoing(request(sent))).json();
     expect(again).toEqual(sent);
   });

@@ -7,8 +7,6 @@ const message = (number, name, fields, optional = false, repeated = false) =>
   ({ number, name, fields, optional, repeated });
 
 const CONFIG = [message(1, "plannerConfig", [message(13, "toolConfig", [
-  field(46, "autoAllowAllInteractions", true),
-  field(53, "autoInteractionBehavior", 1), // AUTO_INTERACTION_BEHAVIOR_ALLOW_ALL
   message(8, "runCommand", [message(3, "autoCommandConfig", [
     field(6, "autoExecutionPolicy", 3) // CASCADE_COMMANDS_AUTO_EXECUTION_EAGER
   ])]),
