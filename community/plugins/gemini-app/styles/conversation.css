@@ -61,14 +61,6 @@ body.gemini-skills-open [data-gemini-skills-hidden] {
   margin-bottom: 52px !important;
 }
 
-/* High-Performance Rendering & Viewport Culling:
- * Offscreen messages skip paint and layout until scrolled into view.
- * Chromium natively supports in-page Ctrl+F search on content-visibility subtrees. */
-[data-testid="conversation-view"] [role="article"] {
-  content-visibility: auto;
-  contain-intrinsic-size: auto 200px;
-}
-
 /* --- 3b. The sent message ----------------------------------------------------- */
 [data-testid="user-input-step"] {
   align-items: flex-end !important;
