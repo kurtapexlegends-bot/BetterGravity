@@ -2865,19 +2865,11 @@ function markExperience(pill, selected, shouldRerender = true) {
   for (const tab of pill.querySelectorAll("[data-gemini-experience-tab]")) {
     const isSelected = tab.dataset.geminiExperienceTab === selected;
     tab.setAttribute("aria-pressed", String(isSelected));
-    if (isSelected) {
-      tab.removeAttribute("title");
-      tab.removeAttribute("data-willow-tooltip");
-      for (const child of tab.querySelectorAll("[title], [data-willow-tooltip]")) {
-        child.removeAttribute("title");
-        child.removeAttribute("data-willow-tooltip");
-      }
-    } else {
-      // Written afresh rather than left to the stash: the engine only opens for
-      // an element matching `[title]`, so restoring it is what lets the tooltip
-      // come back after the tab has been active.
-      tab.title = `Switch to ${EXPERIENCE_LABELS.get(tab.dataset.geminiExperienceTab)}`;
-      tab.removeAttribute("data-willow-tooltip");
+    tab.removeAttribute("title");
+    tab.removeAttribute("data-willow-tooltip");
+    for (const child of tab.querySelectorAll("[title], [data-willow-tooltip]")) {
+      child.removeAttribute("title");
+      child.removeAttribute("data-willow-tooltip");
     }
   }
 
@@ -3111,9 +3103,6 @@ function buildExperienceSwitch() {
       badge.dataset.geminiExperienceBadge = "";
       badge.textContent = experience.badge;
       tab.append(badge);
-    }
-    if (experience.id !== currentExp) {
-      tab.title = `Switch to ${experience.label}`;
     }
     tab.addEventListener("click", (e) => {
       if (justDragged) {
@@ -8384,8 +8373,8 @@ function repositionTooltip() {
 
 function restoreTooltipAnchor(el) {
   if (!el) return;
-  if (el.matches?.('[data-gemini-experience-tab][aria-pressed="true"]') ||
-      el.closest?.('[data-gemini-experience-tab][aria-pressed="true"]')) {
+  if (el.matches?.('[data-gemini-experience-tab], [data-gemini-experience-tab] *') ||
+      el.closest?.('[data-gemini-experience-tab]')) {
     el.removeAttribute(TOOLTIP_STASH_ATTR);
     el.removeAttribute('title');
     return;
@@ -8476,8 +8465,8 @@ function openTooltipFor(el) {
   if (activeTooltipAnchor === el) return;
   closeTooltipImmediate();
 
-  if (el.matches?.('[data-gemini-experience-tab][aria-pressed="true"]') ||
-      el.closest?.('[data-gemini-experience-tab][aria-pressed="true"]')) {
+  if (el.matches?.('[data-gemini-experience-tab], [data-gemini-experience-tab] *') ||
+      el.closest?.('[data-gemini-experience-tab]')) {
     el.removeAttribute('title');
     el.removeAttribute(TOOLTIP_STASH_ATTR);
     return;
