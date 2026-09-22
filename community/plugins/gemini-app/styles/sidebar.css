@@ -1731,9 +1731,8 @@ body.gemini-custom-view-open [role="navigation"][aria-label="Sidebar"] #gemini-s
   margin: 0 !important;
 }
 
-[role="navigation"][aria-label="Sidebar"] [data-testid="section-header"],
-[role="navigation"][aria-label="Sidebar"] .group\/section-header,
-[role="navigation"][aria-label="Sidebar"] div[class*="group/section-header"] {
+[role="navigation"][aria-label="Sidebar"] .group\/section-header:not(:has([data-testid="sidebar-add-project-button"])):not(:has([aria-label="Display Options"])),
+[role="navigation"][aria-label="Sidebar"] div[class*="group/section-header"]:not(:has([data-testid="sidebar-add-project-button"])):not(:has([aria-label="Display Options"])) {
   display: flex !important;
   flex-direction: row !important;
   align-items: center !important;
@@ -1746,10 +1745,10 @@ body.gemini-custom-view-open [role="navigation"][aria-label="Sidebar"] #gemini-s
   font-variation-settings: "ROND" 0, "slnt" 0, "wdth" 92, "wght" 400 !important;
   color: var(--gemini-text-dim, rgba(255, 255, 255, 0.55)) !important;
   letter-spacing: normal !important;
-  margin-top: 4px !important;
+  margin-top: 2px !important;
   margin-bottom: 2px !important;
   padding: 2px 6px 2px 8px !important;
-  min-height: 24px !important;
+  min-height: 22px !important;
 }
 
 [role="navigation"][aria-label="Sidebar"] .group\/section-header h2,
@@ -1891,8 +1890,8 @@ body.gemini-custom-view-open [role="navigation"][aria-label="Sidebar"] #gemini-s
 
 [role="navigation"][aria-label="Sidebar"] .group\/header:not([class*="section-header"]),
 [role="navigation"][aria-label="Sidebar"] div[class~="group/header"]:not([class*="section-header"]) {
-  margin-top: 4px !important;
-  margin-bottom: 2px !important;
+  margin-top: 0 !important;
+  margin-bottom: 0 !important;
   min-height: 28px !important;
 }
 
@@ -1902,6 +1901,7 @@ body.gemini-custom-view-open [role="navigation"][aria-label="Sidebar"] #gemini-s
   padding-right: 6px !important;
   padding-top: 0 !important;
   padding-bottom: 0 !important;
+  margin: 0 !important;
   height: 28px !important;
   min-height: 28px !important;
   justify-content: flex-start !important;
@@ -2045,6 +2045,8 @@ body.gemini-custom-view-open [role="navigation"][aria-label="Sidebar"] #gemini-s
 }
 
 /* Hide original Projects section header visually while keeping triggers active in the render tree */
+[role="navigation"][aria-label="Sidebar"] [data-testid="section-header"]:has([data-testid="sidebar-add-project-button"]),
+[role="navigation"][aria-label="Sidebar"] [data-testid="section-header"]:has([aria-label="Display Options"]),
 [role="navigation"][aria-label="Sidebar"] div.group\/section-header:has([data-testid="sidebar-add-project-button"]),
 [role="navigation"][aria-label="Sidebar"] div.group\/section-header:has([aria-label="Display Options"]),
 [role="navigation"][aria-label="Sidebar"] div[class*="group/section-header"]:has([data-testid="sidebar-add-project-button"]),
@@ -2058,11 +2060,15 @@ body.gemini-custom-view-open [role="navigation"][aria-label="Sidebar"] #gemini-s
   overflow: hidden !important;
   opacity: 0 !important;
   pointer-events: none !important;
+  display: none !important;
 }
 
-[role="navigation"][aria-label="Sidebar"] div[style*="transform"]:has(> div.group\/section-header:has([data-testid="sidebar-add-project-button"])),
-[role="navigation"][aria-label="Sidebar"] div[style*="position: absolute"]:has(> div.group\/section-header:has([data-testid="sidebar-add-project-button"])),
-[role="navigation"][aria-label="Sidebar"] div.bg-sidebar:has(> div.group\/section-header:has([data-testid="sidebar-add-project-button"])) {
+[role="navigation"][aria-label="Sidebar"] div[style*="transform"]:has([data-testid="sidebar-add-project-button"]),
+[role="navigation"][aria-label="Sidebar"] div[style*="position: absolute"]:has([data-testid="sidebar-add-project-button"]),
+[role="navigation"][aria-label="Sidebar"] div.bg-sidebar:has([data-testid="sidebar-add-project-button"]),
+[role="navigation"][aria-label="Sidebar"] div[style*="transform"]:has([aria-label="Display Options"]),
+[role="navigation"][aria-label="Sidebar"] div[style*="position: absolute"]:has([aria-label="Display Options"]),
+[role="navigation"][aria-label="Sidebar"] div.bg-sidebar:has([aria-label="Display Options"]) {
   display: none !important;
   height: 0 !important;
   min-height: 0 !important;

@@ -6213,7 +6213,8 @@ function transformItems(items, fiber) {
     for (const it of items) {
       if (!it) continue;
       if (it.id === 'section-pinned' || it.id === 'spacer-section-pinned' || it.id === 'spacer-pinned-header') continue;
-      if (it.id === 'main-section-header' || it.id === 'spacer-section-standalone') continue;
+      if (it.id === 'main-section-header' || it.id === 'section-projects' || it.id === 'spacer-section-standalone') continue;
+      if (it.type === 'spacer') continue;
       if (it.type === 'header' && it.id?.startsWith('header-')) continue;
 
       if (it.type === 'row') {
@@ -6271,13 +6272,13 @@ function transformItems(items, fiber) {
       result.push({
         type: 'spacer',
         id: 'spacer-section-pinned',
-        height: isPinnedCollapsed ? 4 : 6
+        height: 4
       });
     } else {
       result.push({
         type: 'spacer',
         id: 'spacer-section-standalone',
-        height: 14
+        height: 4
       });
     }
     result.push(...chatItems);
@@ -6288,11 +6289,17 @@ function transformItems(items, fiber) {
   // Exclude unpinned standalone conversations.
   const pinnedRows = [];
   const workItems = [];
+  let mainSectionHeaderItem = null;
 
   for (const it of items) {
     if (!it) continue;
     if (it.id === 'section-pinned' || it.id === 'spacer-section-pinned' || it.id === 'spacer-pinned-header') continue;
     if (it.id === 'section-standalone' || it.id === 'spacer-section-standalone') continue;
+    if (it.id === 'main-section-header' || it.id === 'section-projects') {
+      mainSectionHeaderItem = it;
+      continue;
+    }
+    if (it.type === 'spacer') continue;
 
     if (it.type === 'header') {
       const pid = (it.id || '').replace(/^header-/, '');
@@ -6346,16 +6353,19 @@ function transformItems(items, fiber) {
     result.push({
       type: 'spacer',
       id: 'spacer-section-pinned',
-      height: isPinnedCollapsed ? 4 : 6
+      height: 4
     });
   }
 
-  // Remove any redundant leading spacers from workItems so spacers don't stack
-  while (workItems.length > 0 && workItems[0]?.type === 'spacer') {
-    workItems.shift();
+  result.push(...workItems);
+
+  // If the host had a main-section-header (carrying sidebar-add-project-button),
+  // place it at the very tail of the array so triggers remain connected in the React tree
+  // without creating a gap between pinned conversations and the first project.
+  if (mainSectionHeaderItem) {
+    result.push(mainSectionHeaderItem);
   }
 
-  result.push(...workItems);
   return result;
 }
 
