@@ -225,21 +225,44 @@ div.bg-border.flex-shrink-0.w-\[1px\] {
   user-select: none !important;
 }
 
-/* Collapsed logo: hide duplicate logo button so sidebar-toggle acts as the primary expand button */
+/* Collapsed logo: acts as primary 32x32 expand button in 52px rail */
 [role="navigation"][aria-label="Sidebar"][data-collapsed="true"] .gemini-logo-btn,
 html[data-sidebar-collapsed="true"] [role="navigation"][aria-label="Sidebar"] .gemini-logo-btn,
 html:has([data-testid="sidebar-toggle"][aria-expanded="false"]) .gemini-logo-btn {
-  display: none !important;
+  display: flex !important;
+  margin-left: auto !important;
+  margin-right: auto !important;
+  cursor: pointer !important;
+  z-index: 20 !important;
+}
+
+[role="navigation"][aria-label="Sidebar"][data-collapsed="true"] .gemini-logo-btn:hover,
+html[data-sidebar-collapsed="true"] [role="navigation"][aria-label="Sidebar"] .gemini-logo-btn:hover,
+html:has([data-testid="sidebar-toggle"][aria-expanded="false"]) .gemini-logo-btn:hover {
+  background-color: rgba(255, 255, 255, 0.08) !important;
+}
+
+[role="navigation"][aria-label="Sidebar"][data-collapsed="true"] .gemini-logo-btn:hover .gemini-logo-wrap,
+html[data-sidebar-collapsed="true"] [role="navigation"][aria-label="Sidebar"] .gemini-logo-btn:hover .gemini-logo-wrap,
+html:has([data-testid="sidebar-toggle"][aria-expanded="false"]) .gemini-logo-btn:hover .gemini-logo-wrap {
+  opacity: 0 !important;
+}
+
+[role="navigation"][aria-label="Sidebar"][data-collapsed="true"] .gemini-logo-btn:hover .gemini-logo-expand-wrap,
+html[data-sidebar-collapsed="true"] [role="navigation"][aria-label="Sidebar"] .gemini-logo-btn:hover .gemini-logo-expand-wrap,
+html:has([data-testid="sidebar-toggle"][aria-expanded="false"]) .gemini-logo-btn:hover .gemini-logo-expand-wrap {
+  opacity: 1 !important;
+  transform: scale(1) !important;
 }
 
 /* Expanded logo: default cursor, expand icon hidden */
-[role="navigation"][aria-label="Sidebar"]:not([data-collapsed="true"]) .gemini-logo-btn {
+[role="navigation"][aria-label="Sidebar"]:not([data-collapsed="true"]):not(html[data-sidebar-collapsed="true"] *):not(html:has([data-testid="sidebar-toggle"][aria-expanded="false"]) *) .gemini-logo-btn {
   cursor: default !important;
 }
-[role="navigation"][aria-label="Sidebar"]:not([data-collapsed="true"]) .gemini-logo-btn:hover {
+[role="navigation"][aria-label="Sidebar"]:not([data-collapsed="true"]):not(html[data-sidebar-collapsed="true"] *):not(html:has([data-testid="sidebar-toggle"][aria-expanded="false"]) *) .gemini-logo-btn:hover {
   background-color: transparent !important;
 }
-[role="navigation"][aria-label="Sidebar"]:not([data-collapsed="true"]) .gemini-logo-expand-wrap {
+[role="navigation"][aria-label="Sidebar"]:not([data-collapsed="true"]):not(html[data-sidebar-collapsed="true"] *):not(html:has([data-testid="sidebar-toggle"][aria-expanded="false"]) *) .gemini-logo-expand-wrap {
   display: none !important;
 }
 
@@ -321,6 +344,7 @@ div:has(+ div > [data-testid="sidebar-toggle"]):has(svg),
  * the font for the same shape. Hide whatever the button nests inside its span
  * rather than the svg alone — the svg sits under an `absolute inset-0` wrapper,
  * so hiding the wrapper is what actually removes it. */
+[data-testid="sidebar-toggle"] svg,
 [data-testid="sidebar-toggle"] > span:first-child > * {
   display: none !important;
 }
@@ -333,12 +357,13 @@ div:has(+ div > [data-testid="sidebar-toggle"]):has(svg),
   justify-content: center !important;
 }
 
+[data-testid="sidebar-toggle"]::before,
 [data-testid="sidebar-toggle"] > span:first-child::before {
   content: "side_nav" !important;
   font-family: var(--gemini-icon-font, "Luminous Symbols"), "Google Symbols", "Material Symbols Rounded", sans-serif !important;
   font-variation-settings: var(--gemini-icon-axes, "FILL" 0, "wght" 300, "GRAD" 0, "ROND" 100, "opsz" 24) !important;
-  font-size: 24px !important;
-  line-height: 24px !important;
+  font-size: 20px !important;
+  line-height: 20px !important;
   width: 24px !important;
   height: 24px !important;
   display: inline-flex !important;
@@ -355,6 +380,7 @@ div:has(+ div > [data-testid="sidebar-toggle"]):has(svg),
   transition: transform 200ms ease !important;
 }
 
+[data-testid="sidebar-toggle"]:active::before,
 [data-testid="sidebar-toggle"]:active > span:first-child::before {
   transform: scale(0.9) !important;
 }
@@ -378,9 +404,13 @@ div:has(> [role="navigation"][aria-label="Sidebar"][data-collapsed="true"]) ~ * 
   animation: none !important;
 }
 
+.absolute.top-0 [data-testid="sidebar-toggle"][aria-expanded="false"]::before,
 .absolute.top-0 [data-testid="sidebar-toggle"][aria-expanded="false"] > span:first-child::before,
+html[data-sidebar-collapsed="true"] .absolute.top-0 [data-testid="sidebar-toggle"]::before,
 html[data-sidebar-collapsed="true"] .absolute.top-0 [data-testid="sidebar-toggle"] > span:first-child::before,
+[data-testid="sidebar-toggle"][aria-expanded="false"]:not([class*="group/file-row"] *)::before,
 [data-testid="sidebar-toggle"][aria-expanded="false"]:not([class*="group/file-row"] *) > span:first-child::before,
+html[data-sidebar-collapsed="true"] [data-testid="sidebar-toggle"]:not([class*="group/file-row"] *)::before,
 html[data-sidebar-collapsed="true"] [data-testid="sidebar-toggle"]:not([class*="group/file-row"] *) > span:first-child::before {
   content: "side_nav_expand" !important;
 }
@@ -538,8 +568,8 @@ html:has([data-testid="sidebar-toggle"][aria-expanded="false"]) .gemini-experien
   pointer-events: none !important;
 }
 
-/* Gemini animates the slider's transform over 320ms on Apple's liquid kinetic curve
- * (cubic-bezier(0.16, 1, 0.3, 1)) for buttery smooth fluid transition between Chat and Work */
+/* Gemini animates the slider's transform over 280ms on Apple's liquid kinetic curve
+ * (cubic-bezier(0.16, 1, 0.3, 1)) for buttery smooth 60 FPS GPU transition between Chat and Work */
 #gemini-experience-switch [data-gemini-experience-slider] {
   position: absolute;
   top: 2px;
@@ -550,19 +580,23 @@ html:has([data-testid="sidebar-toggle"][aria-expanded="false"]) .gemini-experien
   background-color: var(--gemini-switch-slider, #242426);
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.45), inset 0 0.5px 0 rgba(255, 255, 255, 0.12);
   transform: translate3d(0, 0, 0);
-  transition: transform 320ms cubic-bezier(0.16, 1, 0.3, 1),
-              background-color 200ms cubic-bezier(0.16, 1, 0.3, 1),
-              opacity 150ms ease !important;
-  pointer-events: none;
   will-change: transform;
+  transition: transform 280ms cubic-bezier(0.16, 1, 0.3, 1),
+              background-color 200ms cubic-bezier(0.16, 1, 0.3, 1),
+              opacity 150ms ease;
+  pointer-events: none;
 }
 
 #gemini-experience-switch[data-gemini-experience="chat"] [data-gemini-experience-slider] {
-  transform: translate3d(0, 0, 0) !important;
+  transform: translate3d(0, 0, 0);
 }
 
 #gemini-experience-switch[data-gemini-experience="work"] [data-gemini-experience-slider] {
-  transform: translate3d(100%, 0, 0) !important;
+  transform: translate3d(100%, 0, 0);
+}
+
+#gemini-experience-switch [data-gemini-experience-track][data-dragging="true"] [data-gemini-experience-slider] {
+  transition: none !important;
 }
 
 #gemini-experience-switch [data-gemini-experience-track]:active [data-gemini-experience-slider] {
@@ -660,9 +694,11 @@ html:has([data-testid="sidebar-toggle"][aria-expanded="false"]) .gemini-experien
   min-width: 0;
   height: 100%;
   padding: 0;
-  border: 0;
+  border: 0 !important;
+  outline: none !important;
+  box-shadow: none !important;
   border-radius: 9999px;
-  background: transparent;
+  background: transparent !important;
   font-family: var(--gemini-font);
   font-variation-settings: var(--gemini-font-axes);
   font-size: 13px;
@@ -672,6 +708,7 @@ html:has([data-testid="sidebar-toggle"][aria-expanded="false"]) .gemini-experien
   cursor: pointer;
   transition: color 240ms cubic-bezier(0.16, 1, 0.3, 1) !important;
   appearance: none;
+  -webkit-tap-highlight-color: transparent;
 }
 
 #gemini-experience-switch [data-gemini-experience-tab][aria-pressed="true"] {
@@ -684,11 +721,10 @@ html:has([data-testid="sidebar-toggle"][aria-expanded="false"]) .gemini-experien
   color: var(--gemini-body-text, #e3e3e3);
 }
 
-/* Willow's tabs show no focus ring, but they are reachable by keyboard here as
- * there, so one is drawn inside the tab's own box where nothing clips it. */
+#gemini-experience-switch [data-gemini-experience-tab]:focus,
 #gemini-experience-switch [data-gemini-experience-tab]:focus-visible {
-  outline: 2px solid rgba(255, 255, 255, 0.25);
-  outline-offset: -2px;
+  outline: none !important;
+  box-shadow: none !important;
 }
 
 #gemini-experience-switch [data-gemini-experience-label] {

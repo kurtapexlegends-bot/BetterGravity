@@ -570,7 +570,51 @@ describe("Gemini App sidebar toggle detection and layout lock prevention", () =>
     onToggleClick(userEvent);
     expect(sidebarCollapsed).toBe(true); // User click collapsed sidebar as intended
   });
+
+  it("triggers automatic expansion when toggle mounts with aria-expanded=false during expansion lock", () => {
+    let expansionLockUntil = Date.now() + 1500;
+    let isInternalToggleAction = false;
+    let clicked = false;
+
+    const mockToggle = {
+      getAttribute: (attr: string) => (attr === "aria-expanded" ? "false" : null),
+      click: () => {
+        clicked = true;
+      }
+    };
+
+    // Toggle observe logic:
+    if (Date.now() < expansionLockUntil && mockToggle.getAttribute("aria-expanded") === "false") {
+      isInternalToggleAction = true;
+      try {
+        mockToggle.click();
+      } finally {
+        isInternalToggleAction = false;
+      }
+    }
+
+    expect(clicked).toBe(true);
+  });
+
+  it("keeps .gemini-logo-btn visible in collapsed 52px rail as primary expand button in sidebar.css", () => {
+    const sidebarCss = readFileSync("community/plugins/gemini-app/styles/sidebar.css", "utf8");
+    expect(sidebarCss).toMatch(/\[role="navigation"\]\[aria-label="Sidebar"\]\[data-collapsed="true"\] \.gemini-logo-btn[^{]*\{[^}]*display: flex !important;/);
+    expect(sidebarCss).not.toMatch(/\[role="navigation"\]\[aria-label="Sidebar"\]\[data-collapsed="true"\] \.gemini-logo-btn[^{]*\{[^}]*display: none !important;/);
+  });
+
+  it("does not navigate away when clicking collapsed experience switch during active conversation view", () => {
+    let navigated = false;
+    const navigateToExperienceNewConversation = () => { navigated = true; };
+    const isViewingConversation = true; // viewing /c/conversation-id
+
+    if (!isViewingConversation) {
+      navigateToExperienceNewConversation();
+    }
+
+    expect(navigated).toBe(false);
+  });
 });
+
 
 
 

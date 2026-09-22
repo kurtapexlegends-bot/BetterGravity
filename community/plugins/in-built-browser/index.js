@@ -528,7 +528,12 @@ const options = plugin.settings.define({
   status: { type: "note", label: "Browser tools", read: () => plugin.browser?.available ? "Tools follow this plugin's enabled state. Developer tools are controlled separately in Browser settings." : "Restart Antigravity after the runtime update to activate the native browser." }
 });
 
-function currentContext() { return location.pathname.match(/\/c\/([^/]+)/)?.[1] || location.pathname || "default"; }
+function currentContext() {
+  const match = location.pathname.match(/\/c\/([^/]+)/)?.[1];
+  if (match) return match;
+  if (!location.pathname || location.pathname === "/") return "home";
+  return location.pathname || "default";
+}
 function activeConversationContext() {
   const id = location.pathname.match(/\/c\/([^/]+)/)?.[1];
   const conversation = document.querySelector('[data-testid="conversation-view"]');
@@ -635,7 +640,7 @@ function button(label, icon, action, className = "bg-browser-icon") {
 function showError(error) {
   if (disposed || !errorBox) return;
   const message = error?.message || String(error);
-  if (message.includes("is no longer open") || message.includes("runtime update is ready")) return;
+  if (message.includes("is no longer open") || message.includes("runtime update is ready") || message.includes("no longer displayed")) return;
   errorBox.textContent = message;
   errorBox.hidden = false;
   scheduleBounds();
@@ -1699,6 +1704,8 @@ function changesBrowserStructure(records) {
   for (const record of records) {
     const target = record.target;
     if (root?.contains(target)) continue;
+    if (target === tabHost || target?.closest?.('[data-bg-browser-tab-host]')) continue;
+    if (target === toolbar && (record.addedNodes?.[0]?.hasAttribute?.('data-bg-browser-tab-host') || record.removedNodes?.[0]?.hasAttribute?.('data-bg-browser-tab-host'))) continue;
     if (target.closest?.(CHAT_CONTENT) && !target.closest(OVERLAYS)) {
       if (record.type === "attributes") {
         if (record.attributeName === "data-tooltip-id" && target.getAttribute("data-tooltip-id") === "input-send-button-cancel-tooltip") return true;

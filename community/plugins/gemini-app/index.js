@@ -2882,8 +2882,8 @@ function markExperience(pill, selected, shouldRerender = true) {
     const isWork = selected === "work";
     collapsedBtn.setAttribute("aria-pressed", String(isWork));
     const nextTarget = isWork ? "Chat" : "Work";
-    collapsedBtn.title = `Switch to ${nextTarget}`;
-    collapsedBtn.setAttribute("aria-label", `Switch to ${nextTarget}`);
+    collapsedBtn.title = `Toggle Chat / Work (Switch to ${nextTarget})`;
+    collapsedBtn.setAttribute("aria-label", `Toggle Chat / Work (Switch to ${nextTarget})`);
     collapsedBtn.removeAttribute("data-willow-tooltip");
   }
 
@@ -3118,37 +3118,60 @@ function buildExperienceSwitch() {
   }
   track.append(tabsWrap);
 
-  // Enable sliding/dragging between Chat and Work (Liquid Touch/Pointer Gesture)
+  // Enable sliding/dragging between Chat and Work (60 FPS Liquid Touch/Pointer Gesture)
   let startX = 0;
   let isDragging = false;
   let startExp = "chat";
   let activePointerId = null;
+  let trackWidth = 0;
+  let trackLeft = 0;
+  let sliderTravel = 0;
+  let currentDeltaX = 0;
+  let dragRafId = 0;
+
+  const updateSliderPosition = () => {
+    dragRafId = 0;
+    if (!isDragging) return;
+    const baseOffset = startExp === "work" ? sliderTravel : 0;
+    const rawOffset = baseOffset + currentDeltaX;
+    // Rubberband resistance if dragged past bounds
+    let offset;
+    if (rawOffset < 0) {
+      offset = rawOffset * 0.28;
+    } else if (rawOffset > sliderTravel) {
+      offset = sliderTravel + (rawOffset - sliderTravel) * 0.28;
+    } else {
+      offset = rawOffset;
+    }
+    slider.style.setProperty("transform", `translate3d(${offset}px, 0, 0)`, "important");
+  };
 
   track.addEventListener("pointerdown", (e) => {
     if (e.button !== 0 && e.pointerType === "mouse") return;
+    const rect = track.getBoundingClientRect();
+    trackWidth = rect.width;
+    trackLeft = rect.left;
+    sliderTravel = Math.max(1, rect.width / 2 - 2);
     startX = e.clientX;
+    currentDeltaX = 0;
     isDragging = false;
     startExp = pill.dataset.geminiExperience || getStoredExperience();
     activePointerId = e.pointerId;
-    try {
-      track.setPointerCapture(e.pointerId);
-    } catch {}
   });
 
   track.addEventListener("pointermove", (e) => {
     if (activePointerId === null || e.pointerId !== activePointerId) return;
-    const deltaX = e.clientX - startX;
-    if (!isDragging && Math.abs(deltaX) > 4) {
+    currentDeltaX = e.clientX - startX;
+    if (!isDragging && Math.abs(currentDeltaX) > 4) {
       isDragging = true;
+      track.setAttribute("data-dragging", "true");
+      slider.style.setProperty("transition", "none", "important");
+      try {
+        track.setPointerCapture(activePointerId);
+      } catch {}
     }
-    if (isDragging) {
-      const trackRect = track.getBoundingClientRect();
-      const halfWidth = trackRect.width / 2;
-      const baseTranslate = startExp === "work" ? (halfWidth - 2) : 0;
-      const clampedTranslate = Math.max(0, Math.min(halfWidth - 2, baseTranslate + deltaX));
-      const stretch = 1 + Math.min(0.08, Math.abs(deltaX) / (trackRect.width * 3));
-      slider.style.transition = "none";
-      slider.style.transform = `translate3d(${clampedTranslate}px, 0, 0) scaleX(${stretch})`;
+    if (isDragging && !dragRafId) {
+      dragRafId = requestAnimationFrame(updateSliderPosition);
     }
   });
 
@@ -3156,21 +3179,26 @@ function buildExperienceSwitch() {
     if (activePointerId === null || e.pointerId !== activePointerId) return;
     const pointerId = activePointerId;
     activePointerId = null;
+    if (dragRafId) {
+      cancelAnimationFrame(dragRafId);
+      dragRafId = 0;
+    }
     try {
       track.releasePointerCapture(pointerId);
     } catch {}
 
-    slider.style.transition = "";
-    slider.style.transform = "";
-    slider.style.left = "";
+    track.removeAttribute("data-dragging");
+    slider.style.removeProperty("transition");
+    slider.style.removeProperty("transform");
+    slider.style.removeProperty("left");
 
     if (isDragging) {
+      isDragging = false;
       justDragged = true;
-      setTimeout(() => { justDragged = false; }, 100);
+      setTimeout(() => { justDragged = false; }, 120);
 
       const deltaX = e.clientX - startX;
-      const trackRect = track.getBoundingClientRect();
-      const threshold = Math.max(16, trackRect.width * 0.18);
+      const threshold = Math.max(16, (trackWidth || 200) * 0.18);
       let target = startExp;
 
       if (startExp === "chat" && deltaX > threshold) {
@@ -3178,8 +3206,8 @@ function buildExperienceSwitch() {
       } else if (startExp === "work" && deltaX < -threshold) {
         target = "chat";
       } else if (Math.abs(deltaX) >= threshold) {
-        const relativeX = e.clientX - trackRect.left;
-        target = relativeX > trackRect.width / 2 ? "work" : "chat";
+        const relativeX = e.clientX - trackLeft;
+        target = relativeX > (trackWidth / 2) ? "work" : "chat";
       }
 
       if (target !== startExp) {
@@ -3213,7 +3241,10 @@ function buildExperienceSwitch() {
     const current = pill.dataset.geminiExperience || getStoredExperience();
     const next = current === "chat" ? "work" : "chat";
     markExperience(pill, next, true);
-    navigateToExperienceNewConversation(next);
+    const isViewingConversation = typeof window !== 'undefined' && window.location.pathname.includes('/c/');
+    if (!isViewingConversation) {
+      navigateToExperienceNewConversation(next);
+    }
   });
   track.append(collapsedBtn);
 
@@ -5037,6 +5068,7 @@ function isPinnedTopNavItem(node) {
 }
 
 const observedTopNavs = new WeakSet();
+const persistentAdoptedTopNavItems = new Set();
 
 let isShortcutsSectionCollapsed = false;
 try {
@@ -5108,17 +5140,21 @@ function ensureScrollNav() {
 
   const topRows = topRowIds
     .map((id) => document.getElementById(id))
-    .filter((row) => row && row.parentElement === block);
+    .filter(Boolean);
 
   const bottomRows = (isWork ? ['gemini-display-options-button'] : [])
     .map((id) => document.getElementById(id))
-    .filter((row) => row && row.parentElement === block);
+    .filter(Boolean);
 
   // Global rule: only New Conversation remains permanently pinned at the top.
   // History and other items in topNav are adopted into the collapsible scroll block.
   const unpinnedTopNavItems = topNav
     ? Array.from(topNav.children).filter((child) => !isPinnedTopNavItem(child))
     : [];
+
+  for (const item of unpinnedTopNavItems) {
+    persistentAdoptedTopNavItems.add(item);
+  }
 
   const existingAdoptedInBlock = Array.from(block.children).filter((child) => {
     return child.id !== 'gemini-skills-button' &&
@@ -5128,14 +5164,24 @@ function ensureScrollNav() {
            child.id !== 'gemini-display-options-button';
   });
 
+  for (const item of existingAdoptedInBlock) {
+    persistentAdoptedTopNavItems.add(item);
+  }
+
   const otherPluginButtons = Array.from(
     document.querySelectorAll('[role="navigation"][aria-label="Sidebar"] [data-bettergravity-button]')
   ).filter((b) => b.parentElement !== block && !isPinnedTopNavItem(b));
 
   const adoptedPluginItems = [];
   const seenNodes = new Set();
-  for (const item of [...existingAdoptedInBlock, ...unpinnedTopNavItems, ...otherPluginButtons]) {
-    if (!seenNodes.has(item)) {
+  const allCandidates = [
+    ...existingAdoptedInBlock,
+    ...unpinnedTopNavItems,
+    ...persistentAdoptedTopNavItems,
+    ...otherPluginButtons
+  ];
+  for (const item of allCandidates) {
+    if (item && item.isConnected !== false && !seenNodes.has(item)) {
       seenNodes.add(item);
       adoptedPluginItems.push(item);
     }
@@ -5282,6 +5328,14 @@ plugin.dom.observe(`${SIDEBAR_SELECTOR} > div.shrink-0.flex.items-center`, (head
 });
 
 plugin.dom.observe(TOGGLE_SELECTOR, (toggle) => {
+  if (Date.now() < expansionLockUntil && toggle.getAttribute("aria-expanded") === "false") {
+    isInternalToggleAction = true;
+    try {
+      toggle.click();
+    } finally {
+      isInternalToggleAction = false;
+    }
+  }
   const sidebar = document.querySelector(SIDEBAR_SELECTOR);
   if (sidebar) syncSidebarState(sidebar);
   listenToElement(toggle, "click", (e) => {
@@ -5312,7 +5366,7 @@ plugin.dom.observe(TOGGLE_SELECTOR, (toggle) => {
       document.documentElement.setAttribute("data-sidebar-collapsed", String(willCollapse));
       const grandParent = sb.parentElement?.parentElement;
       if (grandParent) enforceSidebarGeometry(grandParent, willCollapse);
-      ensureExperienceSwitch(sb);
+      syncSidebarState(sb);
     }
   });
   const toggleObserver = new MutationObserver(() => {

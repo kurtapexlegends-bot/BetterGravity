@@ -398,7 +398,8 @@ div[data-testid="conversation-row-sidebar"][data-selected="true"],
   cursor: grab !important;
 }
 
-#gemini-experience-switch [data-gemini-experience-track]:active {
+#gemini-experience-switch [data-gemini-experience-track]:active,
+#gemini-experience-switch [data-gemini-experience-track][data-dragging="true"] {
   cursor: grabbing !important;
 }
 
@@ -409,8 +410,21 @@ div[data-testid="conversation-row-sidebar"][data-selected="true"],
   border: 1px solid rgba(255, 255, 255, 0.10) !important;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5), var(--apple-specular) !important;
   border-radius: 9999px !important;
-  will-change: left, transform;
-  transition: left 240ms var(--apple-ease-spring), width 240ms var(--apple-ease-spring), transform 220ms var(--apple-ease-spring) !important;
+  transform: translate3d(0, 0, 0);
+  will-change: transform;
+  transition: transform 260ms var(--apple-ease-spring), width 260ms var(--apple-ease-spring) !important;
+}
+
+#gemini-experience-switch[data-gemini-experience="chat"] [data-gemini-experience-slider] {
+  transform: translate3d(0, 0, 0) !important;
+}
+
+#gemini-experience-switch[data-gemini-experience="work"] [data-gemini-experience-slider] {
+  transform: translate3d(100%, 0, 0) !important;
+}
+
+#gemini-experience-switch [data-gemini-experience-track][data-dragging="true"] [data-gemini-experience-slider] {
+  transition: none !important;
 }
 
 /* Settings Button (Bottom Right of Sidebar) */

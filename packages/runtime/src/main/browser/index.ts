@@ -371,7 +371,7 @@ export class InBuiltBrowserService {
   assertAgent(host: BrowserHost, epoch = host.epoch, generation = this.generation): void {
     this.requireEnabled();
     if (generation !== this.generation || epoch !== host.epoch || !this.hosts.has(host.id)) throw new Error("The browser action was cancelled.");
-    if (host.owner.isDestroyed() || this.selectedHosts.get(host.owner.id) !== host.id || this.currentContext(host.owner) !== host.context) throw new Error("This browser belongs to another conversation. Select the current conversation's browser with get_browser({id: 'iab'}).");
+    if (host.owner.isDestroyed() || this.selectedHosts.get(host.owner.id) !== host.id || !this.isMatchingContext(this.currentContext(host.owner), host.context)) throw new Error("This browser belongs to another conversation. Select the current conversation's browser with get_browser({id: 'iab'}).");
     if (host.paused) throw new Error("Browser control is paused. The user can resume it in the browser pane.");
   }
 
@@ -436,13 +436,21 @@ export class InBuiltBrowserService {
   private hostForTab(contentsId: number): BrowserHost | undefined {
     const tab = [...this.allTabs.values()].find(tab => !tab.destroyed && tab.contents.id === contentsId);
     if (!tab) return;
-    const hosts = [...this.hosts.values()].filter(host => !host.owner.isDestroyed() && host.tabs.has(tab.id) && this.selectedHosts.get(host.owner.id) === host.id && this.currentContext(host.owner) === host.context);
+    const hosts = [...this.hosts.values()].filter(host => !host.owner.isDestroyed() && host.tabs.has(tab.id) && this.selectedHosts.get(host.owner.id) === host.id && this.isMatchingContext(this.currentContext(host.owner), host.context));
     return hosts.find(host => host.attachedTab === tab) ?? hosts.find(host => host.window.isFocused()) ?? hosts.at(-1);
   }
 
   private currentContext(owner: WebContents): string {
     const pathname = new URL(owner.getURL()).pathname;
-    return pathname.match(/\/c\/([^/]+)/)?.[1] ?? pathname;
+    const match = pathname.match(/\/c\/([^/]+)/)?.[1];
+    if (match) return match;
+    if (!pathname || pathname === "/") return "home";
+    return pathname;
+  }
+
+  private isMatchingContext(a: string, b: string): boolean {
+    if (a === b) return true;
+    return (a === "home" || a === "/") && (b === "home" || b === "/");
   }
 
   private assertOwner(owner: WebContents): void {
@@ -455,7 +463,8 @@ export class InBuiltBrowserService {
     const window = BrowserWindow.fromWebContents(owner);
     if (!window) throw new Error("The host window is unavailable.");
     const safeContext = context.slice(0, 250) || "default";
-    if (safeContext !== this.currentContext(owner)) throw new Error("This browser request belongs to a conversation that is no longer displayed.");
+    const current = this.currentContext(owner);
+    if (!this.isMatchingContext(safeContext, current)) throw new Error("This browser request belongs to a conversation that is no longer displayed.");
     const id = `${owner.id}:${safeContext}`;
     const switched = this.selectedHosts.get(owner.id) !== id;
     for (const old of this.hosts.values()) if (old.owner === owner && old.id !== id) { if (old.operations.size) this.cancelActions(old); this.detachView(old); }
@@ -791,9 +800,10 @@ export class InBuiltBrowserService {
       return;
     }
     const context = String(args.context ?? this.currentContext(owner));
+    const current = this.currentContext(owner);
     // Replies can arrive after a SPA navigation. They must never reactivate
     // the old conversation or detach the view now displayed by the new one.
-    if (context !== this.currentContext(owner) && ["detach", "hide", "present-frame", "cursor-arrived", "input", "response-state"].includes(action)) return {};
+    if (!this.isMatchingContext(context, current) && ["attach", "state", "detach", "hide", "present-frame", "cursor-arrived", "input", "response-state"].includes(action)) return {};
     const host = this.attach(owner, context);
     const active = () => this.findTab(host, args.tabId);
     const safeActive = () => {
