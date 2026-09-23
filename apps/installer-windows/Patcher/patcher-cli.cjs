@@ -4075,7 +4075,7 @@ function inspectInstallation(installationPath) {
     const marker = readMarker(paths.currentAsar);
     if (!marker) {
       const host2 = readHostManifest(paths.currentAsar);
-      const wasPatched = fs.existsSync(paths.originalAsar);
+      const wasPatched = fs.existsSync(paths.originalAsar) || fs.existsSync(paths.runtimeCode);
       return {
         kind: wasPatched ? "needs-repatch" : "detected",
         patchState: wasPatched ? "needs-repatch" : "unpatched",

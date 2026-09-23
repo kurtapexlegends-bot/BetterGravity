@@ -4,7 +4,14 @@ import { logger } from "./logger.js";
 import { applySourcePatches, type PluginPatches } from "./source-patch.js";
 
 /** Antigravity serves its interface from a language server bound to loopback. */
-const HOST_ORIGIN_PREFIX = "https://127.0.0.1:";
+function isLoopbackUrl(url: string): boolean {
+  return (
+    url.startsWith("https://127.0.0.1:") ||
+    url.startsWith("https://localhost:") ||
+    url.startsWith("http://127.0.0.1:") ||
+    url.startsWith("http://localhost:")
+  );
+}
 
 /** Patched bundles keyed by source hash, so a window reload costs nothing. */
 const cache = new Map<string, string>();
@@ -17,7 +24,7 @@ function signature(sets: readonly PluginPatches[]): string {
 }
 
 function isBundle(url: string): boolean {
-  if (!url.startsWith(HOST_ORIGIN_PREFIX)) return false;
+  if (!isLoopbackUrl(url)) return false;
   try {
     return new URL(url).pathname.endsWith(".js");
   } catch {

@@ -2,7 +2,14 @@ import type { Session } from "electron";
 import { logger } from "./logger.js";
 
 /** Antigravity serves its UI from a language server bound to loopback. */
-const HOST_ORIGIN_PREFIX = "https://127.0.0.1:";
+function isLoopbackUrl(url: string): boolean {
+  return (
+    url.startsWith("https://127.0.0.1:") ||
+    url.startsWith("https://localhost:") ||
+    url.startsWith("http://127.0.0.1:") ||
+    url.startsWith("http://localhost:")
+  );
+}
 
 /**
  * Antigravity 2.11 sends no CSP on its own pages, but that is an implementation
@@ -12,7 +19,7 @@ const HOST_ORIGIN_PREFIX = "https://127.0.0.1:";
 export function relaxContentSecurityPolicy(session: Session): void {
   let reported = false;
   session.webRequest.onHeadersReceived((details, callback) => {
-    if (!details.url.startsWith(HOST_ORIGIN_PREFIX)) return callback({});
+    if (!isLoopbackUrl(details.url)) return callback({});
     const headers = details.responseHeaders ?? {};
     const present = Object.keys(headers).filter((key) => key.toLowerCase().startsWith("content-security-policy"));
     for (const key of present) delete headers[key];

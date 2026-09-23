@@ -58,7 +58,7 @@ export function inspectInstallation(installationPath: string): InstallationState
       // A stock bundle sitting next to a leftover _app.asar means Antigravity
       // updated itself and overwrote the patch.
       const host = readHostManifest(paths.currentAsar);
-      const wasPatched = fs.existsSync(paths.originalAsar);
+      const wasPatched = fs.existsSync(paths.originalAsar) || fs.existsSync(paths.runtimeCode);
       return {
         kind: wasPatched ? "needs-repatch" : "detected",
         patchState: wasPatched ? "needs-repatch" : "unpatched",

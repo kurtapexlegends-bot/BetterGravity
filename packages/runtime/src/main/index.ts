@@ -388,8 +388,28 @@ export function activate(context: RuntimeContext): void {
     return title.includes("BetterGravity") || title === "BetterGravity Overlay";
   };
 
+  const isTransientSetupWindow = (win: BrowserWindow): boolean => {
+    if (!win || win.isDestroyed()) return false;
+    const title = win.getTitle() || "";
+    if (
+      title.includes("Setting up Antigravity") ||
+      title.includes("Antigravity IDE Setup") ||
+      title.includes("Wizard")
+    ) {
+      return true;
+    }
+    try {
+      const url = win.webContents.getURL() || "";
+      if (url.startsWith("data:text/html")) return true;
+    } catch {}
+    return false;
+  };
+
+  let mainEditorHasOpened = false;
+
   const checkAppQuitOnLastEditorWindow = () => {
-    const editors = BrowserWindow.getAllWindows().filter((w) => !isHelperWindow(w));
+    if (!mainEditorHasOpened) return;
+    const editors = BrowserWindow.getAllWindows().filter((w) => !isHelperWindow(w) && !isTransientSetupWindow(w));
     if (editors.length === 0) {
       logger.info("All main editor windows closed. Disposing overlay and quitting process cleanly.");
       overlay.dispose();
@@ -399,6 +419,21 @@ export function activate(context: RuntimeContext): void {
 
   app.on("browser-window-created", (_event, win) => {
     if (!isHelperWindow(win)) {
+      const inspectUrl = () => {
+        try {
+          const url = win.webContents.getURL() || "";
+          if (
+            (url.startsWith("https://127.0.0.1:") || url.startsWith("https://localhost:") || url.startsWith("http://127.0.0.1:") || url.startsWith("http://localhost:")) &&
+            !isTransientSetupWindow(win)
+          ) {
+            mainEditorHasOpened = true;
+          }
+        } catch {}
+      };
+
+      win.webContents.once("did-finish-load", inspectUrl);
+      win.on("page-title-updated", inspectUrl);
+
       win.on("closed", () => {
         setTimeout(checkAppQuitOnLastEditorWindow, 150);
       });

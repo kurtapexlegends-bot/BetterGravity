@@ -25,9 +25,9 @@ var __toESM = (mod, isNodeMode, target) => (target = mod != null ? __create(__ge
   mod
 ));
 
-// ../../node_modules/.pnpm/concat-map@0.0.1/node_modules/concat-map/index.js
+// node_modules/.pnpm/concat-map@0.0.1/node_modules/concat-map/index.js
 var require_concat_map = __commonJS({
-  "../../node_modules/.pnpm/concat-map@0.0.1/node_modules/concat-map/index.js"(exports2, module2) {
+  "node_modules/.pnpm/concat-map@0.0.1/node_modules/concat-map/index.js"(exports2, module2) {
     module2.exports = function(xs, fn) {
       var res = [];
       for (var i = 0; i < xs.length; i++) {
@@ -43,9 +43,9 @@ var require_concat_map = __commonJS({
   }
 });
 
-// ../../node_modules/.pnpm/balanced-match@1.0.2/node_modules/balanced-match/index.js
+// node_modules/.pnpm/balanced-match@1.0.2/node_modules/balanced-match/index.js
 var require_balanced_match = __commonJS({
-  "../../node_modules/.pnpm/balanced-match@1.0.2/node_modules/balanced-match/index.js"(exports2, module2) {
+  "node_modules/.pnpm/balanced-match@1.0.2/node_modules/balanced-match/index.js"(exports2, module2) {
     "use strict";
     module2.exports = balanced;
     function balanced(a, b, str) {
@@ -101,9 +101,9 @@ var require_balanced_match = __commonJS({
   }
 });
 
-// ../../node_modules/.pnpm/brace-expansion@1.1.18/node_modules/brace-expansion/index.js
+// node_modules/.pnpm/brace-expansion@1.1.18/node_modules/brace-expansion/index.js
 var require_brace_expansion = __commonJS({
-  "../../node_modules/.pnpm/brace-expansion@1.1.18/node_modules/brace-expansion/index.js"(exports2, module2) {
+  "node_modules/.pnpm/brace-expansion@1.1.18/node_modules/brace-expansion/index.js"(exports2, module2) {
     var concatMap = require_concat_map();
     var balanced = require_balanced_match();
     module2.exports = expandTop;
@@ -339,9 +339,9 @@ var require_brace_expansion = __commonJS({
   }
 });
 
-// ../../node_modules/.pnpm/minimatch@3.1.5/node_modules/minimatch/minimatch.js
+// node_modules/.pnpm/minimatch@3.1.5/node_modules/minimatch/minimatch.js
 var require_minimatch = __commonJS({
-  "../../node_modules/.pnpm/minimatch@3.1.5/node_modules/minimatch/minimatch.js"(exports2, module2) {
+  "node_modules/.pnpm/minimatch@3.1.5/node_modules/minimatch/minimatch.js"(exports2, module2) {
     module2.exports = minimatch;
     minimatch.Minimatch = Minimatch;
     var path4 = (function() {
@@ -1011,9 +1011,9 @@ var require_minimatch = __commonJS({
   }
 });
 
-// ../../node_modules/.pnpm/@electron+asar@3.4.1/node_modules/@electron/asar/lib/wrapped-fs.js
+// node_modules/.pnpm/@electron+asar@3.4.1/node_modules/@electron/asar/lib/wrapped-fs.js
 var require_wrapped_fs = __commonJS({
-  "../../node_modules/.pnpm/@electron+asar@3.4.1/node_modules/@electron/asar/lib/wrapped-fs.js"(exports2) {
+  "node_modules/.pnpm/@electron+asar@3.4.1/node_modules/@electron/asar/lib/wrapped-fs.js"(exports2) {
     "use strict";
     Object.defineProperty(exports2, "__esModule", { value: true });
     var fs2 = "electron" in process.versions ? require("original-fs") : require("fs");
@@ -1040,9 +1040,9 @@ var require_wrapped_fs = __commonJS({
   }
 });
 
-// ../../node_modules/.pnpm/@electron+asar@3.4.1/node_modules/@electron/asar/lib/integrity.js
+// node_modules/.pnpm/@electron+asar@3.4.1/node_modules/@electron/asar/lib/integrity.js
 var require_integrity = __commonJS({
-  "../../node_modules/.pnpm/@electron+asar@3.4.1/node_modules/@electron/asar/lib/integrity.js"(exports2) {
+  "node_modules/.pnpm/@electron+asar@3.4.1/node_modules/@electron/asar/lib/integrity.js"(exports2) {
     "use strict";
     var __createBinding = exports2 && exports2.__createBinding || (Object.create ? (function(o, m, k, k2) {
       if (k2 === void 0) k2 = k;
@@ -1123,9 +1123,9 @@ var require_integrity = __commonJS({
   }
 });
 
-// ../../node_modules/.pnpm/@electron+asar@3.4.1/node_modules/@electron/asar/lib/filesystem.js
+// node_modules/.pnpm/@electron+asar@3.4.1/node_modules/@electron/asar/lib/filesystem.js
 var require_filesystem = __commonJS({
-  "../../node_modules/.pnpm/@electron+asar@3.4.1/node_modules/@electron/asar/lib/filesystem.js"(exports2) {
+  "node_modules/.pnpm/@electron+asar@3.4.1/node_modules/@electron/asar/lib/filesystem.js"(exports2) {
     "use strict";
     var __createBinding = exports2 && exports2.__createBinding || (Object.create ? (function(o, m, k, k2) {
       if (k2 === void 0) k2 = k;
@@ -1324,9 +1324,9 @@ var require_filesystem = __commonJS({
   }
 });
 
-// ../../node_modules/.pnpm/@electron+asar@3.4.1/node_modules/@electron/asar/lib/pickle.js
+// node_modules/.pnpm/@electron+asar@3.4.1/node_modules/@electron/asar/lib/pickle.js
 var require_pickle = __commonJS({
-  "../../node_modules/.pnpm/@electron+asar@3.4.1/node_modules/@electron/asar/lib/pickle.js"(exports2) {
+  "node_modules/.pnpm/@electron+asar@3.4.1/node_modules/@electron/asar/lib/pickle.js"(exports2) {
     "use strict";
     Object.defineProperty(exports2, "__esModule", { value: true });
     exports2.Pickle = void 0;
@@ -1502,9 +1502,9 @@ var require_pickle = __commonJS({
   }
 });
 
-// ../../node_modules/.pnpm/@electron+asar@3.4.1/node_modules/@electron/asar/lib/disk.js
+// node_modules/.pnpm/@electron+asar@3.4.1/node_modules/@electron/asar/lib/disk.js
 var require_disk = __commonJS({
-  "../../node_modules/.pnpm/@electron+asar@3.4.1/node_modules/@electron/asar/lib/disk.js"(exports2) {
+  "node_modules/.pnpm/@electron+asar@3.4.1/node_modules/@electron/asar/lib/disk.js"(exports2) {
     "use strict";
     var __createBinding = exports2 && exports2.__createBinding || (Object.create ? (function(o, m, k, k2) {
       if (k2 === void 0) k2 = k;
@@ -1729,9 +1729,9 @@ var require_disk = __commonJS({
   }
 });
 
-// ../../node_modules/.pnpm/fs.realpath@1.0.0/node_modules/fs.realpath/old.js
+// node_modules/.pnpm/fs.realpath@1.0.0/node_modules/fs.realpath/old.js
 var require_old = __commonJS({
-  "../../node_modules/.pnpm/fs.realpath@1.0.0/node_modules/fs.realpath/old.js"(exports2) {
+  "node_modules/.pnpm/fs.realpath@1.0.0/node_modules/fs.realpath/old.js"(exports2) {
     var pathModule = require("path");
     var isWindows = process.platform === "win32";
     var fs2 = require("fs");
@@ -1929,9 +1929,9 @@ var require_old = __commonJS({
   }
 });
 
-// ../../node_modules/.pnpm/fs.realpath@1.0.0/node_modules/fs.realpath/index.js
+// node_modules/.pnpm/fs.realpath@1.0.0/node_modules/fs.realpath/index.js
 var require_fs = __commonJS({
-  "../../node_modules/.pnpm/fs.realpath@1.0.0/node_modules/fs.realpath/index.js"(exports2, module2) {
+  "node_modules/.pnpm/fs.realpath@1.0.0/node_modules/fs.realpath/index.js"(exports2, module2) {
     module2.exports = realpath;
     realpath.realpath = realpath;
     realpath.sync = realpathSync;
@@ -1988,9 +1988,9 @@ var require_fs = __commonJS({
   }
 });
 
-// ../../node_modules/.pnpm/inherits@2.0.4/node_modules/inherits/inherits_browser.js
+// node_modules/.pnpm/inherits@2.0.4/node_modules/inherits/inherits_browser.js
 var require_inherits_browser = __commonJS({
-  "../../node_modules/.pnpm/inherits@2.0.4/node_modules/inherits/inherits_browser.js"(exports2, module2) {
+  "node_modules/.pnpm/inherits@2.0.4/node_modules/inherits/inherits_browser.js"(exports2, module2) {
     if (typeof Object.create === "function") {
       module2.exports = function inherits(ctor, superCtor) {
         if (superCtor) {
@@ -2020,9 +2020,9 @@ var require_inherits_browser = __commonJS({
   }
 });
 
-// ../../node_modules/.pnpm/inherits@2.0.4/node_modules/inherits/inherits.js
+// node_modules/.pnpm/inherits@2.0.4/node_modules/inherits/inherits.js
 var require_inherits = __commonJS({
-  "../../node_modules/.pnpm/inherits@2.0.4/node_modules/inherits/inherits.js"(exports2, module2) {
+  "node_modules/.pnpm/inherits@2.0.4/node_modules/inherits/inherits.js"(exports2, module2) {
     try {
       util = require("util");
       if (typeof util.inherits !== "function") throw "";
@@ -2034,9 +2034,9 @@ var require_inherits = __commonJS({
   }
 });
 
-// ../../node_modules/.pnpm/path-is-absolute@1.0.1/node_modules/path-is-absolute/index.js
+// node_modules/.pnpm/path-is-absolute@1.0.1/node_modules/path-is-absolute/index.js
 var require_path_is_absolute = __commonJS({
-  "../../node_modules/.pnpm/path-is-absolute@1.0.1/node_modules/path-is-absolute/index.js"(exports2, module2) {
+  "node_modules/.pnpm/path-is-absolute@1.0.1/node_modules/path-is-absolute/index.js"(exports2, module2) {
     "use strict";
     function posix(path4) {
       return path4.charAt(0) === "/";
@@ -2054,9 +2054,9 @@ var require_path_is_absolute = __commonJS({
   }
 });
 
-// ../../node_modules/.pnpm/glob@7.2.3/node_modules/glob/common.js
+// node_modules/.pnpm/glob@7.2.3/node_modules/glob/common.js
 var require_common = __commonJS({
-  "../../node_modules/.pnpm/glob@7.2.3/node_modules/glob/common.js"(exports2) {
+  "node_modules/.pnpm/glob@7.2.3/node_modules/glob/common.js"(exports2) {
     exports2.setopts = setopts;
     exports2.ownProp = ownProp;
     exports2.makeAbs = makeAbs;
@@ -2248,9 +2248,9 @@ var require_common = __commonJS({
   }
 });
 
-// ../../node_modules/.pnpm/glob@7.2.3/node_modules/glob/sync.js
+// node_modules/.pnpm/glob@7.2.3/node_modules/glob/sync.js
 var require_sync = __commonJS({
-  "../../node_modules/.pnpm/glob@7.2.3/node_modules/glob/sync.js"(exports2, module2) {
+  "node_modules/.pnpm/glob@7.2.3/node_modules/glob/sync.js"(exports2, module2) {
     module2.exports = globSync;
     globSync.GlobSync = GlobSync;
     var rp = require_fs();
@@ -2603,9 +2603,9 @@ var require_sync = __commonJS({
   }
 });
 
-// ../../node_modules/.pnpm/wrappy@1.0.2/node_modules/wrappy/wrappy.js
+// node_modules/.pnpm/wrappy@1.0.2/node_modules/wrappy/wrappy.js
 var require_wrappy = __commonJS({
-  "../../node_modules/.pnpm/wrappy@1.0.2/node_modules/wrappy/wrappy.js"(exports2, module2) {
+  "node_modules/.pnpm/wrappy@1.0.2/node_modules/wrappy/wrappy.js"(exports2, module2) {
     module2.exports = wrappy;
     function wrappy(fn, cb) {
       if (fn && cb) return wrappy(fn)(cb);
@@ -2633,9 +2633,9 @@ var require_wrappy = __commonJS({
   }
 });
 
-// ../../node_modules/.pnpm/once@1.4.0/node_modules/once/once.js
+// node_modules/.pnpm/once@1.4.0/node_modules/once/once.js
 var require_once = __commonJS({
-  "../../node_modules/.pnpm/once@1.4.0/node_modules/once/once.js"(exports2, module2) {
+  "node_modules/.pnpm/once@1.4.0/node_modules/once/once.js"(exports2, module2) {
     var wrappy = require_wrappy();
     module2.exports = wrappy(once);
     module2.exports.strict = wrappy(onceStrict);
@@ -2677,9 +2677,9 @@ var require_once = __commonJS({
   }
 });
 
-// ../../node_modules/.pnpm/inflight@1.0.6/node_modules/inflight/inflight.js
+// node_modules/.pnpm/inflight@1.0.6/node_modules/inflight/inflight.js
 var require_inflight = __commonJS({
-  "../../node_modules/.pnpm/inflight@1.0.6/node_modules/inflight/inflight.js"(exports2, module2) {
+  "node_modules/.pnpm/inflight@1.0.6/node_modules/inflight/inflight.js"(exports2, module2) {
     var wrappy = require_wrappy();
     var reqs = /* @__PURE__ */ Object.create(null);
     var once = require_once();
@@ -2723,9 +2723,9 @@ var require_inflight = __commonJS({
   }
 });
 
-// ../../node_modules/.pnpm/glob@7.2.3/node_modules/glob/glob.js
+// node_modules/.pnpm/glob@7.2.3/node_modules/glob/glob.js
 var require_glob = __commonJS({
-  "../../node_modules/.pnpm/glob@7.2.3/node_modules/glob/glob.js"(exports2, module2) {
+  "node_modules/.pnpm/glob@7.2.3/node_modules/glob/glob.js"(exports2, module2) {
     module2.exports = glob;
     var rp = require_fs();
     var minimatch = require_minimatch();
@@ -3279,9 +3279,9 @@ var require_glob = __commonJS({
   }
 });
 
-// ../../node_modules/.pnpm/@electron+asar@3.4.1/node_modules/@electron/asar/lib/crawlfs.js
+// node_modules/.pnpm/@electron+asar@3.4.1/node_modules/@electron/asar/lib/crawlfs.js
 var require_crawlfs = __commonJS({
-  "../../node_modules/.pnpm/@electron+asar@3.4.1/node_modules/@electron/asar/lib/crawlfs.js"(exports2) {
+  "node_modules/.pnpm/@electron+asar@3.4.1/node_modules/@electron/asar/lib/crawlfs.js"(exports2) {
     "use strict";
     var __createBinding = exports2 && exports2.__createBinding || (Object.create ? (function(o, m, k, k2) {
       if (k2 === void 0) k2 = k;
@@ -3360,9 +3360,9 @@ var require_crawlfs = __commonJS({
   }
 });
 
-// ../../node_modules/.pnpm/@electron+asar@3.4.1/node_modules/@electron/asar/lib/asar.js
+// node_modules/.pnpm/@electron+asar@3.4.1/node_modules/@electron/asar/lib/asar.js
 var require_asar = __commonJS({
-  "../../node_modules/.pnpm/@electron+asar@3.4.1/node_modules/@electron/asar/lib/asar.js"(exports2) {
+  "node_modules/.pnpm/@electron+asar@3.4.1/node_modules/@electron/asar/lib/asar.js"(exports2) {
     "use strict";
     var __createBinding = exports2 && exports2.__createBinding || (Object.create ? (function(o, m, k, k2) {
       if (k2 === void 0) k2 = k;
@@ -3666,7 +3666,7 @@ var require_asar = __commonJS({
   }
 });
 
-// ../../packages/patcher/src/native/fs.ts
+// packages/patcher/src/native/fs.ts
 var import_node_fs = __toESM(require("node:fs"), 1);
 function resolveFileSystem() {
   if (!("electron" in process.versions)) return import_node_fs.default;
@@ -3678,10 +3678,10 @@ function resolveFileSystem() {
 }
 var fs = resolveFileSystem();
 
-// ../../packages/patcher/src/native/index.ts
+// packages/patcher/src/native/index.ts
 var import_node_path3 = __toESM(require("node:path"), 1);
 
-// ../../packages/shared/src/index.ts
+// packages/shared/src/index.ts
 var BETTERGRAVITY_VERSION = "3.0.0";
 var SUPPORTED_HOST_MAJOR = 2;
 function isSupportedHostVersion(version) {
@@ -3690,15 +3690,15 @@ function isSupportedHostVersion(version) {
   return Number.parseInt(major ?? "", 10) === SUPPORTED_HOST_MAJOR;
 }
 
-// ../../packages/patcher/src/native/bootstrap.ts
+// packages/patcher/src/native/bootstrap.ts
 var import_node_os = __toESM(require("node:os"), 1);
 var import_node_path2 = __toESM(require("node:path"), 1);
 
-// ../../packages/patcher/src/native/archive.ts
+// packages/patcher/src/native/archive.ts
 var import_node_crypto = __toESM(require("node:crypto"), 1);
 var import_asar = __toESM(require_asar(), 1);
 
-// ../../packages/patcher/src/native/paths.ts
+// packages/patcher/src/native/paths.ts
 var import_node_path = __toESM(require("node:path"), 1);
 var RUNTIME_DIRECTORY_NAME = ".bettergravity";
 var MARKER_NAME = ".bettergravity.json";
@@ -3812,7 +3812,7 @@ function installationPaths(targetRoot) {
   };
 }
 
-// ../../packages/patcher/src/native/archive.ts
+// packages/patcher/src/native/archive.ts
 function readJsonFromArchive(archivePath, entry) {
   import_asar.default.uncache(archivePath);
   return JSON.parse(import_asar.default.extractFile(archivePath, entry).toString("utf8"));
@@ -3849,7 +3849,7 @@ async function createArchive(sourceDirectory, destination) {
   await import_asar.default.createPackage(sourceDirectory, destination);
 }
 
-// ../../packages/patcher/src/native/bootstrap.ts
+// packages/patcher/src/native/bootstrap.ts
 function bootstrapSource(version = BETTERGRAVITY_VERSION) {
   return [
     `"use strict";`,
@@ -3906,7 +3906,7 @@ async function createBootstrapArchive(destination, host, originalAsarSha256) {
   }
 }
 
-// ../../packages/patcher/src/native/process.ts
+// packages/patcher/src/native/process.ts
 var import_node_child_process = require("node:child_process");
 var GRACEFUL_SHUTDOWN_TIMEOUT_MS = 5e3;
 var POLL_INTERVAL_MS = 250;
@@ -3990,8 +3990,8 @@ async function closeAntigravity(installationPath, onProgress) {
   }
 }
 
-// ../../packages/patcher/src/native/index.ts
-var RUNTIME_FILES = ["main.cjs", "preload.cjs", "repair.cjs"];
+// packages/patcher/src/native/index.ts
+var RUNTIME_FILES = ["main.cjs", "preload.cjs", "repair.cjs", "overlay.html"];
 var MAX_RETAINED_BACKUPS = 5;
 function inspectInstallation(installationPath) {
   if (isAntigravityIde(installationPath)) {
@@ -4011,7 +4011,7 @@ function inspectInstallation(installationPath) {
     const marker = readMarker(paths.currentAsar);
     if (!marker) {
       const host2 = readHostManifest(paths.currentAsar);
-      const wasPatched = fs.existsSync(paths.originalAsar);
+      const wasPatched = fs.existsSync(paths.originalAsar) || fs.existsSync(paths.runtimeCode);
       return {
         kind: wasPatched ? "needs-repatch" : "detected",
         patchState: wasPatched ? "needs-repatch" : "unpatched",
@@ -4127,7 +4127,7 @@ async function runOperation(operation, installationPath, options, onProgress = (
   return { installation: after, message: messages[operation] };
 }
 
-// ../../packages/patcher/src/native/repair.ts
+// packages/patcher/src/native/repair.ts
 var defaults = {
   exitTimeoutMs: 5 * 6e4,
   watchTimeoutMs: 10 * 6e4,
@@ -4234,7 +4234,7 @@ async function main(argv) {
   }
 }
 
-// ../../packages/patcher/src/native/repair-cli.ts
+// packages/patcher/src/native/repair-cli.ts
 void main(process.argv.slice(2)).then((code) => {
   process.exitCode = code;
 });
