@@ -660,10 +660,10 @@ div[data-testid="conversation-row-sidebar"][data-selected="true"],
 
 /* User Message Attachments / Thumbnails when attachments are present */
 [data-testid="user-input-step"]:has(img) > .w-full,
-[data-testid="user-input-step"]:has([data-no-scroll-jump]) > .w-full,
+[data-testid="user-input-step"]:has(.flex-1 [data-no-scroll-jump]) > .w-full,
 [data-testid="user-input-step"][data-has-attachment="true"] > .w-full,
 [data-testid="user-input-step"] .w-full:has([data-testid="lifted-context-menu-trigger"]:has(img)),
-[data-testid="user-input-step"] .w-full:has([data-testid="lifted-context-menu-trigger"]:has([data-no-scroll-jump])),
+[data-testid="user-input-step"] .w-full:has([data-testid="lifted-context-menu-trigger"]:has(.flex-1 [data-no-scroll-jump])),
 [data-testid="user-input-step"] .w-full:has([data-testid="lifted-context-menu-trigger"][data-has-attachment="true"]) {
   width: fit-content !important;
   max-width: 516px !important;
@@ -674,12 +674,12 @@ div[data-testid="conversation-row-sidebar"][data-selected="true"],
 }
 
 [data-testid="user-input-step"] [data-testid="lifted-context-menu-trigger"]:has(img),
-[data-testid="user-input-step"] [data-testid="lifted-context-menu-trigger"]:has([data-no-scroll-jump]),
+[data-testid="user-input-step"] [data-testid="lifted-context-menu-trigger"]:has(.flex-1 [data-no-scroll-jump]),
 [data-testid="user-input-step"] [data-testid="lifted-context-menu-trigger"]:has(.willow-bubble-clip),
 [data-testid="user-input-step"] [data-testid="lifted-context-menu-trigger"][data-has-attachment="true"],
 [data-testid="user-input-step"][data-has-attachment="true"] [data-testid="lifted-context-menu-trigger"],
 [data-testid="lifted-context-menu-trigger"]:has(img),
-[data-testid="lifted-context-menu-trigger"]:has([data-no-scroll-jump]),
+[data-testid="lifted-context-menu-trigger"]:has(.flex-1 [data-no-scroll-jump]),
 [data-testid="lifted-context-menu-trigger"]:has(.willow-bubble-clip),
 [data-testid="lifted-context-menu-trigger"][data-has-attachment="true"] {
   width: fit-content !important;
@@ -691,19 +691,19 @@ div[data-testid="conversation-row-sidebar"][data-selected="true"],
 }
 
 [data-testid="user-input-step"] [data-testid="lifted-context-menu-trigger"]:has(img) > .bg-card,
-[data-testid="user-input-step"] [data-testid="lifted-context-menu-trigger"]:has([data-no-scroll-jump]) > .bg-card,
+[data-testid="user-input-step"] [data-testid="lifted-context-menu-trigger"]:has(.flex-1 [data-no-scroll-jump]) > .bg-card,
 [data-testid="user-input-step"] [data-testid="lifted-context-menu-trigger"]:has(.willow-bubble-clip) > .bg-card,
 [data-testid="user-input-step"] [data-testid="lifted-context-menu-trigger"][data-has-attachment="true"] > .bg-card,
 [data-testid="user-input-step"][data-has-attachment="true"] [data-testid="lifted-context-menu-trigger"] > .bg-card,
 [data-testid="lifted-context-menu-trigger"]:has(img) > .bg-card,
-[data-testid="lifted-context-menu-trigger"]:has([data-no-scroll-jump]) > .bg-card,
+[data-testid="lifted-context-menu-trigger"]:has(.flex-1 [data-no-scroll-jump]) > .bg-card,
 [data-testid="lifted-context-menu-trigger"]:has(.willow-bubble-clip) > .bg-card,
 [data-testid="lifted-context-menu-trigger"][data-has-attachment="true"] > .bg-card,
 [data-testid="lifted-context-menu-trigger"] > .bg-card[data-has-attachment="true"],
-[data-testid="user-input-step"] .bg-card:has(img),
-[data-testid="user-input-step"] .bg-card:has([data-no-scroll-jump]),
-[data-testid="user-input-step"] .bg-card[data-has-attachment="true"],
-.bg-card[data-has-attachment="true"] {
+[data-testid="user-input-step"] .bg-card:not(.user-input-buttons-container):has(img),
+[data-testid="user-input-step"] .bg-card:not(.user-input-buttons-container):has(.flex-1 [data-no-scroll-jump]),
+[data-testid="user-input-step"] .bg-card:not(.user-input-buttons-container)[data-has-attachment="true"],
+.bg-card:not(.user-input-buttons-container)[data-has-attachment="true"] {
   background: transparent !important;
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
@@ -722,14 +722,14 @@ div[data-testid="conversation-row-sidebar"][data-selected="true"],
 }
 
 [data-testid="user-input-step"] [data-testid="lifted-context-menu-trigger"]:has(img) > .bg-card > .flex-1,
-[data-testid="user-input-step"] [data-testid="lifted-context-menu-trigger"]:has([data-no-scroll-jump]) > .bg-card > .flex-1,
+[data-testid="user-input-step"] [data-testid="lifted-context-menu-trigger"]:has(.flex-1 [data-no-scroll-jump]) > .bg-card > .flex-1,
 [data-testid="user-input-step"] [data-testid="lifted-context-menu-trigger"]:has(.willow-bubble-clip) > .bg-card > .flex-1,
 [data-testid="user-input-step"] [data-testid="lifted-context-menu-trigger"][data-has-attachment="true"] > .bg-card > .flex-1,
 [data-testid="user-input-step"][data-has-attachment="true"] [data-testid="lifted-context-menu-trigger"] > .bg-card > .flex-1,
-[data-testid="user-input-step"] .bg-card:has(img) > .flex-1,
-[data-testid="user-input-step"] .bg-card:has([data-no-scroll-jump]) > .flex-1,
-[data-testid="user-input-step"] .bg-card[data-has-attachment="true"] > .flex-1,
-.bg-card[data-has-attachment="true"] > .flex-1 {
+[data-testid="user-input-step"] .bg-card:not(.user-input-buttons-container):has(img) > .flex-1,
+[data-testid="user-input-step"] .bg-card:not(.user-input-buttons-container):has(.flex-1 [data-no-scroll-jump]) > .flex-1,
+[data-testid="user-input-step"] .bg-card:not(.user-input-buttons-container)[data-has-attachment="true"] > .flex-1,
+.bg-card:not(.user-input-buttons-container)[data-has-attachment="true"] > .flex-1 {
   display: flex !important;
   flex-direction: column !important;
   align-items: flex-end !important;
@@ -740,7 +740,7 @@ div[data-testid="conversation-row-sidebar"][data-selected="true"],
 }
 
 [data-testid="user-input-step"] [data-testid="lifted-context-menu-trigger"]:has(img) [data-quotable="true"],
-[data-testid="user-input-step"] [data-testid="lifted-context-menu-trigger"]:has([data-no-scroll-jump]) [data-quotable="true"],
+[data-testid="user-input-step"] [data-testid="lifted-context-menu-trigger"]:has(.flex-1 [data-no-scroll-jump]) [data-quotable="true"],
 [data-testid="user-input-step"] [data-testid="lifted-context-menu-trigger"]:has(.willow-bubble-clip) [data-quotable="true"],
 [data-testid="user-input-step"][data-has-attachment="true"] [data-testid="lifted-context-menu-trigger"] [data-quotable="true"],
 [data-testid="lifted-context-menu-trigger"][data-has-attachment="true"] [data-quotable="true"] {
@@ -870,12 +870,13 @@ div[data-testid="conversation-row-sidebar"][data-selected="true"],
 }
 
 [data-gemini-turn-actions="true"] > .flex.min-w-0,
-.user-input-buttons-container > .flex.min-w-0,
 [data-testid="turn-action-bar"] {
   display: inline-flex !important;
+  flex-direction: row !important;
   width: fit-content !important;
   max-width: max-content !important;
   align-items: center !important;
+  white-space: nowrap !important;
   gap: 2px !important;
   background: rgba(22, 22, 28, 0.72) !important;
   backdrop-filter: var(--apple-glass-blur-subtle) !important;
@@ -892,17 +893,91 @@ div[data-testid="conversation-row-sidebar"][data-selected="true"],
   transition: opacity 160ms var(--apple-ease-smooth), transform 160ms var(--apple-ease-spring) !important;
 }
 
+.user-input-buttons-container {
+  display: inline-flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  justify-content: flex-end !important;
+  white-space: nowrap !important;
+  gap: 6px !important;
+  width: fit-content !important;
+  max-width: max-content !important;
+  margin-top: 4px !important;
+  padding: 2px 0 !important;
+  will-change: opacity;
+  transition: opacity 160ms var(--apple-ease-smooth) !important;
+}
+
+.user-input-buttons-container > span {
+  font-size: 11px !important;
+  line-height: 14px !important;
+  color: rgba(255, 255, 255, 0.4) !important;
+  font-weight: 400 !important;
+  letter-spacing: 0.02em !important;
+  margin-right: 2px !important;
+  user-select: none !important;
+}
+
+.user-input-buttons-container button {
+  width: 26px !important;
+  height: 26px !important;
+  min-width: 26px !important;
+  min-height: 26px !important;
+  max-width: 26px !important;
+  max-height: 26px !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  text-align: center !important;
+  border-radius: 9999px !important;
+  background: rgba(255, 255, 255, 0.06) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  color: rgba(255, 255, 255, 0.65) !important;
+  box-sizing: border-box !important;
+  overflow: hidden !important;
+  transition:
+    transform var(--apple-rebound-duration) var(--apple-ease-spring),
+    background-color 140ms var(--apple-ease-smooth),
+    border-color 140ms var(--apple-ease-smooth),
+    color 140ms var(--apple-ease-smooth) !important;
+}
+
+.user-input-buttons-container button svg {
+  display: block !important;
+  margin: auto !important;
+  width: 14px !important;
+  height: 14px !important;
+  min-width: 14px !important;
+  min-height: 14px !important;
+  max-width: 14px !important;
+  max-height: 14px !important;
+  flex-shrink: 0 !important;
+  pointer-events: none !important;
+}
+
+.user-input-buttons-container button:hover {
+  background: rgba(255, 255, 255, 0.14) !important;
+  border-color: rgba(255, 255, 255, 0.16) !important;
+  color: #ffffff !important;
+  transform: translateY(-1px) scale(1.04) !important;
+}
+
+.user-input-buttons-container button:active {
+  transform: scale(0.92) !important;
+  background: rgba(255, 255, 255, 0.2) !important;
+}
+
 /* Individual Turn Action Buttons (Floating Apple Glass Discs) */
 [data-gemini-turn-actions="true"] button,
-.user-input-buttons-container button,
 [data-testid="turn-action-bar"] button,
 button[aria-label="Good response"],
 button[aria-label="Bad response"],
-button[aria-label="Copy"],
+button[aria-label="Copy"]:not(.user-input-buttons-container button),
 button[aria-label="Fork Conversation"],
 button[aria-label="Edit"],
 button[aria-label="Retry"],
-button[data-testid="revert-button"],
 button[data-fork-chat-btn] {
   width: 28px !important;
   height: 28px !important;
@@ -926,15 +1001,13 @@ button[data-fork-chat-btn] {
 }
 
 [data-gemini-turn-actions="true"] button:hover,
-.user-input-buttons-container button:hover,
 [data-testid="turn-action-bar"] button:hover,
 button[aria-label="Good response"]:hover,
 button[aria-label="Bad response"]:hover,
-button[aria-label="Copy"]:hover,
+button[aria-label="Copy"]:not(.user-input-buttons-container button):hover,
 button[aria-label="Fork Conversation"]:hover,
 button[aria-label="Edit"]:hover,
 button[aria-label="Retry"]:hover,
-button[data-testid="revert-button"]:hover,
 button[data-fork-chat-btn]:hover {
   background-color: rgba(255, 255, 255, 0.12) !important;
   border-color: rgba(255, 255, 255, 0.10) !important;
@@ -945,15 +1018,13 @@ button[data-fork-chat-btn]:hover {
 }
 
 [data-gemini-turn-actions="true"] button:active,
-.user-input-buttons-container button:active,
 [data-testid="turn-action-bar"] button:active,
 button[aria-label="Good response"]:active,
 button[aria-label="Bad response"]:active,
-button[aria-label="Copy"]:active,
+button[aria-label="Copy"]:not(.user-input-buttons-container button):active,
 button[aria-label="Fork Conversation"]:active,
 button[aria-label="Edit"]:active,
 button[aria-label="Retry"]:active,
-button[data-testid="revert-button"]:active,
 button[data-fork-chat-btn]:active {
   transform: scale(0.90) translateY(0) !important;
   background-color: rgba(255, 255, 255, 0.18) !important;

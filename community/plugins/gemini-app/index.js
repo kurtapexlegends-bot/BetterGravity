@@ -9641,19 +9641,23 @@ function setupUserMessageBubble(step) {
       const clientRectHeight = typeof textContent.getBoundingClientRect === 'function'
         ? (textContent.getBoundingClientRect()?.height || 0)
         : 0;
-      const height = Math.max(
-        clientRectHeight,
-        textContent.scrollHeight || 0,
-        clampTarget.scrollHeight || 0,
-        flex1.scrollHeight || 0
-      );
+      const height = hasAttachment
+        ? Math.max(clientRectHeight, clampTarget.scrollHeight || 0)
+        : Math.max(
+            clientRectHeight,
+            textContent.scrollHeight || 0,
+            clampTarget.scrollHeight || 0,
+            flex1.scrollHeight || 0
+          );
       naturalTextHeight = Math.ceil(height - (isExpanded ? USER_MSG_EXPANDED_RESERVE : 0));
       return applyMeasurement;
     };
 
     const applyMeasurement = () => {
       if (!active || !flex1.isConnected || !textContent.isConnected) return;
-      const fullHeight = Math.max(textContent.scrollHeight || 0, clampTarget.scrollHeight || 0, naturalTextHeight || 0);
+      const fullHeight = hasAttachment
+        ? Math.max(clampTarget.scrollHeight || 0, naturalTextHeight || 0)
+        : Math.max(textContent.scrollHeight || 0, clampTarget.scrollHeight || 0, naturalTextHeight || 0);
       const canToggle = fullHeight > USER_MSG_COLLAPSED_HEIGHT;
 
       if (!canToggle) {

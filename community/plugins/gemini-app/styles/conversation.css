@@ -142,7 +142,7 @@ body.gemini-skills-open [data-gemini-skills-hidden] {
   transition: max-height 300ms cubic-bezier(0.2, 0, 0, 1), padding-bottom 300ms cubic-bezier(0.2, 0, 0, 1) !important;
 }
 
-[data-testid="lifted-context-menu-trigger"] > .bg-card > .flex-1:not([data-gemini-expanded="true"]) {
+[data-testid="lifted-context-menu-trigger"] > .bg-card > .flex-1[data-gemini-can-toggle="true"]:not([data-gemini-expanded="true"]) {
   max-height: 96px !important;
 }
 
@@ -161,7 +161,7 @@ body.gemini-skills-open [data-gemini-skills-hidden] {
   transition: max-height 300ms cubic-bezier(0.2, 0, 0, 1), padding-bottom 300ms cubic-bezier(0.2, 0, 0, 1) !important;
 }
 
-.willow-bubble-clip:not([data-gemini-expanded="true"]) {
+.willow-bubble-clip[data-gemini-can-toggle="true"]:not([data-gemini-expanded="true"]) {
   max-height: 96px !important;
 }
 
@@ -267,13 +267,66 @@ body.gemini-skills-open [data-gemini-skills-hidden] {
 
 /* The time, copy, and revert controls appear on hover. Inside a padded bubble
  * they would sit on the text, so they hang beneath it as Willow's do. */
-[data-testid="lifted-context-menu-trigger"] .user-input-buttons-container {
+[data-testid="lifted-context-menu-trigger"] .user-input-buttons-container,
+.user-input-buttons-container {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  justify-content: flex-end !important;
+  white-space: nowrap !important;
+  gap: 6px !important;
   top: 100% !important;
   bottom: auto !important;
   right: 12px !important;
-  padding: 6px 4px !important;
+  padding: 4px 0 !important;
+  margin-top: 4px !important;
   background: transparent !important;
+  border: none !important;
   box-shadow: none !important;
+  width: fit-content !important;
+  max-width: none !important;
+}
+
+.user-input-buttons-container > span {
+  font-size: 11px !important;
+  line-height: 14px !important;
+  color: rgba(255, 255, 255, 0.45) !important;
+  font-weight: 400 !important;
+  letter-spacing: 0.02em !important;
+  margin-right: 4px !important;
+  white-space: nowrap !important;
+  user-select: none !important;
+}
+
+.user-input-buttons-container button {
+  width: 26px !important;
+  height: 26px !important;
+  min-width: 26px !important;
+  min-height: 26px !important;
+  max-width: 26px !important;
+  max-height: 26px !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  text-align: center !important;
+  border-radius: 9999px !important;
+  box-sizing: border-box !important;
+  overflow: hidden !important;
+}
+
+.user-input-buttons-container button svg {
+  display: block !important;
+  margin: auto !important;
+  width: 14px !important;
+  height: 14px !important;
+  min-width: 14px !important;
+  min-height: 14px !important;
+  max-width: 14px !important;
+  max-height: 14px !important;
+  flex-shrink: 0 !important;
+  pointer-events: none !important;
 }
 
 /* --- 3b-1. Sent message attachments (Willow style) ----------------------------
@@ -283,10 +336,10 @@ body.gemini-skills-open [data-gemini-skills-hidden] {
  * surface, cover-cropped edge-to-edge images, with no close button.
  */
 [data-testid="user-input-step"]:has(img) > .w-full,
-[data-testid="user-input-step"]:has([data-no-scroll-jump]) > .w-full,
+[data-testid="user-input-step"]:has(.flex-1 [data-no-scroll-jump]) > .w-full,
 [data-testid="user-input-step"][data-has-attachment="true"] > .w-full,
 [data-testid="user-input-step"] .w-full:has([data-testid="lifted-context-menu-trigger"]:has(img)),
-[data-testid="user-input-step"] .w-full:has([data-testid="lifted-context-menu-trigger"]:has([data-no-scroll-jump])),
+[data-testid="user-input-step"] .w-full:has([data-testid="lifted-context-menu-trigger"]:has(.flex-1 [data-no-scroll-jump])),
 [data-testid="user-input-step"] .w-full:has([data-testid="lifted-context-menu-trigger"][data-has-attachment="true"]),
 [data-testid="user-input-step"] .w-full:has([data-testid="lifted-context-menu-trigger"]:has(.willow-bubble-clip)) {
   width: fit-content !important;
@@ -298,12 +351,12 @@ body.gemini-skills-open [data-gemini-skills-hidden] {
 }
 
 [data-testid="user-input-step"] [data-testid="lifted-context-menu-trigger"]:has(img),
-[data-testid="user-input-step"] [data-testid="lifted-context-menu-trigger"]:has([data-no-scroll-jump]),
+[data-testid="user-input-step"] [data-testid="lifted-context-menu-trigger"]:has(.flex-1 [data-no-scroll-jump]),
 [data-testid="user-input-step"] [data-testid="lifted-context-menu-trigger"]:has(.willow-bubble-clip),
 [data-testid="user-input-step"] [data-testid="lifted-context-menu-trigger"][data-has-attachment="true"],
 [data-testid="user-input-step"][data-has-attachment="true"] [data-testid="lifted-context-menu-trigger"],
 [data-testid="lifted-context-menu-trigger"]:has(img),
-[data-testid="lifted-context-menu-trigger"]:has([data-no-scroll-jump]),
+[data-testid="lifted-context-menu-trigger"]:has(.flex-1 [data-no-scroll-jump]),
 [data-testid="lifted-context-menu-trigger"]:has(.willow-bubble-clip),
 [data-testid="lifted-context-menu-trigger"][data-has-attachment="true"] {
   width: fit-content !important;
@@ -315,19 +368,19 @@ body.gemini-skills-open [data-gemini-skills-hidden] {
 }
 
 [data-testid="user-input-step"] [data-testid="lifted-context-menu-trigger"]:has(img) > .bg-card,
-[data-testid="user-input-step"] [data-testid="lifted-context-menu-trigger"]:has([data-no-scroll-jump]) > .bg-card,
+[data-testid="user-input-step"] [data-testid="lifted-context-menu-trigger"]:has(.flex-1 [data-no-scroll-jump]) > .bg-card,
 [data-testid="user-input-step"] [data-testid="lifted-context-menu-trigger"]:has(.willow-bubble-clip) > .bg-card,
 [data-testid="user-input-step"] [data-testid="lifted-context-menu-trigger"][data-has-attachment="true"] > .bg-card,
 [data-testid="user-input-step"][data-has-attachment="true"] [data-testid="lifted-context-menu-trigger"] > .bg-card,
 [data-testid="lifted-context-menu-trigger"]:has(img) > .bg-card,
-[data-testid="lifted-context-menu-trigger"]:has([data-no-scroll-jump]) > .bg-card,
+[data-testid="lifted-context-menu-trigger"]:has(.flex-1 [data-no-scroll-jump]) > .bg-card,
 [data-testid="lifted-context-menu-trigger"]:has(.willow-bubble-clip) > .bg-card,
 [data-testid="lifted-context-menu-trigger"][data-has-attachment="true"] > .bg-card,
 [data-testid="lifted-context-menu-trigger"] > .bg-card[data-has-attachment="true"],
-[data-testid="user-input-step"] .bg-card:has(img),
-[data-testid="user-input-step"] .bg-card:has([data-no-scroll-jump]),
-[data-testid="user-input-step"] .bg-card[data-has-attachment="true"],
-.bg-card[data-has-attachment="true"] {
+[data-testid="user-input-step"] .bg-card:not(.user-input-buttons-container):has(img),
+[data-testid="user-input-step"] .bg-card:not(.user-input-buttons-container):has(.flex-1 [data-no-scroll-jump]),
+[data-testid="user-input-step"] .bg-card:not(.user-input-buttons-container)[data-has-attachment="true"],
+.bg-card:not(.user-input-buttons-container)[data-has-attachment="true"] {
   background: transparent !important;
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
@@ -346,14 +399,14 @@ body.gemini-skills-open [data-gemini-skills-hidden] {
 }
 
 [data-testid="lifted-context-menu-trigger"]:has(img) > .bg-card > .flex-1,
-[data-testid="lifted-context-menu-trigger"]:has([data-no-scroll-jump]) > .bg-card > .flex-1,
+[data-testid="lifted-context-menu-trigger"]:has(.flex-1 [data-no-scroll-jump]) > .bg-card > .flex-1,
 [data-testid="lifted-context-menu-trigger"]:has(.willow-bubble-clip) > .bg-card > .flex-1,
 [data-testid="lifted-context-menu-trigger"][data-has-attachment="true"] > .bg-card > .flex-1,
 [data-testid="user-input-step"][data-has-attachment="true"] [data-testid="lifted-context-menu-trigger"] > .bg-card > .flex-1,
-[data-testid="user-input-step"] .bg-card[data-has-attachment="true"] > .flex-1,
-[data-testid="user-input-step"] .bg-card:has(img) > .flex-1,
-[data-testid="user-input-step"] .bg-card:has([data-no-scroll-jump]) > .flex-1,
-.bg-card[data-has-attachment="true"] > .flex-1 {
+[data-testid="user-input-step"] .bg-card:not(.user-input-buttons-container)[data-has-attachment="true"] > .flex-1,
+[data-testid="user-input-step"] .bg-card:not(.user-input-buttons-container):has(img) > .flex-1,
+[data-testid="user-input-step"] .bg-card:not(.user-input-buttons-container):has(.flex-1 [data-no-scroll-jump]) > .flex-1,
+.bg-card:not(.user-input-buttons-container)[data-has-attachment="true"] > .flex-1 {
   display: flex !important;
   flex-direction: column !important;
   align-items: flex-end !important;
@@ -366,7 +419,7 @@ body.gemini-skills-open [data-gemini-skills-hidden] {
 }
 
 /* Sent message attachment strip */
-[data-testid="user-input-step"] [data-no-scroll-jump],
+[data-testid="user-input-step"] .flex-1 div[data-no-scroll-jump],
 [data-testid="user-input-step"] .flex.flex-wrap:has(img) {
   display: flex !important;
   flex-direction: row !important;
@@ -381,20 +434,20 @@ body.gemini-skills-open [data-gemini-skills-hidden] {
   margin-left: auto !important;
 }
 
-[data-testid="user-input-step"] [data-no-scroll-jump]::-webkit-scrollbar,
+[data-testid="user-input-step"] .flex-1 div[data-no-scroll-jump]::-webkit-scrollbar,
 [data-testid="user-input-step"] .flex.flex-wrap:has(img)::-webkit-scrollbar {
   display: none !important;
 }
 
 /* If no text follows attachments, remove bottom margin */
-[data-testid="user-input-step"] [data-no-scroll-jump]:last-child,
+[data-testid="user-input-step"] .flex-1 div[data-no-scroll-jump]:last-child,
 [data-testid="user-input-step"] .flex.flex-wrap:has(img):last-child {
   margin-bottom: 0 !important;
 }
 
 /* Sent message attachment tile */
-[data-testid="user-input-step"] [data-no-scroll-jump] button,
-[data-testid="user-input-step"] [data-no-scroll-jump] div:has(> img),
+[data-testid="user-input-step"] .flex-1 [data-no-scroll-jump] button,
+[data-testid="user-input-step"] .flex-1 [data-no-scroll-jump] div:has(> img),
 [data-testid="user-input-step"] button:has(> img.h-16.w-16) {
   position: relative !important;
   width: 112px !important;
@@ -415,14 +468,14 @@ body.gemini-skills-open [data-gemini-skills-hidden] {
   transition: opacity 150ms ease !important;
 }
 
-[data-testid="user-input-step"] [data-no-scroll-jump] button:hover,
-[data-testid="user-input-step"] [data-no-scroll-jump] div:has(> img):hover,
+[data-testid="user-input-step"] .flex-1 [data-no-scroll-jump] button:hover,
+[data-testid="user-input-step"] .flex-1 [data-no-scroll-jump] div:has(> img):hover,
 [data-testid="user-input-step"] button:has(> img.h-16.w-16):hover {
   opacity: 0.9 !important;
 }
 
 /* Sent message attachment image */
-[data-testid="user-input-step"] [data-no-scroll-jump] img,
+[data-testid="user-input-step"] .flex-1 [data-no-scroll-jump] img,
 [data-testid="user-input-step"] button > img.h-16.w-16 {
   position: absolute !important;
   inset: 0 !important;
@@ -438,12 +491,12 @@ body.gemini-skills-open [data-gemini-skills-hidden] {
 
 /* Sent message text bubble when attachments are present */
 [data-testid="lifted-context-menu-trigger"]:has(img) [data-quotable="true"],
-[data-testid="lifted-context-menu-trigger"]:has([data-no-scroll-jump]) [data-quotable="true"],
+[data-testid="lifted-context-menu-trigger"]:has(.flex-1 [data-no-scroll-jump]) [data-quotable="true"],
 [data-testid="lifted-context-menu-trigger"]:has(.willow-bubble-clip) [data-quotable="true"],
 [data-testid="lifted-context-menu-trigger"][data-has-attachment="true"] [data-quotable="true"],
 [data-testid="user-input-step"][data-has-attachment="true"] [data-testid="lifted-context-menu-trigger"] [data-quotable="true"],
 [data-testid="lifted-context-menu-trigger"]:has(img) .whitespace-pre-wrap:not(:has([data-quotable="true"])),
-[data-testid="lifted-context-menu-trigger"]:has([data-no-scroll-jump]) .whitespace-pre-wrap:not(:has([data-quotable="true"])),
+[data-testid="lifted-context-menu-trigger"]:has(.flex-1 [data-no-scroll-jump]) .whitespace-pre-wrap:not(:has([data-quotable="true"])),
 [data-testid="lifted-context-menu-trigger"][data-has-attachment="true"] .whitespace-pre-wrap:not(:has([data-quotable="true"])) {
   position: relative !important;
   background: var(--gemini-bubble-bg) !important;
