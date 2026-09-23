@@ -628,7 +628,25 @@ div[data-testid="conversation-row-sidebar"][data-selected="true"],
    8. Conversation Stream, Sent Message Bubble & Review Cards
    ========================================================================== */
 /* User Sent Message Bubble: Translucent Apple Dark Glass Pill */
-[data-testid="user-input-step"] > [data-testid="lifted-context-menu-trigger"] > .bg-card {
+[data-testid="user-input-step"] > .w-full,
+[data-testid="user-input-step"] .w-full:has([data-testid="lifted-context-menu-trigger"]) {
+  width: fit-content !important;
+  max-width: 508px !important;
+  margin-left: auto !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: flex-end !important;
+}
+
+[data-testid="user-input-step"] [data-testid="lifted-context-menu-trigger"] {
+  width: fit-content !important;
+  max-width: 508px !important;
+  margin-left: auto !important;
+  border-radius: 20px !important;
+  background: transparent !important;
+}
+
+[data-testid="user-input-step"] [data-testid="lifted-context-menu-trigger"] > .bg-card {
   background: var(--apple-bubble) !important;
   backdrop-filter: var(--apple-glass-blur-subtle) !important;
   -webkit-backdrop-filter: var(--apple-glass-blur-subtle) !important;
@@ -638,6 +656,107 @@ div[data-testid="conversation-row-sidebar"][data-selected="true"],
   box-shadow:
     var(--apple-specular),
     0 6px 24px rgba(0, 0, 0, 0.45) !important;
+}
+
+/* User Message Attachments / Thumbnails when attachments are present */
+[data-testid="user-input-step"]:has(img) > .w-full,
+[data-testid="user-input-step"]:has([data-no-scroll-jump]) > .w-full,
+[data-testid="user-input-step"][data-has-attachment="true"] > .w-full,
+[data-testid="user-input-step"] .w-full:has([data-testid="lifted-context-menu-trigger"]:has(img)),
+[data-testid="user-input-step"] .w-full:has([data-testid="lifted-context-menu-trigger"]:has([data-no-scroll-jump])),
+[data-testid="user-input-step"] .w-full:has([data-testid="lifted-context-menu-trigger"][data-has-attachment="true"]) {
+  width: fit-content !important;
+  max-width: 516px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: flex-end !important;
+  margin-left: auto !important;
+}
+
+[data-testid="user-input-step"] [data-testid="lifted-context-menu-trigger"]:has(img),
+[data-testid="user-input-step"] [data-testid="lifted-context-menu-trigger"]:has([data-no-scroll-jump]),
+[data-testid="user-input-step"] [data-testid="lifted-context-menu-trigger"]:has(.willow-bubble-clip),
+[data-testid="user-input-step"] [data-testid="lifted-context-menu-trigger"][data-has-attachment="true"],
+[data-testid="user-input-step"][data-has-attachment="true"] [data-testid="lifted-context-menu-trigger"],
+[data-testid="lifted-context-menu-trigger"]:has(img),
+[data-testid="lifted-context-menu-trigger"]:has([data-no-scroll-jump]),
+[data-testid="lifted-context-menu-trigger"]:has(.willow-bubble-clip),
+[data-testid="lifted-context-menu-trigger"][data-has-attachment="true"] {
+  width: fit-content !important;
+  max-width: 516px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: flex-end !important;
+  margin-left: auto !important;
+}
+
+[data-testid="user-input-step"] [data-testid="lifted-context-menu-trigger"]:has(img) > .bg-card,
+[data-testid="user-input-step"] [data-testid="lifted-context-menu-trigger"]:has([data-no-scroll-jump]) > .bg-card,
+[data-testid="user-input-step"] [data-testid="lifted-context-menu-trigger"]:has(.willow-bubble-clip) > .bg-card,
+[data-testid="user-input-step"] [data-testid="lifted-context-menu-trigger"][data-has-attachment="true"] > .bg-card,
+[data-testid="user-input-step"][data-has-attachment="true"] [data-testid="lifted-context-menu-trigger"] > .bg-card,
+[data-testid="lifted-context-menu-trigger"]:has(img) > .bg-card,
+[data-testid="lifted-context-menu-trigger"]:has([data-no-scroll-jump]) > .bg-card,
+[data-testid="lifted-context-menu-trigger"]:has(.willow-bubble-clip) > .bg-card,
+[data-testid="lifted-context-menu-trigger"][data-has-attachment="true"] > .bg-card,
+[data-testid="lifted-context-menu-trigger"] > .bg-card[data-has-attachment="true"],
+[data-testid="user-input-step"] .bg-card:has(img),
+[data-testid="user-input-step"] .bg-card:has([data-no-scroll-jump]),
+[data-testid="user-input-step"] .bg-card[data-has-attachment="true"],
+.bg-card[data-has-attachment="true"] {
+  background: transparent !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  border: none !important;
+  box-shadow: none !important;
+  border-radius: 0 !important;
+  padding: 0 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: flex-end !important;
+  width: fit-content !important;
+  max-width: 516px !important;
+  overflow: visible !important;
+  gap: 0 !important;
+  margin-left: auto !important;
+}
+
+[data-testid="user-input-step"] [data-testid="lifted-context-menu-trigger"]:has(img) > .bg-card > .flex-1,
+[data-testid="user-input-step"] [data-testid="lifted-context-menu-trigger"]:has([data-no-scroll-jump]) > .bg-card > .flex-1,
+[data-testid="user-input-step"] [data-testid="lifted-context-menu-trigger"]:has(.willow-bubble-clip) > .bg-card > .flex-1,
+[data-testid="user-input-step"] [data-testid="lifted-context-menu-trigger"][data-has-attachment="true"] > .bg-card > .flex-1,
+[data-testid="user-input-step"][data-has-attachment="true"] [data-testid="lifted-context-menu-trigger"] > .bg-card > .flex-1,
+[data-testid="user-input-step"] .bg-card:has(img) > .flex-1,
+[data-testid="user-input-step"] .bg-card:has([data-no-scroll-jump]) > .flex-1,
+[data-testid="user-input-step"] .bg-card[data-has-attachment="true"] > .flex-1,
+.bg-card[data-has-attachment="true"] > .flex-1 {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: flex-end !important;
+  width: fit-content !important;
+  max-width: 516px !important;
+  padding: 0 !important;
+  margin-left: auto !important;
+}
+
+[data-testid="user-input-step"] [data-testid="lifted-context-menu-trigger"]:has(img) [data-quotable="true"],
+[data-testid="user-input-step"] [data-testid="lifted-context-menu-trigger"]:has([data-no-scroll-jump]) [data-quotable="true"],
+[data-testid="user-input-step"] [data-testid="lifted-context-menu-trigger"]:has(.willow-bubble-clip) [data-quotable="true"],
+[data-testid="user-input-step"][data-has-attachment="true"] [data-testid="lifted-context-menu-trigger"] [data-quotable="true"],
+[data-testid="lifted-context-menu-trigger"][data-has-attachment="true"] [data-quotable="true"] {
+  position: relative !important;
+  background: var(--apple-bubble) !important;
+  backdrop-filter: var(--apple-glass-blur-subtle) !important;
+  -webkit-backdrop-filter: var(--apple-glass-blur-subtle) !important;
+  border: 1px solid rgba(255, 255, 255, 0.09) !important;
+  border-radius: 20px !important;
+  padding: 14px 20px !important;
+  box-shadow:
+    var(--apple-specular),
+    0 6px 24px rgba(0, 0, 0, 0.45) !important;
+  width: fit-content !important;
+  max-width: 508px !important;
+  margin-left: auto !important;
 }
 
 /* User Message Attachments / Thumbnails */

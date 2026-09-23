@@ -9579,6 +9579,18 @@ function setupUserMessageBubble(step) {
     const attachmentStrip = flex1.querySelector('[data-no-scroll-jump], .flex-wrap:has(img), img');
     const hasAttachment = Boolean(attachmentStrip);
 
+    if (trigger) {
+      if (hasAttachment) {
+        setBubbleAttribute(trigger, 'data-has-attachment', 'true');
+        setBubbleAttribute(step, 'data-has-attachment', 'true');
+        if (bgCard) setBubbleAttribute(bgCard, 'data-has-attachment', 'true');
+      } else {
+        trigger.removeAttribute('data-has-attachment');
+        step.removeAttribute('data-has-attachment');
+        if (bgCard) bgCard.removeAttribute('data-has-attachment');
+      }
+    }
+
     let bubbleContainer;
     let clampTarget;
 

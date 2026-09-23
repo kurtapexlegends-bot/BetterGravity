@@ -98,13 +98,25 @@ body.gemini-skills-open [data-gemini-skills-hidden] {
 }
 
 /* The outer wrapper drew a 1px border ring; the bubble has none. */
-[data-testid="user-input-step"] > [data-testid="lifted-context-menu-trigger"] {
-  width: fit-content;
-  max-width: 508px;
+[data-testid="user-input-step"] > .w-full,
+[data-testid="user-input-step"] .w-full:has([data-testid="lifted-context-menu-trigger"]) {
+  width: fit-content !important;
+  max-width: 508px !important;
+  margin-left: auto !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: flex-end !important;
+}
+
+[data-testid="user-input-step"] [data-testid="lifted-context-menu-trigger"] {
+  width: fit-content !important;
+  max-width: 508px !important;
   padding: 0 !important;
   border-radius: 40px !important;
   background: transparent !important;
+  margin-left: auto !important;
 }
+
 
 [data-testid="lifted-context-menu-trigger"] > .bg-card {
   padding: 20px 28px !important;
@@ -270,18 +282,55 @@ body.gemini-skills-open [data-gemini-skills-hidden] {
  * beneath the strip. Tiles are 112px x 112px, 20px radius, rgba(255,255,255,0.12)
  * surface, cover-cropped edge-to-edge images, with no close button.
  */
-[data-testid="user-input-step"] > [data-testid="lifted-context-menu-trigger"]:has(img[alt*="User uploaded media" i]),
-[data-testid="user-input-step"] > [data-testid="lifted-context-menu-trigger"]:has([data-no-scroll-jump] button > img) {
-  width: 100% !important;
+[data-testid="user-input-step"]:has(img) > .w-full,
+[data-testid="user-input-step"]:has([data-no-scroll-jump]) > .w-full,
+[data-testid="user-input-step"][data-has-attachment="true"] > .w-full,
+[data-testid="user-input-step"] .w-full:has([data-testid="lifted-context-menu-trigger"]:has(img)),
+[data-testid="user-input-step"] .w-full:has([data-testid="lifted-context-menu-trigger"]:has([data-no-scroll-jump])),
+[data-testid="user-input-step"] .w-full:has([data-testid="lifted-context-menu-trigger"][data-has-attachment="true"]),
+[data-testid="user-input-step"] .w-full:has([data-testid="lifted-context-menu-trigger"]:has(.willow-bubble-clip)) {
+  width: fit-content !important;
   max-width: 516px !important;
   display: flex !important;
   flex-direction: column !important;
   align-items: flex-end !important;
+  margin-left: auto !important;
 }
 
-[data-testid="lifted-context-menu-trigger"]:has(img[alt*="User uploaded media" i]) > .bg-card,
-[data-testid="lifted-context-menu-trigger"]:has([data-no-scroll-jump] button > img) > .bg-card {
+[data-testid="user-input-step"] [data-testid="lifted-context-menu-trigger"]:has(img),
+[data-testid="user-input-step"] [data-testid="lifted-context-menu-trigger"]:has([data-no-scroll-jump]),
+[data-testid="user-input-step"] [data-testid="lifted-context-menu-trigger"]:has(.willow-bubble-clip),
+[data-testid="user-input-step"] [data-testid="lifted-context-menu-trigger"][data-has-attachment="true"],
+[data-testid="user-input-step"][data-has-attachment="true"] [data-testid="lifted-context-menu-trigger"],
+[data-testid="lifted-context-menu-trigger"]:has(img),
+[data-testid="lifted-context-menu-trigger"]:has([data-no-scroll-jump]),
+[data-testid="lifted-context-menu-trigger"]:has(.willow-bubble-clip),
+[data-testid="lifted-context-menu-trigger"][data-has-attachment="true"] {
+  width: fit-content !important;
+  max-width: 516px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: flex-end !important;
+  margin-left: auto !important;
+}
+
+[data-testid="user-input-step"] [data-testid="lifted-context-menu-trigger"]:has(img) > .bg-card,
+[data-testid="user-input-step"] [data-testid="lifted-context-menu-trigger"]:has([data-no-scroll-jump]) > .bg-card,
+[data-testid="user-input-step"] [data-testid="lifted-context-menu-trigger"]:has(.willow-bubble-clip) > .bg-card,
+[data-testid="user-input-step"] [data-testid="lifted-context-menu-trigger"][data-has-attachment="true"] > .bg-card,
+[data-testid="user-input-step"][data-has-attachment="true"] [data-testid="lifted-context-menu-trigger"] > .bg-card,
+[data-testid="lifted-context-menu-trigger"]:has(img) > .bg-card,
+[data-testid="lifted-context-menu-trigger"]:has([data-no-scroll-jump]) > .bg-card,
+[data-testid="lifted-context-menu-trigger"]:has(.willow-bubble-clip) > .bg-card,
+[data-testid="lifted-context-menu-trigger"][data-has-attachment="true"] > .bg-card,
+[data-testid="lifted-context-menu-trigger"] > .bg-card[data-has-attachment="true"],
+[data-testid="user-input-step"] .bg-card:has(img),
+[data-testid="user-input-step"] .bg-card:has([data-no-scroll-jump]),
+[data-testid="user-input-step"] .bg-card[data-has-attachment="true"],
+.bg-card[data-has-attachment="true"] {
   background: transparent !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
   padding: 0 !important;
   border: none !important;
   box-shadow: none !important;
@@ -289,49 +338,63 @@ body.gemini-skills-open [data-gemini-skills-hidden] {
   display: flex !important;
   flex-direction: column !important;
   align-items: flex-end !important;
-  width: 100% !important;
+  width: fit-content !important;
+  max-width: 516px !important;
   overflow: visible !important;
   gap: 0 !important;
+  margin-left: auto !important;
 }
 
-[data-testid="lifted-context-menu-trigger"]:has(img[alt*="User uploaded media" i]) > .bg-card > .flex-1,
-[data-testid="lifted-context-menu-trigger"]:has([data-no-scroll-jump] button > img) > .bg-card > .flex-1 {
+[data-testid="lifted-context-menu-trigger"]:has(img) > .bg-card > .flex-1,
+[data-testid="lifted-context-menu-trigger"]:has([data-no-scroll-jump]) > .bg-card > .flex-1,
+[data-testid="lifted-context-menu-trigger"]:has(.willow-bubble-clip) > .bg-card > .flex-1,
+[data-testid="lifted-context-menu-trigger"][data-has-attachment="true"] > .bg-card > .flex-1,
+[data-testid="user-input-step"][data-has-attachment="true"] [data-testid="lifted-context-menu-trigger"] > .bg-card > .flex-1,
+[data-testid="user-input-step"] .bg-card[data-has-attachment="true"] > .flex-1,
+[data-testid="user-input-step"] .bg-card:has(img) > .flex-1,
+[data-testid="user-input-step"] .bg-card:has([data-no-scroll-jump]) > .flex-1,
+.bg-card[data-has-attachment="true"] > .flex-1 {
   display: flex !important;
   flex-direction: column !important;
   align-items: flex-end !important;
-  width: 100% !important;
+  width: fit-content !important;
+  max-width: 516px !important;
   max-height: none !important;
   overflow: visible !important;
   padding: 0 !important;
+  margin-left: auto !important;
 }
 
 /* Sent message attachment strip */
-[data-testid="user-input-step"] [data-no-scroll-jump].flex:has(> button > img),
-[data-testid="user-input-step"] .flex.flex-wrap:has(> button > img) {
+[data-testid="user-input-step"] [data-no-scroll-jump],
+[data-testid="user-input-step"] .flex.flex-wrap:has(img) {
   display: flex !important;
   flex-direction: row !important;
   flex-wrap: nowrap !important;
   justify-content: flex-end !important;
   gap: 8px !important;
   margin-bottom: 8px !important;
-  width: 100% !important;
+  width: fit-content !important;
   max-width: 516px !important;
   overflow-x: auto !important;
   scrollbar-width: none !important;
+  margin-left: auto !important;
 }
 
-[data-testid="user-input-step"] [data-no-scroll-jump].flex:has(> button > img)::-webkit-scrollbar,
-[data-testid="user-input-step"] .flex.flex-wrap:has(> button > img)::-webkit-scrollbar {
+[data-testid="user-input-step"] [data-no-scroll-jump]::-webkit-scrollbar,
+[data-testid="user-input-step"] .flex.flex-wrap:has(img)::-webkit-scrollbar {
   display: none !important;
 }
 
 /* If no text follows attachments, remove bottom margin */
-[data-testid="user-input-step"] [data-no-scroll-jump].flex:has(> button > img):last-child {
+[data-testid="user-input-step"] [data-no-scroll-jump]:last-child,
+[data-testid="user-input-step"] .flex.flex-wrap:has(img):last-child {
   margin-bottom: 0 !important;
 }
 
 /* Sent message attachment tile */
-[data-testid="user-input-step"] [data-no-scroll-jump] button:has(> img[alt*="User uploaded media" i]),
+[data-testid="user-input-step"] [data-no-scroll-jump] button,
+[data-testid="user-input-step"] [data-no-scroll-jump] div:has(> img),
 [data-testid="user-input-step"] button:has(> img.h-16.w-16) {
   position: relative !important;
   width: 112px !important;
@@ -352,13 +415,14 @@ body.gemini-skills-open [data-gemini-skills-hidden] {
   transition: opacity 150ms ease !important;
 }
 
-[data-testid="user-input-step"] [data-no-scroll-jump] button:has(> img[alt*="User uploaded media" i]):hover,
+[data-testid="user-input-step"] [data-no-scroll-jump] button:hover,
+[data-testid="user-input-step"] [data-no-scroll-jump] div:has(> img):hover,
 [data-testid="user-input-step"] button:has(> img.h-16.w-16):hover {
   opacity: 0.9 !important;
 }
 
 /* Sent message attachment image */
-[data-testid="user-input-step"] [data-no-scroll-jump] button > img[alt*="User uploaded media" i],
+[data-testid="user-input-step"] [data-no-scroll-jump] img,
 [data-testid="user-input-step"] button > img.h-16.w-16 {
   position: absolute !important;
   inset: 0 !important;
@@ -373,15 +437,21 @@ body.gemini-skills-open [data-gemini-skills-hidden] {
 }
 
 /* Sent message text bubble when attachments are present */
-[data-testid="lifted-context-menu-trigger"]:has(img[alt*="User uploaded media" i]) [data-quotable="true"],
-[data-testid="lifted-context-menu-trigger"]:has([data-no-scroll-jump] button > img) [data-quotable="true"],
-[data-testid="lifted-context-menu-trigger"]:has([data-no-scroll-jump].flex) [data-quotable="true"] {
+[data-testid="lifted-context-menu-trigger"]:has(img) [data-quotable="true"],
+[data-testid="lifted-context-menu-trigger"]:has([data-no-scroll-jump]) [data-quotable="true"],
+[data-testid="lifted-context-menu-trigger"]:has(.willow-bubble-clip) [data-quotable="true"],
+[data-testid="lifted-context-menu-trigger"][data-has-attachment="true"] [data-quotable="true"],
+[data-testid="user-input-step"][data-has-attachment="true"] [data-testid="lifted-context-menu-trigger"] [data-quotable="true"],
+[data-testid="lifted-context-menu-trigger"]:has(img) .whitespace-pre-wrap:not(:has([data-quotable="true"])),
+[data-testid="lifted-context-menu-trigger"]:has([data-no-scroll-jump]) .whitespace-pre-wrap:not(:has([data-quotable="true"])),
+[data-testid="lifted-context-menu-trigger"][data-has-attachment="true"] .whitespace-pre-wrap:not(:has([data-quotable="true"])) {
   position: relative !important;
   background: var(--gemini-bubble-bg) !important;
   border-radius: 40px !important;
   padding: 20px 28px !important;
   width: fit-content !important;
   max-width: 508px !important;
+  margin-left: auto !important;
   font-family: var(--gemini-font) !important;
   font-variation-settings: var(--gemini-font-axes);
   font-size: 17px !important;
