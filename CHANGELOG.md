@@ -4,6 +4,20 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project uses
 [semantic versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.0.1] - 2026-09-23
+
+### Fixed
+
+- **Antigravity 2.16.0 Compatibility & Setup Window Isolation**:
+  - Full compatibility verified and tested against the Google Antigravity 2.16.0 standalone desktop application.
+  - Hardened main window tracking against premature termination when transient setup, IDE re-installation wizard (`ideInstall/wizard`), or WSL provisioning splash (`provisionSplash`) windows open and close before the main language server interface is ready.
+  - Normalized loopback host origin handling across CSP relaxation and source interceptor matching to accept both `127.0.0.1` and `localhost` origins seamlessly.
+  - Enhanced patch state inspection to reliably detect `needs-repatch` after Antigravity auto-updater replaces `app.asar`.
+  - Bundled guardian repair executable (`repair.cjs`) alongside patcher CLI during standalone builds.
+- **Sent Message Bubble & Attachment Layout**:
+  - Fixed double card nesting and full-width card stretching on user messages with attachments by constraining intermediate `.w-full` wrapper and replacing fragile direct child combinators (`>`) with descendant selectors across `gemini-app` and `cupertino-dark`.
+  - Added direct `.bg-card` attachment transparency resets and explicit `data-has-attachment` marking on message cards.
+
 ## [3.0.0] - 2026-09-19
 
 ### Added

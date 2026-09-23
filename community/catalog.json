@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-09-19T06:21:47.529Z",
+  "generatedAt": "2026-09-23T04:05:36.615Z",
   "entries": [
     {
       "id": "compact",
@@ -288,12 +288,12 @@
       "author": "Yashjit Pal",
       "source": "https://github.com/YashjitPal/BetterGravity",
       "path": "community/plugins/fork-chat",
-      "bytes": 69362,
+      "bytes": 69638,
       "files": [
         {
           "name": "index.js",
-          "bytes": 55059,
-          "sha256": "96fa679de2d1379eb16b948db33d56d99095044ce5f3373cb70f7198a3b6f364"
+          "bytes": 55335,
+          "sha256": "e508143b6727acaaa3c455f8e18d1b22b44b00dd7d6654beb4cc282f781bead0"
         },
         {
           "name": "plugin.json",
@@ -344,7 +344,7 @@
       "author": "Yashjit Pal",
       "source": "https://github.com/YashjitPal/BetterGravity",
       "path": "community/plugins/gemini-app",
-      "bytes": 1119799,
+      "bytes": 1193575,
       "files": [
         {
           "name": "assets/antigravity-mark.png",
@@ -363,18 +363,23 @@
         },
         {
           "name": "index.js",
-          "bytes": 489227,
-          "sha256": "fd451300a133b778247863bbedba82c1ebb9b17b96314cc2cdfc4e8a8fd8b016"
+          "bytes": 518986,
+          "sha256": "a13e683d5f1bf56ed39da402448e7ad7f6ccb587f92f4ea327a3e5b921aaa47f"
         },
         {
           "name": "plugin.json",
-          "bytes": 30072,
-          "sha256": "4fd8e8df4bae91d3b0c2bcb60aa8a1f9ade56bdda74e2ef08e4409b4d7259587"
+          "bytes": 30095,
+          "sha256": "9270844919cb4bf0acc721a88858c2cca3028eb72b3b1491cbd8098eaa1c3777"
+        },
+        {
+          "name": "styles/codex-features.css",
+          "bytes": 4141,
+          "sha256": "f52af4bf92e1cf85a453672405b2273abfb2d4667a5a532581bf32279996b00e"
         },
         {
           "name": "styles/conversation.css",
-          "bytes": 75294,
-          "sha256": "b672bc6ef7eb8160b8dfd2b7096ad2be2e2cb51189eb0b7b008234fc5b3ce9c6"
+          "bytes": 79114,
+          "sha256": "d2bdc6b6b847c8292a31104d8d74a7323d2b45ce8e15db465b92b3a5917781ff"
         },
         {
           "name": "styles/dialog.css",
@@ -383,8 +388,8 @@
         },
         {
           "name": "styles/gemini-app.css",
-          "bytes": 2603,
-          "sha256": "111b0458af445d3967ec4650f850ccfd2f2202478ccc25ca0a04408b258907cd"
+          "bytes": 2656,
+          "sha256": "a143a6be9b21b6d1c4d65d323f7a5210a1b94b09f87a8da948d899c8037fe590"
         },
         {
           "name": "styles/history.css",
@@ -393,8 +398,8 @@
         },
         {
           "name": "styles/home-composer.css",
-          "bytes": 9617,
-          "sha256": "82ab8467636c0754ffffdc39705f0e0c8780277371368558f1741f58b12c9ef5"
+          "bytes": 9963,
+          "sha256": "4e53fac1b187114b48d9e6115bf745f2d7d492bb3878546e6155333272ca2d6c"
         },
         {
           "name": "styles/home-glow.css",
@@ -403,8 +408,8 @@
         },
         {
           "name": "styles/model-selector.css",
-          "bytes": 52725,
-          "sha256": "58d5104a764475c757baeabb13ef2576e5db64b6869a3fe63db9360ca60a2a08"
+          "bytes": 52960,
+          "sha256": "db5f1b67c9733d601d49b880633dc2044967c8094b341441feec8693c4f66008"
         },
         {
           "name": "styles/plus-menu.css",
@@ -428,8 +433,8 @@
         },
         {
           "name": "styles/sidebar.css",
-          "bytes": 152737,
-          "sha256": "d747ad6621b4cae42af1fc590e9d89f8d3dc4d396673f5421c15bad077403d0b"
+          "bytes": 182390,
+          "sha256": "dcaecd380f933cb548787d066f6dbfe83f8a7810c68af23b6a647008bbfb7c9b"
         },
         {
           "name": "styles/skills-tab.css",
@@ -442,14 +447,19 @@
           "sha256": "5d1f11b93cf8fb8d01eed3e2eaddce2770d68778c062e8c4029cb92e335d69aa"
         },
         {
+          "name": "styles/tactile.css",
+          "bytes": 5658,
+          "sha256": "64a8fa1ceb3cae2ba759885208ef58237850f144f12a9da65a384746d6b65f38"
+        },
+        {
           "name": "styles/tokens.css",
           "bytes": 8122,
           "sha256": "b1618889349e81c54453a075f0a79260039d8eb81b66973b0526f321f0698e68"
         },
         {
           "name": "styles/tooltip.css",
-          "bytes": 6727,
-          "sha256": "de930a2e37493ba4d2c84fddde9f9a3d9267c5e4024cec912dee7dbb500e5f20"
+          "bytes": 6815,
+          "sha256": "80e0c746ba7f99bae1fb2a5a960cbd4ef687ea93e05d9646747bd6a06de02fdf"
         }
       ]
     },
@@ -462,7 +472,7 @@
       "author": "Yashjit Pal",
       "source": "https://github.com/YashjitPal/BetterGravity",
       "path": "community/plugins/gemini-live",
-      "bytes": 325470,
+      "bytes": 325714,
       "files": [
         {
           "name": "assets/watercolor.webp",
@@ -476,8 +486,8 @@
         },
         {
           "name": "index.js",
-          "bytes": 173459,
-          "sha256": "bcae5b205f31a941a1dd7e8cd84d9b5cda7ca578ebb9d08b2dded6448fc4863c"
+          "bytes": 173703,
+          "sha256": "f6ccf643303911b5e294ea2453dafbf98a6205583f1a721bef94b61dafc0aa9c"
         },
         {
           "name": "orb/shaders.js",
@@ -515,12 +525,12 @@
       "author": "BetterGravity Community",
       "source": "https://github.com/YashjitPal/BetterGravity",
       "path": "community/plugins/in-built-browser",
-      "bytes": 804183,
+      "bytes": 807119,
       "files": [
         {
           "name": "index.js",
-          "bytes": 109860,
-          "sha256": "87e7152b5697c5af045d4266966a88e71db9204658ebee137e198acdcdfdf9c1"
+          "bytes": 112796,
+          "sha256": "2f761ab3a1325944124f10be5969b049f7133444f390079de9652591c90b24d8"
         },
         {
           "name": "mcp-server.cjs",
@@ -793,7 +803,7 @@
       "author": "Yashjit Pal",
       "source": "https://github.com/YashjitPal/BetterGravity",
       "path": "community/plugins/pets",
-      "bytes": 1535469,
+      "bytes": 1532208,
       "files": [
         {
           "name": "assets/rocky.webp",
@@ -802,8 +812,8 @@
         },
         {
           "name": "index.js",
-          "bytes": 281300,
-          "sha256": "74075e512670d2b1c60f12d0101b4410c2ee60283e6de64b9e3fba36b6262016"
+          "bytes": 279585,
+          "sha256": "48158f7fa31a6cc4eeb9252ea524d54d22279a005ef899dae8f52c507380ac54"
         },
         {
           "name": "plugin.json",
@@ -947,8 +957,8 @@
         },
         {
           "name": "styles/pet.css",
-          "bytes": 6935,
-          "sha256": "687d889b901c629402a994f0c28b77982a529deaeee4d639131fc6f2c0d51483"
+          "bytes": 5389,
+          "sha256": "12b4b8f7ea5d8de986bec18ac7c2365db4a1af6be6161dd88a97a713e12df89e"
         }
       ]
     },
@@ -961,12 +971,12 @@
       "author": "Yashjit Pal",
       "source": "https://github.com/YashjitPal/BetterGravity",
       "path": "community/plugins/yolo",
-      "bytes": 14350,
+      "bytes": 14221,
       "files": [
         {
           "name": "index.js",
-          "bytes": 11243,
-          "sha256": "55b7c028e4e63c8de6542c0ae37843145d27dc021c0cfa24a53b4d092dce6248"
+          "bytes": 11114,
+          "sha256": "26837f6cdfa80ab6954ce05272711a20a9ac5071187c3b778c2bf850bed802e5"
         },
         {
           "name": "plugin.json",
@@ -995,6 +1005,24 @@
           "name": "catppuccin-turbo.css",
           "bytes": 8452,
           "sha256": "b342630527b99ec3b5f8a6433634a0f36e4089de4fbffdde8c6b841475d39475"
+        }
+      ]
+    },
+    {
+      "id": "cupertino-dark.css",
+      "kind": "theme",
+      "name": "Cupertino Dark",
+      "description": "Masterclass Apple Pro & Space Black aesthetics for BetterGravity: Continuous squircle curvature, obsidian glass materials, specular chamfers, floating inspector wells, iOS 18 / macOS Sequoia tactile physics, and liquid spring rebound.",
+      "version": "1.5.0",
+      "author": "BetterGravity Contributors",
+      "source": "https://github.com/YashjitPal/BetterGravity",
+      "path": "community/themes/cupertino-dark.css",
+      "bytes": 72215,
+      "files": [
+        {
+          "name": "cupertino-dark.css",
+          "bytes": 72215,
+          "sha256": "8f2724052b07908fd6409209afc252ff7761a79da5cac4f5fd9672cce4064f77"
         }
       ]
     },
