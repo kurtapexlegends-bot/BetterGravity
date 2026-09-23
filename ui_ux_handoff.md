@@ -146,6 +146,72 @@ The design token system resides in [`cupertino-dark.css`](file:///c:/SIDEPROJECT
     }
     ```
 
+### 4.6 Antigravity 2.16.0 Compatibility Architecture
+- **Problem**: Antigravity 2.16.0 introduces pre-launch dialogs (`ideInstall/wizard.js`, `provisionSplash.js`) that close before the main language server editor window mounts. In earlier builds, `editors.length === 0` triggered immediate `app.quit()`, killing the app on boot. Additionally, language server origins alternate between `127.0.0.1` and `localhost`, and updater replaces `app.asar`.
+- **Root Cause & Permanent Solution**:
+  1. **Lifecycle Latch**: In [`packages/runtime/src/main/index.ts`](file:///c:/SIDEPROJECTS/BetterGravity/packages/runtime/src/main/index.ts), introduced `isTransientSetupWindow` and a `mainEditorHasOpened` state latch. Shutdown cleanup only engages once a true editor window (`https://127.0.0.1:` or `https://localhost:`) has mounted and subsequently closed.
+  2. **Origin Normalization**: In [`session.ts`](file:///c:/SIDEPROJECTS/BetterGravity/packages/runtime/src/main/session.ts) and [`intercept.ts`](file:///c:/SIDEPROJECTS/BetterGravity/packages/runtime/src/main/intercept.ts), relaxed CSP and script interception across both loopback hostnames seamlessly.
+  3. **Auto-Update Guardian**: In [`packages/patcher/src/native/index.ts`](file:///c:/SIDEPROJECTS/BetterGravity/packages/patcher/src/native/index.ts), verified `runtimeCode` existence to flag `needs-repatch`, allowing the background guardian (`repair.cjs`) to restore hooks after host updates.
+
+### 4.7 Sent Message Bubble Attachment Layout & Intermediate DOM Wrapper Architecture
+- **Problem**: In Antigravity 2.16.0, user messages with attachments displayed a massive 704px wide dark container card (`.bg-card` with 40px radius and 20px/28px padding) with empty dark void on the left ~70% of the screen. Inside, attachment thumbnails were pinned to top-right and an inner text bubble sat at bottom-right.
+- **Root Cause Discovered in Antigravity 2.16.0's DOM**:
+  - The live React component tree renders:
+    ```html
+    <div data-testid="user-input-step" class="flex flex-col w-full gap-2 group/user-input-step pt-4">
+      <div class="w-full"> <!-- Rendered by component RB -->
+        <div data-testid="lifted-context-menu-trigger" class="relative p-px rounded-xl bg-card-border"> <!-- Rendered by GW -->
+          <div class="relative flex flex-row items-end gap-2 p-1.5 rounded-[calc(theme(borderRadius.xl)-1px)] bg-card overflow-hidden">
+            <div class="flex-1 p-0.5 ...">
+              <!-- div[data-no-scroll-jump] (Uob: attachment strip) -->
+              <!-- div[data-quotable="true"] (Rob: text bubble) -->
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    ```
+  - `lifted-context-menu-trigger` is a **grandchild** of `user-input-step`, NOT a direct child.
+  - Stylesheets using `[data-testid="user-input-step"] > [data-testid="lifted-context-menu-trigger"]` completely failed to match.
+  - The wrapper `<div class="w-full">` and the trigger had zero width constraints and filled 100% of the conversation width.
+  - The generic `.bg-card` style rule (which lacked the child combinator) matched and painted the full-width outer card, while attachment text rules styled `[data-quotable="true"]` as an inner bubble at the bottom right.
+- **Permanent Solution**:
+  1. Constrained intermediate `.w-full` wrapper:
+     ```css
+     [data-testid="user-input-step"] > .w-full,
+     [data-testid="user-input-step"] .w-full:has([data-testid="lifted-context-menu-trigger"]) {
+       width: fit-content !important;
+       max-width: 508px !important;
+       margin-left: auto !important;
+       display: flex !important;
+       flex-direction: column !important;
+       align-items: flex-end !important;
+     }
+     ```
+  2. Replaced all direct child combinators with descendant selectors (`[data-testid="user-input-step"] [data-testid="lifted-context-menu-trigger"]`).
+  3. Direct `.bg-card` reset for attachments:
+     ```css
+     [data-testid="user-input-step"] .bg-card:has(img),
+     [data-testid="user-input-step"] .bg-card:has([data-no-scroll-jump]),
+     .bg-card[data-has-attachment="true"] {
+       background: transparent !important;
+       border: none !important;
+       box-shadow: none !important;
+       padding: 0 !important;
+       width: fit-content !important;
+       max-width: 516px !important;
+       margin-left: auto !important;
+     }
+     ```
+  4. In [`index.js`](file:///c:/SIDEPROJECTS/BetterGravity/community/plugins/gemini-app/index.js), `setupUserMessageBubble` stamps `data-has-attachment="true"` directly on `bgCard`, `trigger`, and `step`.
+
+### 4.8 Thinking Effort Slider Apple HIG Fluid Physics & Tactile Haptics
+- **Design Intent**: Liquid spring kinetics, smooth tracking, squish responsiveness, and tactile feedback when tuning the model thinking budget.
+- **Permanent Solution**:
+  - Implemented Apple HIG fluid spring curves (`cubic-bezier(0.16, 1, 0.3, 1)`) for thumb and fill bar transitions.
+  - Added pointer-down squish feedback (`scaleX(1.15) scaleY(0.85)` / `transform: scale(0.92)`).
+  - Integrated `navigator.vibrate` / audio haptic ticks on snap threshold crossing.
+
 ---
 
 ## 5. File & Runtime Sync Matrix
@@ -153,25 +219,24 @@ The design token system resides in [`cupertino-dark.css`](file:///c:/SIDEPROJECT
 | Repository Source File | `%APPDATA%\BetterGravity` Runtime Target | Description |
 | :--- | :--- | :--- |
 | [`community/themes/cupertino-dark.css`](file:///c:/SIDEPROJECTS/BetterGravity/community/themes/cupertino-dark.css) | `%APPDATA%\BetterGravity\themes\cupertino-dark.css` | Surface hierarchy, specular shaders, Apple HIG physics |
-| [`community/plugins/gemini-app/index.js`](file:///c:/SIDEPROJECTS/BetterGravity/community/plugins/gemini-app/index.js) | `%APPDATA%\BetterGravity\plugins\gemini-app\index.js` | Sidebar state orchestration, drag physics, DOM guards |
+| [`community/plugins/gemini-app/index.js`](file:///c:/SIDEPROJECTS/BetterGravity/community/plugins/gemini-app/index.js) | `%APPDATA%\BetterGravity\plugins\gemini-app\index.js` | Sidebar orchestration, drag physics, DOM guards, attachment attributes |
 | [`community/plugins/gemini-app/styles/sidebar.css`](file:///c:/SIDEPROJECTS/BetterGravity/community/plugins/gemini-app/styles/sidebar.css) | `%APPDATA%\BetterGravity\plugins\gemini-app\styles\sidebar.css` | 52px rail styling, slider spring kinetics, CSS Grid accordion |
-| [`community/plugins/gemini-app/styles/conversation.css`](file:///c:/SIDEPROJECTS/BetterGravity/community/plugins/gemini-app/styles/conversation.css) | `%APPDATA%\BetterGravity\plugins\gemini-app\styles\conversation.css` | Message stream layout, code block containers, bubble sizing |
+| [`community/plugins/gemini-app/styles/conversation.css`](file:///c:/SIDEPROJECTS/BetterGravity/community/plugins/gemini-app/styles/conversation.css) | `%APPDATA%\BetterGravity\plugins\gemini-app\styles\conversation.css` | Message stream layout, code block containers, attachment resets |
 | [`community/plugins/fork-chat/index.js`](file:///c:/SIDEPROJECTS/BetterGravity/community/plugins/fork-chat/index.js) | `%APPDATA%\BetterGravity\plugins\fork-chat\index.js` | Fork action injection, scroll listener lifecycle |
 
 ---
 
 ## 6. Verification & Automated Test Matrix
 
-Run the comprehensive test suite:
+Run the full project test suite:
 ```powershell
-npx vitest run packages/runtime/tests/catalog.test.ts packages/runtime/tests/theme-bundle.test.ts packages/runtime/tests/gemini-navigation.test.ts packages/runtime/tests/fork-chat.test.ts packages/runtime/tests/gemini-app-performance.test.ts packages/runtime/tests/fork-chat-settings.test.ts packages/runtime/tests/gemini-app-streaming.test.ts
+npx vitest run
 ```
 
-### Baseline Test Results
-```text
-Test Files  7 passed (7)
-     Tests  131 passed (131)
-```
+### Full Suite Status
+- **Test Files**: 64 passed (64)
+- **Tests**: 1,176 passed (1,176)
+- **Coverage**: Runtime lifecycle, desugarHas CSS compiler, AST patches, Gemini App streaming, navigation, browser pet overlay, and YOLO engine.
 
 ---
 
