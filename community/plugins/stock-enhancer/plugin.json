@@ -1,0 +1,9 @@
+{
+  "name": "Native Pro",
+  "description": "Stock-preserving enhancement suite: model context ring beside chevron, context breakdown popover, instant window reveal, smooth conversation streaming, jump-to-bottom navigation, and response speed metrics.",
+  "version": "1.0.0",
+  "author": "BetterGravity",
+  "main": "index.js",
+  "styles": ["styles/stock-enhancer.css"],
+  "source": "https://github.com/YashjitPal/BetterGravity"
+}

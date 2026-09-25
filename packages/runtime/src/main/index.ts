@@ -419,6 +419,18 @@ export function activate(context: RuntimeContext): void {
 
   app.on("browser-window-created", (_event, win) => {
     if (!isHelperWindow(win)) {
+      const ensureMaximized = () => {
+        try {
+          if (!win.isDestroyed() && !isHelperWindow(win) && !isTransientSetupWindow(win)) {
+            if (!win.isMaximized()) {
+              win.maximize();
+            }
+          }
+        } catch {}
+      };
+
+      win.once("ready-to-show", ensureMaximized);
+
       const inspectUrl = () => {
         try {
           const url = win.webContents.getURL() || "";
@@ -427,6 +439,7 @@ export function activate(context: RuntimeContext): void {
             !isTransientSetupWindow(win)
           ) {
             mainEditorHasOpened = true;
+            ensureMaximized();
           }
         } catch {}
       };

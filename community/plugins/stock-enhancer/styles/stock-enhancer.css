@@ -1,0 +1,405 @@
+/* Ensure the model trigger container is an inline-flex row so the sibling ring is directly beside it */
+[data-testid="agent-input-box"] *:has(> [data-testid="model-selector-trigger"]) {
+  display: inline-flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  flex-wrap: nowrap !important;
+  vertical-align: middle !important;
+}
+
+/* Constrain model trigger to fit content tightly without hogging toolbar width */
+[data-testid="agent-input-box"] [data-testid="model-selector-trigger"] {
+  display: inline-flex !important;
+  align-items: center !important;
+  flex: 0 0 auto !important;
+  width: auto !important;
+  max-width: fit-content !important;
+}
+
+/* Dedicated Context Ring Sibling Button (Placed directly beside chevron, separate hitbox) */
+.ag-stock-ring-sibling {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  position: relative !important;
+  height: 24px !important;
+  width: 24px !important;
+  padding: 0 !important;
+  margin: 0 0 0 3px !important;
+  border-radius: 9999px !important;
+  border: 1px solid transparent !important;
+  background-color: transparent !important;
+  color: hsl(var(--muted-foreground, #9ca3af)) !important;
+  cursor: pointer !important;
+  outline: none !important;
+  flex: 0 0 auto !important;
+  flex-shrink: 0 !important;
+  transition: background-color 0.15s ease, color 0.15s ease, transform 0.1s ease !important;
+  vertical-align: middle !important;
+  box-sizing: border-box !important;
+}
+
+/* Separate hover state: ring lights up independently from model trigger */
+.ag-stock-ring-sibling:hover {
+  background-color: hsl(var(--accent, rgba(255, 255, 255, 0.15))) !important;
+  color: hsl(var(--foreground, #ffffff)) !important;
+  transform: scale(1.1) !important;
+}
+
+.ag-stock-ring-sibling:active {
+  transform: scale(0.92) !important;
+}
+
+/* Subtle separator between chevron and context ring inside the model pill (legacy) */
+.ag-stock-ring-separator {
+  display: inline-block;
+  width: 1px;
+  height: 13px;
+  margin-left: 6px;
+  margin-right: 5px;
+  background-color: hsl(var(--border, rgba(255, 255, 255, 0.2)));
+  opacity: 0.6;
+  flex-shrink: 0;
+  vertical-align: middle;
+  pointer-events: none;
+}
+
+/* Dedicated Context Ring Hitbox inside the pill (legacy) */
+.ag-stock-ring-hitbox {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  height: 20px;
+  width: 20px;
+  padding: 1px;
+  margin-right: 2px;
+  border-radius: 9999px;
+  color: hsl(var(--muted-foreground, #9ca3af));
+  cursor: pointer;
+  outline: none;
+  flex-shrink: 0;
+  transition: background-color 0.15s ease, color 0.15s ease, transform 0.1s ease;
+  vertical-align: middle;
+  box-sizing: border-box;
+}
+
+.ag-stock-ring-hitbox:hover {
+  background-color: hsl(var(--accent, rgba(255, 255, 255, 0.22)));
+  color: hsl(var(--foreground, #ffffff));
+  transform: scale(1.12);
+}
+
+.ag-stock-ring-hitbox:active {
+  transform: scale(0.92);
+}
+
+.ag-stock-ring-svg {
+  width: 15px;
+  height: 15px;
+  transform: rotate(-90deg);
+  overflow: visible;
+  pointer-events: none;
+  flex-shrink: 0;
+}
+
+.ag-stock-ring-track {
+  fill: none;
+  stroke: currentColor;
+  stroke-opacity: 0.2;
+  stroke-width: 2.5;
+}
+
+.ag-stock-ring-progress {
+  fill: none;
+  stroke: var(--ag-ring-stroke, #10b981);
+  stroke-width: 2.5;
+  stroke-linecap: round;
+  transition: stroke-dashoffset 0.4s ease, stroke 0.3s ease;
+}
+
+.ag-stock-ring-progress.risk-low {
+  stroke: #10b981;
+}
+
+.ag-stock-ring-progress.risk-moderate {
+  stroke: #f59e0b;
+}
+
+.ag-stock-ring-progress.risk-high {
+  stroke: #ef4444;
+}
+
+/* Floating Portal Tooltip (Escapes all overflow clipping) */
+.ag-stock-floating-tooltip {
+  position: fixed;
+  background-color: hsl(var(--popover, #1e1e1e));
+  color: hsl(var(--popover-foreground, #f3f4f6));
+  border: 1px solid hsl(var(--border, rgba(255, 255, 255, 0.15)));
+  border-radius: 6px;
+  padding: 4px 8px;
+  font-size: 11px;
+  font-weight: 500;
+  white-space: nowrap;
+  pointer-events: none;
+  z-index: 999999;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4);
+  animation: agStockFadeIn 0.12s ease-out;
+}
+
+/* Context Tooltip */
+.ag-stock-tooltip {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: hsl(var(--popover, #1e1e1e));
+  color: hsl(var(--popover-foreground, #f3f4f6));
+  border: 1px solid hsl(var(--border, rgba(255, 255, 255, 0.15)));
+  border-radius: 6px;
+  padding: 4px 8px;
+  font-size: 11px;
+  font-weight: 500;
+  white-space: nowrap;
+  pointer-events: none;
+  z-index: 100000;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4);
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.15s ease, visibility 0.15s ease;
+}
+
+.ag-stock-ring-side:hover .ag-stock-tooltip,
+.ag-stock-ring-hitbox:hover .ag-stock-tooltip,
+.ag-stock-ring-container:hover .ag-stock-tooltip {
+  opacity: 1;
+  visibility: visible;
+}
+
+/* Interactive Context Popover */
+.ag-stock-context-popover {
+  position: fixed;
+  z-index: 999999;
+  width: 300px;
+  background-color: hsl(var(--popover, #1e1e1e));
+  color: hsl(var(--popover-foreground, #f3f4f6));
+  border: 1px solid hsl(var(--border, rgba(255, 255, 255, 0.15)));
+  border-radius: 12px;
+  box-shadow: 0 12px 30px -4px rgba(0, 0, 0, 0.5), 0 4px 12px -2px rgba(0, 0, 0, 0.3);
+  padding: 14px;
+  font-size: 12px;
+  line-height: 1.4;
+  backdrop-filter: blur(12px);
+  user-select: none;
+  animation: agStockFadeIn 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes agStockFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.ag-stock-popover-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid hsl(var(--border, rgba(255, 255, 255, 0.08)));
+}
+
+.ag-stock-popover-title {
+  font-weight: 600;
+  font-size: 13px;
+  color: hsl(var(--foreground, #ffffff));
+}
+
+.ag-stock-risk-pill {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 7px;
+  border-radius: 9999px;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.ag-stock-risk-pill.risk-low {
+  background-color: rgba(16, 185, 129, 0.15);
+  color: #34d399;
+}
+
+.ag-stock-risk-pill.risk-moderate {
+  background-color: rgba(245, 158, 11, 0.15);
+  color: #fbbf24;
+}
+
+.ag-stock-risk-pill.risk-high {
+  background-color: rgba(239, 68, 68, 0.15);
+  color: #f87171;
+}
+
+.ag-stock-popover-stats {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 6px;
+  font-variant-numeric: tabular-nums;
+}
+
+.ag-stock-popover-used {
+  font-weight: 600;
+  font-size: 13px;
+  color: hsl(var(--foreground, #ffffff));
+}
+
+.ag-stock-popover-total {
+  font-size: 11px;
+  color: hsl(var(--muted-foreground, #9ca3af));
+}
+
+.ag-stock-bar-track {
+  width: 100%;
+  height: 6px;
+  border-radius: 9999px;
+  background-color: hsl(var(--secondary, rgba(255, 255, 255, 0.1)));
+  overflow: hidden;
+  margin-bottom: 12px;
+}
+
+.ag-stock-bar-fill {
+  height: 100%;
+  border-radius: 9999px;
+  transition: width 0.3s ease, background-color 0.3s ease;
+}
+
+.ag-stock-bar-fill.risk-low {
+  background-color: #10b981;
+}
+
+.ag-stock-bar-fill.risk-moderate {
+  background-color: #f59e0b;
+}
+
+.ag-stock-bar-fill.risk-high {
+  background-color: #ef4444;
+}
+
+.ag-stock-breakdown {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin-bottom: 14px;
+}
+
+.ag-stock-breakdown-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11.5px;
+  color: hsl(var(--muted-foreground, #9ca3af));
+}
+
+.ag-stock-breakdown-row span:last-child {
+  font-weight: 500;
+  color: hsl(var(--foreground, #e5e7eb));
+  font-variant-numeric: tabular-nums;
+}
+
+.ag-stock-popover-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.ag-stock-btn {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border-radius: 6px;
+  font-size: 11.5px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.15s ease, opacity 0.15s ease, border-color 0.15s ease;
+  border: 1px solid hsl(var(--border, rgba(255, 255, 255, 0.12)));
+  background-color: hsl(var(--secondary, rgba(255, 255, 255, 0.05)));
+  color: hsl(var(--foreground, #f3f4f6));
+}
+
+.ag-stock-btn:hover {
+  background-color: hsl(var(--accent, rgba(255, 255, 255, 0.12)));
+}
+
+.ag-stock-btn:active {
+  transform: scale(0.98);
+}
+
+.ag-stock-btn.primary {
+  background-color: hsl(var(--primary, #3b82f6));
+  color: hsl(var(--primary-foreground, #ffffff));
+  border-color: transparent;
+}
+
+.ag-stock-btn.primary:hover {
+  opacity: 0.92;
+}
+
+.ag-stock-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Floating Jump-to-Bottom Button */
+.ag-stock-jump-button {
+  position: absolute;
+  bottom: 24px;
+  right: 28px;
+  z-index: 50;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  font-size: 11.5px;
+  font-weight: 500;
+  border-radius: 9999px;
+  background-color: hsl(var(--card, #1e1e1e));
+  color: hsl(var(--foreground, #f3f4f6));
+  border: 1px solid hsl(var(--border, rgba(255, 255, 255, 0.15)));
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+  cursor: pointer;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(8px);
+  transition: opacity 0.2s cubic-bezier(0.16, 1, 0.3, 1), transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.15s ease;
+  user-select: none;
+}
+
+.ag-stock-jump-button:hover {
+  background-color: hsl(var(--accent, #2a2a2a));
+}
+
+.ag-stock-jump-button.visible {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateY(0);
+}
+
+/* Generation Speed Metric */
+.ag-stock-speed-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  color: hsl(var(--muted-foreground, #9ca3af));
+  opacity: 0.75;
+  margin-left: 8px;
+  user-select: none;
+}
