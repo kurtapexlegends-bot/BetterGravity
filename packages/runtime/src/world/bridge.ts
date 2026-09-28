@@ -71,6 +71,8 @@ export interface RuntimeBridge {
   log(message: string): void;
   onStateChanged(listener: (state: RuntimeState) => void): void;
   capturePage?(rect?: { x: number; y: number; width: number; height: number }): Promise<string | null>;
+  windowMaximize?(): Promise<boolean>;
+  windowFullscreen?(flag?: boolean): Promise<boolean>;
 }
 
 export const BRIDGE_GLOBAL = "__betterGravityBridge";

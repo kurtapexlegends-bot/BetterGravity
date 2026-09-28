@@ -276,6 +276,24 @@ function registerChannels(
     }
   });
 
+  ipcMain.handle(CHANNEL.windowMaximize, (event) => {
+    const win = BrowserWindow.fromWebContents(event.sender);
+    if (win && !win.isDestroyed()) {
+      win.maximize();
+      return true;
+    }
+    return false;
+  });
+
+  ipcMain.handle(CHANNEL.windowFullscreen, (event, flag?: boolean) => {
+    const win = BrowserWindow.fromWebContents(event.sender);
+    if (win && !win.isDestroyed()) {
+      win.setFullScreen(flag !== false);
+      return true;
+    }
+    return false;
+  });
+
   // Adding or deleting content changes what is on disk, so each one answers with
   // the rebuilt state; the watcher would otherwise race the reply.
   const afterChange = (result: ContentResult): ContentResult => {
@@ -430,6 +448,7 @@ export function activate(context: RuntimeContext): void {
       };
 
       win.once("ready-to-show", ensureMaximized);
+      win.once("show", () => setTimeout(ensureMaximized, 100));
 
       const inspectUrl = () => {
         try {
@@ -440,6 +459,9 @@ export function activate(context: RuntimeContext): void {
           ) {
             mainEditorHasOpened = true;
             ensureMaximized();
+            setTimeout(ensureMaximized, 250);
+            setTimeout(ensureMaximized, 600);
+            setTimeout(ensureMaximized, 1200);
           }
         } catch {}
       };

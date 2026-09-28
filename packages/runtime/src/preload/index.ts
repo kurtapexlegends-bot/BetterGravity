@@ -164,6 +164,8 @@ const bridge: RuntimeBridge = {
     overlayMessageListeners.add(listener);
   },
   capturePage: (rect) => ipcRenderer.invoke(CHANNEL.capturePage, rect),
+  windowMaximize: () => ipcRenderer.invoke(CHANNEL.windowMaximize),
+  windowFullscreen: (flag?: boolean) => ipcRenderer.invoke(CHANNEL.windowFullscreen, flag),
   log: (message) => report(message),
   onStateChanged: (listener) => {
     stateListeners.add(listener);

@@ -56,6 +56,8 @@ export const CHANNEL = {
   getContextMetrics: "bettergravity:get-context-metrics",
   compactContext: "bettergravity:compact-context",
   capturePage: "bettergravity:capture-page",
+  windowMaximize: "bettergravity:window-maximize",
+  windowFullscreen: "bettergravity:window-fullscreen",
   log: "bettergravity:log"
 } as const;
 

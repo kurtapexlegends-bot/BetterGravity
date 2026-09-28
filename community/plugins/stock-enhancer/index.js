@@ -63,12 +63,17 @@ function applyInstantBootup() {
     document.documentElement.style.removeProperty("overflow");
 
     // Ensure the window is maximized if opened in a floating restored window
-    if (settings.startMaximized && typeof window.resizeTo === "function" && window.screen) {
-      const availW = window.screen.availWidth;
-      const availH = window.screen.availHeight;
-      if (window.outerWidth < availW || window.outerHeight < availH) {
-        window.moveTo(0, 0);
-        window.resizeTo(availW, availH);
+    if (settings.startMaximized) {
+      try {
+        window.__betterGravityBridge?.windowMaximize?.();
+      } catch {}
+      if (typeof window.resizeTo === "function" && window.screen) {
+        const availW = window.screen.availWidth;
+        const availH = window.screen.availHeight;
+        if (window.outerWidth < availW || window.outerHeight < availH) {
+          window.moveTo(0, 0);
+          window.resizeTo(availW, availH);
+        }
       }
     }
   } catch {}
