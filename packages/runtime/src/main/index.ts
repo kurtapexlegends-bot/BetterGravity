@@ -437,6 +437,10 @@ export function activate(context: RuntimeContext): void {
 
   app.on("browser-window-created", (_event, win) => {
     if (!isHelperWindow(win)) {
+      try {
+        win.webContents.setBackgroundThrottling(false);
+      } catch {}
+
       const ensureMaximized = () => {
         try {
           if (!win.isDestroyed() && !isHelperWindow(win) && !isTransientSetupWindow(win)) {

@@ -531,42 +531,10 @@ function ensureJumpToBottom() {
   plugin.onDispose(() => view.removeEventListener("scroll", onScroll));
 }
 
-/* ── Smooth Streaming & Scroll De-Jitter ──────────────────────────────────── */
-let scrollFrame = 0;
-let userIsScrolledUp = false;
-
+/* ── Native Streaming & Scroll Integrity ─────────────────────────────────── */
 function setupScrollDejitter() {
-  if (!settings.enableScrollOptimization) return;
-
-  const view = document.querySelector(CONVERSATION_VIEW_SELECTOR);
-  if (!view) return;
-
-  const handleScroll = () => {
-    const distanceToBottom = view.scrollHeight - view.scrollTop - view.clientHeight;
-    userIsScrolledUp = distanceToBottom > 80;
-  };
-
-  view.addEventListener("scroll", handleScroll, { passive: true });
-  plugin.onDispose(() => view.removeEventListener("scroll", handleScroll));
-
-  // Coalesce streaming auto-scroll passes
-  const observer = new MutationObserver(() => {
-    if (userIsScrolledUp) return;
-    if (scrollFrame) return;
-
-    scrollFrame = requestAnimationFrame(() => {
-      scrollFrame = 0;
-      if (!userIsScrolledUp && view.isConnected) {
-        view.scrollTop = view.scrollHeight;
-      }
-    });
-  });
-
-  observer.observe(view, { childList: true, subtree: true, characterData: true });
-  plugin.onDispose(() => {
-    if (scrollFrame) cancelAnimationFrame(scrollFrame);
-    observer.disconnect();
-  });
+  // Let Antigravity's native scroller manage streaming token progression directly.
+  // Avoids MutationObserver layout thrashing and background requestAnimationFrame freezing.
 }
 
 /* ── Instant Conversation Switching (Bounded LRU Cache) ─────────────────── */
@@ -575,6 +543,7 @@ let lastActiveCascadeId = "";
 
 function setupInstantChatSwitching() {
   const checkConversationSwitch = () => {
+    if (document.hidden) return;
     const currentId = getActiveConversationId();
     if (!currentId) return;
 
@@ -620,6 +589,7 @@ function setupSpeedMetrics() {
   }
 
   const inspectAssistantResponses = () => {
+    if (document.hidden) return;
     const responses = document.querySelectorAll('[data-testid="assistant-turn"], [data-testid="chat-step"]');
     for (const res of responses) {
       if (trackedResponses.has(res)) continue;
