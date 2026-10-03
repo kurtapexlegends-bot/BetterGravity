@@ -24,25 +24,19 @@ extracted Codex text.
   doing so wastes 2 LLM roundtrips and dumps ~20,000 tokens of documentation into the context.
   Proceed directly to `list_tabs` or `create_tab` using `{"browser_id":"iab"}`. Only call
   `get_browser` / `get_browser_documentation` if troubleshooting an explicit connection failure.
-- **Compound Execution Priority (5x-10x Faster):** Avoid turn-by-turn roundtrips (e.g. separate
-  tool calls for click, wait, fill, submit). Use `playwright_evaluate` to batch multi-step DOM
-  interactions into a single JavaScript snippet:
-  ```js
-  // Compound action: fill form and submit in a single turn
-  const input = document.querySelector('#search');
-  input.value = 'query';
-  input.dispatchEvent(new Event('input', { bubbles: true }));
-  document.querySelector('#submit-btn').click();
-  return { submitted: true };
-  ```
+- **Interactive Visual Cursor Preservation:** BetterGravity features an animated agent
+  cursor (`CodexBrowserCursor`) that visibly glides across the screen, hovers, and triggers click
+  animations in the browser pane. To preserve this visual mouse animation during user-facing browsing,
+  prioritize `playwright_locator_*` tools (`playwright_locator_click`, `playwright_locator_fill`) and
+  `cua_click`. Reserve headless `playwright_evaluate` for background batch tasks, data scraping, or
+  direct authenticated API fetches where on-screen cursor movement is not needed.
 - **Context Hygiene & Fast Observation Hierarchy:**
-  1. For fast textual comprehension, call `tabs_content` or `tab_content_export` (returns clean Markdown; lowest token cost, ~200-500 tokens).
-  2. For discovering interactive elements, call `tab_ax_get_state` (returns semantic accessibility tree without visual clutter, ~500-1000 tokens).
+  1. For fast textual comprehension, call `tabs_content` or `tab_content_export` (clean Markdown; lowest token cost, ~200-500 tokens).
+  2. For discovering interactive elements and their locators, call `tab_ax_get_state` (semantic accessibility tree without visual clutter, ~500-1000 tokens).
   3. Avoid `tab_screenshot` and `playwright_dom_snapshot` unless visual/layout verification is explicitly requested.
-- **Authenticated Session API Direct Fetch:** Inside `playwright_evaluate`, you have full access
-  to the page's origin, cookies, and authorization headers. Run `window.fetch()` directly against
-  the site's internal REST or GraphQL endpoints to fetch structured JSON instantly rather than
-  scraping paginated DOM.
+- **Authenticated Session API Direct Fetch:** When extracting data in bulk, you can use
+  `playwright_evaluate` to run `window.fetch()` directly against the site's internal REST/GraphQL
+  endpoints with existing session cookies, bypassing unnecessary page re-renders.
 - This adapter supplies only the in-app browser in the current Antigravity
   conversation. Chrome, Edge, extension instances, and Codex's Settings →
   Computer use installation flow are unavailable here. An explicitly requested
