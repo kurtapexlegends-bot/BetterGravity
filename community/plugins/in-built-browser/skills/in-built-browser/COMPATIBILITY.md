@@ -12,10 +12,30 @@ extracted Codex text.
   schemas for argument names. Existing browser and tab IDs serve the role of
   persistent JavaScript bindings. The bundled JavaScript client is optional for
   environments that already supply a persistent JavaScript execution tool.
-- For initial in-app selection, call `get_browser` with `{"id":"iab"}`, then
-  `get_browser_documentation` with its returned `browser_id`. Read the entire
-  result before interacting. Reuse that ID and documentation across turns.
-  Do not start with `list_browsers`; use it for discovery troubleshooting.
+- **Fast-Path Zero-Latency Execution:** The in-app browser ID is always `"iab"`.
+  Do NOT call `get_browser` or `get_browser_documentation` during normal operation:
+  doing so wastes 2 LLM roundtrips and dumps ~20,000 tokens of documentation into the context.
+  Proceed directly to `list_tabs` or `create_tab` using `{"browser_id":"iab"}`. Only call
+  `get_browser` / `get_browser_documentation` if troubleshooting an explicit connection failure.
+- **Compound Execution Priority (5x-10x Faster):** Avoid turn-by-turn roundtrips (e.g. separate
+  tool calls for click, wait, fill, submit). Use `playwright_evaluate` to batch multi-step DOM
+  interactions into a single JavaScript snippet:
+  ```js
+  // Compound action: fill form and submit in a single turn
+  const input = document.querySelector('#search');
+  input.value = 'query';
+  input.dispatchEvent(new Event('input', { bubbles: true }));
+  document.querySelector('#submit-btn').click();
+  return { submitted: true };
+  ```
+- **Context Hygiene & Fast Observation Hierarchy:**
+  1. For fast textual comprehension, call `tabs_content` or `tab_content_export` (returns clean Markdown; lowest token cost, ~200-500 tokens).
+  2. For discovering interactive elements, call `tab_ax_get_state` (returns semantic accessibility tree without visual clutter, ~500-1000 tokens).
+  3. Avoid `tab_screenshot` and `playwright_dom_snapshot` unless visual/layout verification is explicitly requested.
+- **Authenticated Session API Direct Fetch:** Inside `playwright_evaluate`, you have full access
+  to the page's origin, cookies, and authorization headers. Run `window.fetch()` directly against
+  the site's internal REST or GraphQL endpoints to fetch structured JSON instantly rather than
+  scraping paginated DOM.
 - This adapter supplies only the in-app browser in the current Antigravity
   conversation. Chrome, Edge, extension instances, and Codex's Settings →
   Computer use installation flow are unavailable here. An explicitly requested
