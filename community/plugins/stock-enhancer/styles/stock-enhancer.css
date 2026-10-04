@@ -130,6 +130,80 @@
   stroke: #ef4444;
 }
 
+/* ── Compacting & Success Animations for Ring & Popover ─────────────────── */
+@keyframes agStockRingSpin {
+  0% { transform: rotate(-90deg); }
+  100% { transform: rotate(270deg); }
+}
+
+@keyframes agStockRingPulse {
+  0%, 100% { filter: drop-shadow(0 0 2px rgba(59, 130, 246, 0.4)); opacity: 0.9; }
+  50% { filter: drop-shadow(0 0 8px rgba(59, 130, 246, 0.9)); opacity: 1; }
+}
+
+@keyframes agStockRingSuccessGlow {
+  0% { transform: scale(1); filter: drop-shadow(0 0 0px #10b981); }
+  35% { transform: scale(1.28); filter: drop-shadow(0 0 10px #10b981); }
+  100% { transform: scale(1); filter: drop-shadow(0 0 0px transparent); }
+}
+
+.ag-stock-ring-sibling.ag-stock-ring-compacting .ag-stock-ring-svg {
+  animation: agStockRingSpin 1s cubic-bezier(0.4, 0, 0.2, 1) infinite, agStockRingPulse 1.4s ease-in-out infinite;
+}
+
+.ag-stock-ring-sibling.ag-stock-ring-compacting .ag-stock-ring-progress {
+  stroke: #3b82f6 !important;
+  stroke-dasharray: 20 36 !important;
+}
+
+.ag-stock-ring-sibling.ag-stock-ring-success {
+  animation: agStockRingSuccessGlow 0.7s cubic-bezier(0.16, 1, 0.3, 1) forwards !important;
+}
+
+.ag-stock-ring-sibling.ag-stock-ring-success .ag-stock-ring-progress {
+  stroke: #10b981 !important;
+}
+
+@keyframes agStockSpin {
+  100% { transform: rotate(360deg); }
+}
+
+.ag-stock-spinner {
+  animation: agStockSpin 0.75s linear infinite;
+  flex-shrink: 0;
+}
+
+@keyframes agStockBarShimmer {
+  0% { opacity: 0.6; filter: brightness(0.9); }
+  50% { opacity: 1; filter: brightness(1.3) drop-shadow(0 0 5px #3b82f6); }
+  100% { opacity: 0.6; filter: brightness(0.9); }
+}
+
+.ag-stock-bar-fill.compacting {
+  background: linear-gradient(90deg, #3b82f6, #60a5fa, #3b82f6) !important;
+  background-size: 200% 100% !important;
+  animation: agStockBarShimmer 1.1s ease-in-out infinite !important;
+}
+
+.ag-stock-btn.ag-stock-compact-btn.compacting {
+  background-color: #2563eb !important;
+  cursor: wait !important;
+  opacity: 0.92 !important;
+}
+
+.ag-stock-btn.ag-stock-compact-btn.success {
+  background-color: #059669 !important;
+  color: #ffffff !important;
+  border-color: transparent !important;
+  animation: agStockPop 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes agStockPop {
+  0% { transform: scale(0.95); }
+  50% { transform: scale(1.05); }
+  100% { transform: scale(1); }
+}
+
 /* Floating Portal Tooltip (Escapes all overflow clipping) */
 .ag-stock-floating-tooltip {
   position: fixed;

@@ -795,23 +795,109 @@ async function toggleContextPopover(anchor) {
   const compactBtn = popover.querySelector(".ag-stock-compact-btn");
   compactBtn?.addEventListener("click", async (e) => {
     e.stopPropagation();
+    if (compactBtn.disabled) return;
     compactBtn.disabled = true;
-    compactBtn.innerHTML = `<span>Compacting...</span>`;
+    compactBtn.classList.add("compacting");
+    anchor.classList.add("ag-stock-ring-compacting");
+
+    const barFill = popover.querySelector(".ag-stock-bar-fill");
+    barFill?.classList.add("compacting");
+
+    compactBtn.innerHTML = `
+      <svg class="ag-stock-spinner" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+        <circle cx="12" cy="12" r="9" stroke-opacity="0.25"></circle>
+        <path d="M12 3a9 9 0 0 1 9 9" stroke-linecap="round"></path>
+      </svg>
+      <span>Compacting...</span>
+    `;
+
+    // Subtle audio feedback if sounds enabled
+    try {
+      if (settings.soundNotifications) {
+        const ctx = getAudioContext();
+        if (ctx) {
+          const now = ctx.currentTime;
+          playSingleNote(ctx, now, 523.25, 0.08, 0.1, "sine");
+          playSingleNote(ctx, now + 0.08, 659.25, 0.12, 0.12, "sine");
+        }
+      }
+    } catch {}
 
     try {
       const activeSessionId = getActiveConversationId();
+      let res = null;
       if (plugin?.account?.compactContext) {
-        await plugin.account.compactContext(activeSessionId);
+        res = await plugin.account.compactContext(activeSessionId);
       }
-      compactBtn.innerHTML = `<span>✔ Compacted</span>`;
-      setTimeout(async () => {
-        await fetchMetrics(true);
-        updateRingUI(anchor);
+
+      await fetchMetrics(true);
+
+      const reclaimedPercent = res?.reclaimedPercentage ?? (res?.reclaimedTokens && res?.originalTokens ? Math.round((res.reclaimedTokens / res.originalTokens) * 100) : 0);
+      const successLabel = reclaimedPercent ? `✔ -${reclaimedPercent}% Reclaimed` : `✔ Compacted!`;
+
+      compactBtn.classList.remove("compacting");
+      compactBtn.classList.add("success");
+      compactBtn.innerHTML = `
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="20 6 9 17 4 12"></polyline>
+        </svg>
+        <span>${successLabel}</span>
+      `;
+
+      barFill?.classList.remove("compacting");
+      anchor.classList.remove("ag-stock-ring-compacting");
+      anchor.classList.add("ag-stock-ring-success");
+
+      // Update ring and popover stats in real time
+      updateRingUI(anchor);
+      if (cachedMetrics) {
+        const newUsed = cachedMetrics.used || 0;
+        const newLimit = cachedMetrics.limit || limit;
+        const newRatio = Math.min(Math.max(newUsed / newLimit, 0), 1);
+        const newPct = Math.round(newRatio * 100);
+
+        const usedLabel = popover.querySelector(".ag-stock-popover-used");
+        if (usedLabel) usedLabel.textContent = `${formatTokens(newUsed)} tokens (${newPct}%)`;
+
+        const totalLabel = popover.querySelector(".ag-stock-popover-total");
+        if (totalLabel) totalLabel.textContent = `of ${formatTokens(newLimit)} cap`;
+
+        if (barFill) barFill.style.width = `${newPct}%`;
+      }
+
+      // Success chime
+      try {
+        if (settings.soundNotifications) {
+          const ctx = getAudioContext();
+          if (ctx) {
+            const now = ctx.currentTime;
+            playSingleNote(ctx, now, 587.33, 0.1, 0.12, "sine");
+            playSingleNote(ctx, now + 0.09, 880, 0.22, 0.15, "sine");
+          }
+        }
+      } catch {}
+
+      setTimeout(() => {
+        anchor.classList.remove("ag-stock-ring-success");
         closeContextPopover();
-      }, 800);
+      }, 1200);
     } catch {
+      barFill?.classList.remove("compacting");
+      anchor.classList.remove("ag-stock-ring-compacting");
+      compactBtn.classList.remove("compacting");
       compactBtn.innerHTML = `<span>Compact Failed</span>`;
-      setTimeout(() => { compactBtn.disabled = false; }, 1500);
+      setTimeout(() => {
+        compactBtn.disabled = false;
+        compactBtn.innerHTML = `
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="4 14 10 14 10 20"></polyline>
+            <polyline points="20 10 14 10 14 4"></polyline>
+            <line x1="14" y1="10" x2="21" y2="3"></line>
+            <line x1="3" y1="21" x2="10" y2="14"></line>
+          </svg>
+          <span>Compact</span>
+        `;
+      }, 1500);
     }
   });
 
