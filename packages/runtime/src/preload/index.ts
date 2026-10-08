@@ -164,6 +164,9 @@ const bridge: RuntimeBridge = {
     overlayMessageListeners.add(listener);
   },
   capturePage: (rect) => ipcRenderer.invoke(CHANNEL.capturePage, rect),
+  moveConversation: (conversationId: string, targetProjectId: string, targetWorkspaceUris?: string) =>
+    ipcRenderer.invoke(CHANNEL.moveConversation, conversationId, targetProjectId, targetWorkspaceUris),
+  getProjects: () => ipcRenderer.invoke(CHANNEL.getProjects),
   windowMaximize: () => ipcRenderer.invoke(CHANNEL.windowMaximize),
   windowFullscreen: (flag?: boolean) => ipcRenderer.invoke(CHANNEL.windowFullscreen, flag),
   log: (message) => report(message),

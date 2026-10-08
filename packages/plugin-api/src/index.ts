@@ -628,6 +628,7 @@ export interface PluginAccount {
   addAccount?(email: string): Promise<AccountProfile | null>;
   removeAccount?(email: string): Promise<AccountProfile | null>;
   getContextMetrics?(conversationId?: string): Promise<ContextMetrics | null>;
+  compactContext?(conversationId?: string): Promise<{ success: boolean; reclaimedPercentage?: number } | null>;
 }
 
 // ---------------------------------------------------------------------------

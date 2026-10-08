@@ -45,7 +45,8 @@ export function readContextMetrics(requestedSessionId?: string): ContextMetrics 
     }
   }
 
-  if (!transcriptPath && fs.existsSync(brainDir)) {
+  // Only scan brainDir automatically when no specific session ID was requested
+  if (!transcriptPath && !targetSessionId && fs.existsSync(brainDir)) {
     const now = Date.now();
     if (lastDiscoveredTranscriptPath && fs.existsSync(lastDiscoveredTranscriptPath)) {
       transcriptPath = lastDiscoveredTranscriptPath;
@@ -99,7 +100,7 @@ export function readContextMetrics(requestedSessionId?: string): ContextMetrics 
   let userTokens = 0;
   let modelTokens = 0;
   let toolTokens = 0;
-  const systemTokens = 8500;
+  const systemTokens = transcriptPath ? 8500 : 0;
   let stepCount = 0;
   let detectedModel = "";
 
@@ -110,7 +111,7 @@ export function readContextMetrics(requestedSessionId?: string): ContextMetrics 
 
       // Scan bottom-up for model detection matching user's ModelDetector
       for (let i = lines.length - 1; i >= 0; i--) {
-        const line = lines[i].trim();
+        const line = lines[i]?.trim();
         if (!line) continue;
         // Only match explicit model selection events
         const modelEventMatch = line.match(/(?:Model Selection`? from [^ ]+ to|"modelName":\s*"|"model":\s*")([A-Za-z0-9. ()-]+)/i);
@@ -314,3 +315,109 @@ export async function compactContextSession(requestedSessionId?: string): Promis
     };
   }
 }
+
+export function moveConversationToProject(
+  conversationId: string,
+  targetProjectId: string,
+  targetWorkspaceUris?: string
+): { success: boolean; message?: string } {
+  if (!conversationId || typeof conversationId !== "string") {
+    return { success: false, message: "Missing conversationId" };
+  }
+
+  const homedir = os.homedir();
+  const dbPath = path.join(homedir, ".gemini", "antigravity", "conversation_summaries.db");
+
+  if (!fs.existsSync(dbPath)) {
+    return { success: false, message: `Database file not found at ${dbPath}` };
+  }
+
+  try {
+    const sqliteModule = require("node:sqlite");
+    const DatabaseSync = sqliteModule?.DatabaseSync;
+    if (!DatabaseSync) {
+      return { success: false, message: "node:sqlite DatabaseSync is unavailable in this runtime" };
+    }
+
+    const db = new DatabaseSync(dbPath);
+
+    let workspaceUris = targetWorkspaceUris;
+    if (targetProjectId === "outside-of-project" || !targetProjectId) {
+      targetProjectId = "";
+      workspaceUris = "";
+    } else if (workspaceUris === undefined || workspaceUris === null) {
+      const sampleRow = db
+        .prepare("SELECT workspace_uris FROM conversation_summaries WHERE project_id = ? AND workspace_uris != '' LIMIT 1")
+        .get(targetProjectId) as { workspace_uris?: string } | undefined;
+      if (sampleRow?.workspace_uris) {
+        workspaceUris = sampleRow.workspace_uris;
+      } else {
+        workspaceUris = "";
+      }
+    }
+
+    const stmt = db.prepare(
+      "UPDATE conversation_summaries SET project_id = ?, workspace_uris = ? WHERE conversation_id = ?"
+    );
+    stmt.run(targetProjectId, workspaceUris, conversationId);
+
+    // Clean up any legacy rows set to 'outside-of-project' string
+    try {
+      db.prepare("UPDATE conversation_summaries SET project_id = '' WHERE project_id = 'outside-of-project'").run();
+    } catch {}
+
+    db.close?.();
+
+    return {
+      success: true,
+      message: `Updated conversation ${conversationId} to project ${targetProjectId || "standalone"}`
+    };
+  } catch (err: any) {
+    return {
+      success: false,
+      message: `Failed to update conversation: ${err?.message || String(err)}`
+    };
+  }
+}
+
+export function getProjects(): Array<{ projectId: string; label: string; workspaceUris: string; count: number }> {
+  const homedir = os.homedir();
+  const dbPath = path.join(homedir, ".gemini", "antigravity", "conversation_summaries.db");
+
+  if (!fs.existsSync(dbPath)) return [];
+
+  try {
+    const sqliteModule = require("node:sqlite");
+    const DatabaseSync = sqliteModule?.DatabaseSync;
+    if (!DatabaseSync) return [];
+
+    const db = new DatabaseSync(dbPath);
+    const rows = db.prepare(
+      "SELECT project_id, workspace_uris, COUNT(1) as count FROM conversation_summaries WHERE project_id != '' AND project_id != 'outside-of-project' GROUP BY project_id"
+    ).all() as Array<{ project_id: string; workspace_uris: string; count: number }>;
+    db.close?.();
+
+    return rows.map((r) => {
+      let label = r.project_id;
+      if (r.workspace_uris) {
+        try {
+          const parsed = JSON.parse(r.workspace_uris);
+          const uri = Array.isArray(parsed) ? parsed[0] : parsed;
+          if (typeof uri === "string") {
+            const clean = decodeURIComponent(uri.replace(/\/+$/, "").split("/").pop() || "");
+            if (clean) label = clean;
+          }
+        } catch {}
+      }
+      return {
+        projectId: r.project_id,
+        label,
+        workspaceUris: r.workspace_uris,
+        count: Number(r.count) || 0
+      };
+    });
+  } catch {
+    return [];
+  }
+}
+

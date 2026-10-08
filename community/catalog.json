@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-09-23T04:05:36.615Z",
+  "generatedAt": "2026-10-08T15:57:24.441Z",
   "entries": [
     {
       "id": "compact",
@@ -344,7 +344,7 @@
       "author": "Yashjit Pal",
       "source": "https://github.com/YashjitPal/BetterGravity",
       "path": "community/plugins/gemini-app",
-      "bytes": 1193575,
+      "bytes": 1199841,
       "files": [
         {
           "name": "assets/antigravity-mark.png",
@@ -363,8 +363,8 @@
         },
         {
           "name": "index.js",
-          "bytes": 518986,
-          "sha256": "a13e683d5f1bf56ed39da402448e7ad7f6ccb587f92f4ea327a3e5b921aaa47f"
+          "bytes": 521350,
+          "sha256": "9a158c9cb7838b0935855459d0217541e908a532eda59804c362c76e69c12334"
         },
         {
           "name": "plugin.json",
@@ -378,8 +378,8 @@
         },
         {
           "name": "styles/conversation.css",
-          "bytes": 79114,
-          "sha256": "d2bdc6b6b847c8292a31104d8d74a7323d2b45ce8e15db465b92b3a5917781ff"
+          "bytes": 83016,
+          "sha256": "ec587b225443bef9bb764840833750374bd5697f8818cfbf8c60aec8c139a282"
         },
         {
           "name": "styles/dialog.css",
@@ -525,7 +525,7 @@
       "author": "BetterGravity Community",
       "source": "https://github.com/YashjitPal/BetterGravity",
       "path": "community/plugins/in-built-browser",
-      "bytes": 807119,
+      "bytes": 810007,
       "files": [
         {
           "name": "index.js",
@@ -559,13 +559,13 @@
         },
         {
           "name": "skills/in-built-browser/COMPATIBILITY.md",
-          "bytes": 5355,
-          "sha256": "bd5ea1c56e4a17f664f1ffaa05479833759629ed981fe15ce4621e33361129f7"
+          "bytes": 6799,
+          "sha256": "f62fbc95f1f2772cfc5e231721897c60047662b5467380085a4ae46fb638e26c"
         },
         {
           "name": "skills/in-built-browser/SKILL.md",
-          "bytes": 18235,
-          "sha256": "cc1e04df85c85e9830a9e6052851ca2bccc962e9e3ebcc673cb5f83aea9fc1e6"
+          "bytes": 19679,
+          "sha256": "944ae15b1e7797ef5a32fd0559d7960278ab4b1223f54b3a2a08faac23156ce0"
         },
         {
           "name": "styles/browser.css",
@@ -963,6 +963,154 @@
       ]
     },
     {
+      "id": "stock-enhancer",
+      "kind": "plugin",
+      "name": "Native Pro",
+      "description": "Stock-preserving enhancement suite: model context ring beside chevron, context breakdown popover, instant window reveal, smooth conversation streaming, jump-to-bottom navigation, and response speed metrics.",
+      "version": "1.0.0",
+      "author": "BetterGravity",
+      "source": "https://github.com/YashjitPal/BetterGravity",
+      "path": "community/plugins/stock-enhancer",
+      "bytes": 256237,
+      "files": [
+        {
+          "name": "build.mjs",
+          "bytes": 436,
+          "sha256": "26019d36e607a372eadafa5befa0f51f8b3cee22dba4d8507a32b8b53ab38554"
+        },
+        {
+          "name": "index.js",
+          "bytes": 109765,
+          "sha256": "702984692de83263b83a7d6cc618d52db8a5f8941ab35b43ab9bc8e49c11aaf0"
+        },
+        {
+          "name": "package.json",
+          "bytes": 164,
+          "sha256": "896bce7c221211f3a3f240101cb66aa2c39550a7a47bf7544375bd61248e765a"
+        },
+        {
+          "name": "plugin.json",
+          "bytes": 429,
+          "sha256": "3ae35553aeafd642a4e2476429e1896f2c2ebe63a15ce95f83b338876ef7ab3c"
+        },
+        {
+          "name": "README.md",
+          "bytes": 1515,
+          "sha256": "c284c8d93c244a0e23953e07b904d0fbb32d2505e0398b1e6fd5c5ba5423c967"
+        },
+        {
+          "name": "src/audio.ts",
+          "bytes": 4469,
+          "sha256": "4b499da84fc61b384efcb44a6133aaadd760763d3d1f7a4f7ed3402df6ab589d"
+        },
+        {
+          "name": "src/config.ts",
+          "bytes": 6189,
+          "sha256": "056d35b7d7e0043dde5e2f6cee2601ecf9cc325579f39e8a7d8006dd92293d69"
+        },
+        {
+          "name": "src/context-ring/index.ts",
+          "bytes": 6742,
+          "sha256": "345dd311a1e11cd4c1eeac8c876280da3f762b5fe5e867ad6b1d71ee06b560cc"
+        },
+        {
+          "name": "src/context-ring/popover.ts",
+          "bytes": 11025,
+          "sha256": "ab8c35fe02c82a63cb0d61583e1151253509cf09d71222da18834a612e8bd595"
+        },
+        {
+          "name": "src/fork.ts",
+          "bytes": 4069,
+          "sha256": "4efd9be86f831aecb1159c9431e25ea0c1a5925f9f6dc431aa6cd7f354a46670"
+        },
+        {
+          "name": "src/index.ts",
+          "bytes": 2178,
+          "sha256": "e6f73eff8aa4e92b09aebd7776af1861dfa0ab35ee837d7b06267aa36cc784b7"
+        },
+        {
+          "name": "src/metrics/index.ts",
+          "bytes": 1792,
+          "sha256": "abfcbbbc12c2f45e082c930b532349d882b9156c1258c6473e32f654c08c4388"
+        },
+        {
+          "name": "src/projects/dnd.ts",
+          "bytes": 15629,
+          "sha256": "690915ae5444ac75d604d70e877bc9cfae3b16ad3c14a7bbe23569c289d251ca"
+        },
+        {
+          "name": "src/projects/helpers.ts",
+          "bytes": 9507,
+          "sha256": "e44d159d6308a50f0bed67a459ed543913f49c26cb2514d41e2b8634939e600c"
+        },
+        {
+          "name": "src/projects/index.ts",
+          "bytes": 345,
+          "sha256": "e515f360bdb04e6f0c6f191e117531b2ca53f1086708205cb4e026b77aea9daa"
+        },
+        {
+          "name": "src/projects/modal.ts",
+          "bytes": 3934,
+          "sha256": "f49461a61118c9f1d3f8c37911c4d65d42512a50795baeaf0295a4abb20f2d8a"
+        },
+        {
+          "name": "src/scroll/index.ts",
+          "bytes": 4213,
+          "sha256": "38cccb712d8d402fca4b4ba6db556ec9155656e0c5ebcf98c43ddc112c7c789e"
+        },
+        {
+          "name": "src/shared.ts",
+          "bytes": 12280,
+          "sha256": "157f8087d8c21243973b74a25bde1511f927d6165b28ea09e7c22a6f22d9c2ab"
+        },
+        {
+          "name": "src/side-question/index.ts",
+          "bytes": 139,
+          "sha256": "d5de6109b18981ce657427742dd2a207a6ee1a58004d9c077b73d55149160b02"
+        },
+        {
+          "name": "src/side-question/overlay.ts",
+          "bytes": 9221,
+          "sha256": "556ad984ac190664b873d3fb94d7b33ce0511efdf357f9455b97600cf1caffd4"
+        },
+        {
+          "name": "src/side-question/panel.ts",
+          "bytes": 6492,
+          "sha256": "c9772be6ff6a530da3d8f65ec2028a5bc095e63bbe4d267cf5706a5a1f6ef896"
+        },
+        {
+          "name": "src/side-question/state.ts",
+          "bytes": 2634,
+          "sha256": "1508022cb504b32f36d5228b5697d8a4f95a321d20bae04d4e6582d56162fde9"
+        },
+        {
+          "name": "src/side-question/toast.ts",
+          "bytes": 12225,
+          "sha256": "ae3ce926b617385a115145f07ccf3e1ff9b5db6cb2cc75a97851419a52d28a1c"
+        },
+        {
+          "name": "src/terminal/index.ts",
+          "bytes": 5854,
+          "sha256": "5ec06b3937a23e07d60160ddda05891524cf7c451c9a68bdcd0c724dd86dcd4c"
+        },
+        {
+          "name": "src/types.ts",
+          "bytes": 1782,
+          "sha256": "ef01eea9f729ccb4b874da8c3b23a941b74553d0bcaaeee36a80b759da96a6d9"
+        },
+        {
+          "name": "styles/stock-enhancer.css",
+          "bytes": 22873,
+          "sha256": "f60a28b12789e8cec9af2922bbecdca91042d2cefd8428f8e199b67a44c992c4"
+        },
+        {
+          "name": "tsconfig.json",
+          "bytes": 336,
+          "sha256": "2e8b33b721ec2f68a7028cb8e0a1c3cc81c3a2f61a050ddb10da5ab3886c3ec7"
+        }
+      ]
+    },
+    {
       "id": "yolo",
       "kind": "plugin",
       "name": "YOLO",
@@ -1017,12 +1165,12 @@
       "author": "BetterGravity Contributors",
       "source": "https://github.com/YashjitPal/BetterGravity",
       "path": "community/themes/cupertino-dark.css",
-      "bytes": 72215,
+      "bytes": 77107,
       "files": [
         {
           "name": "cupertino-dark.css",
-          "bytes": 72215,
-          "sha256": "8f2724052b07908fd6409209afc252ff7761a79da5cac4f5fd9672cce4064f77"
+          "bytes": 77107,
+          "sha256": "76a0ffd767ebf84589d0a6c688d494a36f20c124ce40457f3d430568bf21277c"
         }
       ]
     },

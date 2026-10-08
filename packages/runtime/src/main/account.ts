@@ -50,7 +50,9 @@ function parseJwtPayload(token: string): Record<string, unknown> | undefined {
   try {
     const parts = token.split(".");
     if (parts.length < 2) return undefined;
-    const base64 = parts[1].replace(/-/g, "+").replace(/_/g, "/");
+    const raw = parts[1];
+    if (!raw) return undefined;
+    const base64 = raw.replace(/-/g, "+").replace(/_/g, "/");
     const json = Buffer.from(base64, "base64").toString("utf8");
     const parsed = JSON.parse(json);
     return isRecord(parsed) ? parsed : undefined;
@@ -293,7 +295,7 @@ export function readAccountProfile(homeDirectory: string): AccountProfile {
             const weeklyPct = count > 0 ? Math.round((sumRemaining / count) * 100) : 100;
             accountLimits[qEmail] = { fiveHour: fiveHourPct, weekly: weeklyPct };
             if (!accountPlans[qEmail]) {
-              accountPlans[qEmail] = /pro/i.test(qEmail.split("@")[0]) ? "PRO" : "FREE";
+              accountPlans[qEmail] = /pro/i.test(qEmail.split("@")[0] || "") ? "PRO" : "FREE";
             }
           }
         }
@@ -309,7 +311,7 @@ export function readAccountProfile(homeDirectory: string): AccountProfile {
       cleanName = "Kurt";
     } else {
       const match = handle.match(/^([a-zA-Z]+)/);
-      const rawName = match ? match[1] : handle;
+      const rawName = (match ? match[1] : handle) || "Account";
       cleanName = rawName.charAt(0).toUpperCase() + rawName.slice(1);
     }
     firstName = cleanName;

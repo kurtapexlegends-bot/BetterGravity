@@ -2682,6 +2682,9 @@ const EXPERIENCES = [
 ];
 
 const conversationProjectMap = new Map();
+if (typeof window !== "undefined") {
+  window.__bettergravityConversationProjectMap = conversationProjectMap;
+}
 
 var listRerenderDispatcher = null;
 var isRerenderingList = false;
@@ -6207,6 +6210,9 @@ function triggerListRerender() {
     setTimeout(() => { isRerenderingList = false; }, 50);
   }
 }
+if (typeof window !== "undefined") {
+  window.__bettergravityTriggerListRerender = triggerListRerender;
+}
 
 function transformItems(items, fiber) {
   if (!Array.isArray(items) || items.length === 0) return items;
@@ -6234,13 +6240,21 @@ function transformItems(items, fiber) {
 
       if (it.type === 'row') {
         const cid = it.cascadeId || it.id;
-        const isProjectChat = conversationProjectMap.has(cid) || conversationProjectMap.has(cid + ':groupId');
-        if (it.groupId === 'pinned') {
+        let effectiveGroupId = it.groupId;
+        const override = conversationProjectMap.get(cid + ':override');
+        if (override === 'outside-of-project' || override === '') {
+          effectiveGroupId = 'standalone';
+        } else if (override) {
+          effectiveGroupId = override;
+        }
+
+        const isProjectChat = effectiveGroupId !== 'standalone' && (conversationProjectMap.has(cid) || conversationProjectMap.has(cid + ':groupId') || !!override);
+        if (it.groupId === 'pinned' || effectiveGroupId === 'pinned') {
           pinnedRows.push(it);
           continue;
         }
-        if (it.groupId === 'standalone' && !isProjectChat) {
-          chatItems.push(it);
+        if (effectiveGroupId === 'standalone' && !isProjectChat) {
+          chatItems.push(effectiveGroupId !== it.groupId ? { ...it, groupId: 'standalone' } : it);
           continue;
         }
         // Project chat -> skip in chat mode
@@ -6303,7 +6317,10 @@ function transformItems(items, fiber) {
   // Work mode: Show "Pinned Conversations" (all pinned chats at the top) and all project headers, project rows, and project show-mores.
   // Exclude unpinned standalone conversations.
   const pinnedRows = [];
-  const workItems = [];
+  const projectHeaders = [];
+  const projectRowsMap = new Map();
+  const projectShowMores = new Map();
+  const otherItems = [];
   let mainSectionHeaderItem = null;
 
   for (const it of items) {
@@ -6319,28 +6336,64 @@ function transformItems(items, fiber) {
     if (it.type === 'header') {
       const pid = (it.id || '').replace(/^header-/, '');
       if (pid && !firstDiscoveredProjectId) firstDiscoveredProjectId = pid;
-    }
-
-    if (it.type === 'row') {
-      if (it.groupId === 'pinned') {
-        pinnedRows.push(it);
-        continue;
-      }
-      if (it.groupId === 'standalone') {
-        continue; // Exclude unpinned standalone row in work mode
-      }
-      workItems.push(it);
+      projectHeaders.push(it);
+      if (pid && !projectRowsMap.has(pid)) projectRowsMap.set(pid, []);
       continue;
     }
 
     if (it.type === 'show-more') {
-      if (it.groupId === 'standalone') continue;
-      workItems.push(it);
+      const pid = it.groupId;
+      if (pid && pid !== 'standalone') {
+        projectShowMores.set(pid, it);
+      }
       continue;
     }
 
-    workItems.push(it);
+    if (it.type === 'row') {
+      const cid = it.cascadeId || it.id;
+      let effectiveGroupId = it.groupId;
+      const override = conversationProjectMap.get(cid + ':override');
+      if (override === 'outside-of-project' || override === '') {
+        effectiveGroupId = 'standalone';
+      } else if (override) {
+        effectiveGroupId = override;
+      }
+
+      if (it.groupId === 'pinned' || effectiveGroupId === 'pinned') {
+        pinnedRows.push(it);
+        continue;
+      }
+      if (effectiveGroupId === 'standalone') {
+        continue; // Exclude unpinned standalone row in work mode
+      }
+
+      const rowItem = effectiveGroupId !== it.groupId ? { ...it, groupId: effectiveGroupId } : it;
+      const targetBucket = projectRowsMap.get(effectiveGroupId);
+      if (targetBucket) {
+        targetBucket.push(rowItem);
+      } else {
+        projectRowsMap.set(effectiveGroupId, [rowItem]);
+      }
+      continue;
+    }
+
+    otherItems.push(it);
   }
+
+  const workItems = [];
+  for (const hdr of projectHeaders) {
+    workItems.push(hdr);
+    const pid = (hdr.id || '').replace(/^header-/, '');
+    const rows = projectRowsMap.get(pid);
+    if (rows && rows.length > 0) {
+      workItems.push(...rows);
+    }
+    const showMore = projectShowMores.get(pid);
+    if (showMore) {
+      workItems.push(showMore);
+    }
+  }
+  workItems.push(...otherItems);
 
   const result = [];
   const hasPinned = !!originalPinnedHeader || pinnedRows.length > 0;

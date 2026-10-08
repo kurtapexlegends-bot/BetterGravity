@@ -19,7 +19,7 @@ import {
   type SettingsPatch
 } from "../protocol.js";
 import { readAccountProfile, switchAccount, addAccount, removeAccount } from "./account.js";
-import { compactContextSession, readContextMetrics } from "./context.js";
+import { compactContextSession, getProjects, moveConversationToProject, readContextMetrics } from "./context.js";
 import { readGeminiPlugins, readPluginPatches, readPlugins, readThemes } from "./catalog.js";
 import { importPlugin, importThemeFolder, importThemes, installThemeText, removeItem, revealItem } from "./content.js";
 import { GeminiTranslator } from "./gemini/index.js";
@@ -264,6 +264,12 @@ function registerChannels(
   ipcMain.handle(CHANNEL.removeAccount, (_event, email: string) => removeAccount(app.getPath("home"), email));
   ipcMain.handle(CHANNEL.getContextMetrics, (_event, id?: string) => readContextMetrics(id));
   ipcMain.handle(CHANNEL.compactContext, (_event, id?: string) => compactContextSession(id));
+  ipcMain.handle(
+    CHANNEL.moveConversation,
+    (_event, conversationId: string, targetProjectId: string, targetWorkspaceUris?: string) =>
+      moveConversationToProject(conversationId, targetProjectId, targetWorkspaceUris)
+  );
+  ipcMain.handle(CHANNEL.getProjects, () => getProjects());
   ipcMain.handle(CHANNEL.capturePage, async (event, rect?: Electron.Rectangle) => {
     const win = BrowserWindow.fromWebContents(event.sender);
     if (!win) return null;

@@ -71,6 +71,8 @@ export interface RuntimeBridge {
   log(message: string): void;
   onStateChanged(listener: (state: RuntimeState) => void): void;
   capturePage?(rect?: { x: number; y: number; width: number; height: number }): Promise<string | null>;
+  moveConversation?(conversationId: string, targetProjectId: string, targetWorkspaceUris?: string): Promise<{ success: boolean; message?: string }>;
+  getProjects?(): Promise<Array<{ projectId: string; label: string; workspaceUris: string; count: number }>>;
   windowMaximize?(): Promise<boolean>;
   windowFullscreen?(flag?: boolean): Promise<boolean>;
 }

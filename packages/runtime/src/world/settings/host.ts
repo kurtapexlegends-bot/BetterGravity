@@ -410,7 +410,12 @@ export function installNativeSettings(api: BetterGravityApi, report: (message: s
 
   const openHostSettings = (): boolean => {
     const entry = [...document.querySelectorAll<HTMLElement>("button, a, [role=button]")]
-      .filter((candidate) => (candidate.textContent ?? "").trim() === "Settings")
+      .filter((candidate) => {
+        const text = (candidate.textContent ?? "").trim();
+        const label = candidate.getAttribute("aria-label") ?? "";
+        const testId = candidate.getAttribute("data-testid") ?? "";
+        return text === "Settings" || label === "Settings" || testId === "settings-button";
+      })
       .pop();
     if (!entry) return false;
     entry.click();

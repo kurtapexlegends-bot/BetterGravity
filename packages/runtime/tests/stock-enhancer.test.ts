@@ -53,6 +53,14 @@ describe("Native Pro (Stock Enhancer) functionality", () => {
     ui: {
       toast: vi.fn()
     },
+    overlay: {
+      open: vi.fn(async (surface: any) => ({
+        ok: true,
+        send: vi.fn(),
+        onMessage: vi.fn(),
+        close: vi.fn()
+      }))
+    },
     onDispose: (fn: () => void) => {
       cleanups.push(fn);
     }
@@ -60,6 +68,7 @@ describe("Native Pro (Stock Enhancer) functionality", () => {
 
   beforeEach(() => {
     vi.useFakeTimers();
+    vi.clearAllMocks();
     cleanups = [];
     compactCalls = [];
 
@@ -222,4 +231,151 @@ describe("Native Pro (Stock Enhancer) functionality", () => {
     // The native trigger remains in place
     expect(document.querySelector('[data-testid="model-selector-trigger"]')).toBeTruthy();
   });
+
+  it("self-heals and mounts cleanly on cold boot when DOM arrives asynchronously", async () => {
+    // Clear DOM completely to simulate early preload execution
+    document.body.innerHTML = "";
+
+    runPlugin();
+
+    // Verify nothing mounted yet (DOM was empty)
+    expect(document.querySelector(".ag-stock-ring-sibling")).toBeNull();
+    expect(document.querySelector(".ag-stock-jump-button")).toBeNull();
+
+    // Now simulate React mounting the UI after cold boot
+    document.body.innerHTML = `
+      <div data-testid="conversation-view" data-cascade-id="cold-boot-conv"></div>
+      <div data-testid="agent-input-box">
+        <button data-testid="model-selector-trigger">
+          <span>Gemini 3.8 Flash</span>
+        </button>
+      </div>
+    `;
+
+    // Wait for MutationObserver / timer ticks
+    await vi.advanceTimersByTimeAsync(450);
+
+    // Verify self-healed and mounted!
+    expect(document.querySelector(".ag-stock-ring-sibling")).toBeTruthy();
+    expect(document.querySelector(".ag-stock-jump-button")).toBeTruthy();
+  });
+
+  it("re-attaches context ring and jump button seamlessly after account switch / DOM recreation", async () => {
+    runPlugin();
+
+    expect(document.querySelector(".ag-stock-ring-sibling")).toBeTruthy();
+    expect(document.querySelector(".ag-stock-jump-button")).toBeTruthy();
+
+    // Simulate account sign-in / switch: React tears down DOM and mounts a new account shell
+    document.body.innerHTML = `
+      <div data-testid="conversation-view" data-cascade-id="switched-account-conv"></div>
+      <div data-testid="agent-input-box">
+        <button data-testid="model-selector-trigger">
+          <span>Gemini 3.1 Pro</span>
+        </button>
+      </div>
+    `;
+
+    // Wait for MutationObserver / timer ticks
+    await vi.advanceTimersByTimeAsync(450);
+
+    // Verify self-healed and re-mounted on the new account's view
+    expect(document.querySelector(".ag-stock-ring-sibling")).toBeTruthy();
+    expect(document.querySelector(".ag-stock-jump-button")).toBeTruthy();
+  });
+
+  it("does not render conversation status toast stack during running conversations", async () => {
+    const sidebar = document.createElement("div");
+    sidebar.innerHTML = `
+      <div data-testid="conversation-row-sidebar" data-cascade-id="convo-alpha">
+        <span class="truncate">Alpha Task</span>
+        <svg class="animate-spin" data-testid="status-loading-spinner"></svg>
+      </div>
+    `;
+    document.body.appendChild(sidebar);
+
+    runPlugin();
+    await vi.advanceTimersByTimeAsync(500);
+
+    expect(document.querySelector(".ag-convo-toast-stack")).toBeNull();
+    expect(document.querySelector(".ag-convo-toast")).toBeNull();
+  });
+
+  it("strictly prevents conversation-view from being draggable and injects inline move button on sidebar rows", async () => {
+    const sidebar = document.createElement("div");
+    sidebar.innerHTML = `
+      <div data-testid="conversation-row-sidebar" data-cascade-id="row-1">
+        <span class="truncate">Row 1 Conversation</span>
+        <button data-testid="conversation-kebab">···</button>
+      </div>
+    `;
+    document.body.appendChild(sidebar);
+
+    runPlugin();
+    await vi.advanceTimersByTimeAsync(100);
+
+    // 1. Ensure conversation view is NOT draggable (anti-ghosting root cause fix)
+    const convoView = document.querySelector('[data-testid="conversation-view"]');
+    expect(convoView?.getAttribute("draggable")).not.toBe("true");
+
+    // 2. Ensure sidebar row IS draggable
+    const row = document.querySelector('[data-testid="conversation-row-sidebar"]');
+    expect(row?.getAttribute("draggable")).toBe("true");
+
+    // 3. Ensure inline Move to Project button was injected into the row
+    const moveBtn = row?.querySelector(".ag-convo-move-btn");
+    expect(moveBtn).toBeTruthy();
+  });
+
+  it("opens move project picker modal and executes moveConversation bridge call", async () => {
+    let bridgeMoveCalled: { id: string; target: string } | null = null;
+    (window as any).__betterGravityBridge = {
+      moveConversation: vi.fn(async (id: string, target: string) => {
+        bridgeMoveCalled = { id, target };
+        return { success: true };
+      })
+    };
+
+    const sidebar = document.createElement("div");
+    sidebar.innerHTML = `
+      <div data-testid="conversation-row-sidebar" data-cascade-id="move-convo-target">
+        <span class="truncate">Move Me Task</span>
+        <button data-testid="conversation-kebab">···</button>
+      </div>
+    `;
+    document.body.appendChild(sidebar);
+
+    runPlugin();
+    await vi.advanceTimersByTimeAsync(100);
+
+    const moveBtn = document.querySelector('[data-cascade-id="move-convo-target"] .ag-convo-move-btn') as HTMLElement;
+    expect(moveBtn).toBeTruthy();
+
+    // Click move button to open picker modal
+    moveBtn.click();
+
+    const modal = document.querySelector(".ag-move-project-modal");
+    expect(modal).toBeTruthy();
+
+    // Click the first non-disabled project button in the modal
+    const projectBtn = modal?.querySelector(".ag-move-project-item:not([disabled])") as HTMLElement;
+    expect(projectBtn).toBeTruthy();
+    const targetProjectId = projectBtn.getAttribute("data-project-id");
+
+    projectBtn.click();
+    await vi.advanceTimersByTimeAsync(50);
+
+    expect((window as any).__betterGravityBridge.moveConversation).toHaveBeenCalledWith(
+      "move-convo-target",
+      targetProjectId
+    );
+    expect(bridgeMoveCalled).toEqual({
+      id: "move-convo-target",
+      target: targetProjectId
+    });
+
+    // Modal was closed after selection
+    expect(document.querySelector(".ag-move-project-modal")).toBeNull();
+  });
 });
+

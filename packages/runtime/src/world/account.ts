@@ -17,19 +17,26 @@ import { resolveBridge } from "./bridge.js";
 const NO_NAME: AccountProfile = {};
 
 let pending: Promise<AccountProfile> | undefined;
+let pendingTimestamp = 0;
+const CACHE_TTL_MS = 10000;
 
 export function createAccountTools(): PluginAccount {
   return {
     read: (forceRefresh = false) => {
-      if (!forceRefresh && pending) return pending;
+      const now = Date.now();
+      if (!forceRefresh && pending && now - pendingTimestamp < CACHE_TTL_MS) {
+        return pending;
+      }
 
       const bridge = resolveBridge();
       if (!bridge) return Promise.resolve(NO_NAME);
 
+      pendingTimestamp = now;
       pending = bridge.readAccount().then(
         (profile) => profile ?? NO_NAME,
         () => {
           pending = undefined;
+          pendingTimestamp = 0;
           return NO_NAME;
         }
       );
